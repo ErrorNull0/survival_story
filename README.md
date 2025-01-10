@@ -30,7 +30,7 @@ Upon extracting the zip file, the resulting `survival_story` folder should be pl
 - added an About tab
 
 ## Currnt Stat of Gameplay
-There is currently not much "game" to the gameplay yet. This release is primarily to allow testing of the features currently implemented. Use the "Help" tab within the main inventory window to give you ideas on what features to try out.
+There is currently not much "game" to the gameplay yet. This release is primarily to allow testing of the features currently implemented. **View the "Help" tab within the main inventory window to give you ideas on what features to try out.**
 
 Here are a few tips and things to keep in mind:
 
