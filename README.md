@@ -13,7 +13,7 @@ There is also a unique story underlying the player's circumstance, hinting as to
 Survival Story is very early in development and is planned to be a multi-year project. My goal is to create most features from scratch (and not rely on existing mods), so I can learn all aspects of the Luanti API in order to better optimize the game for multi-player. Any questions or comments let me know.
 
 ## Manual Install From .zip File
-Upon extracting the zip file, the resulting `survival_story` folder should be placed in the `games` folder of the main `Luanti` folder, like so:
+Upon extracting the zip file, the resulting `survival_story` folder should be placed in the `games` folder of the main Luanti folder, like so:
 
 `Luanti-5.10.0` > `games` > `survival_story`
 
@@ -30,7 +30,7 @@ Upon extracting the zip file, the resulting `survival_story` folder should be pl
 - added a Help tab with topics covering the custom game mechanics
 - added an About tab
 
-## Current Stat of Gameplay
+## Current State of Gameplay
 There is currently not much "game" to the gameplay yet. This release is primarily to allow testing of the features currently implemented. **View the "Help" tab within the main inventory window to give you ideas on what features to try out.**
 
 Here are a few tips and things to keep in mind:
