@@ -14,7 +14,8 @@ Survival Story is very early in development and is planned to be a multi-year pr
 
 ## Manual Install From .zip File
 Upon extracting the zip file, the resulting `survival_story` folder should be placed in the `games` folder of main Luanti folder, like so:
-	Luanti-5.10.0 > games > survival_story
+
+`Luanti-5.10.0` > `games` > `survival_story`
 
 ## Changelog for v0.0.2
 - pressing right mouse button while wielding a consumable item will temporarily display its remaining use count above the hotbar
