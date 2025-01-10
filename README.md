@@ -35,19 +35,21 @@ There is currently not much "game" to the gameplay yet. This release is primaril
 
 Here are a few tips and things to keep in mind:
 
-Start a new game with mapgen v7 with seed `666` or `777` which results in a good play area to test with.
+Create a new map with `mapgen v7` with seed `666` or `777` which results in a good play area to test with.
+
+This game was designed for screen resolution of at least `1600` **pixel width** and `1080` **pixel height**. This is to accomodate the custom inventory screen.
 
 Upon spawning into the world, the Player Setup window pops up. Customize your avatar and press Done when complete.
 
 For keyboard input control, it is recommended to set **Aux1** to `Left SHIFT`, **Sneak** to `Left Ctrl`, and **Inventory** to `TAB`. 
 
-You start with three admin tools in your inventory: the stats wand, item spawner, and teleporter. While wielding it, hold down the Aux1 key and press the primary action button to activate it. 
+For testing purposes, you start with three admin tools in your inventory: the `stats wand`, `item spawner`, and `teleporter`. While wielding it, hold down the Aux1 key and press the primary action button to activate it. 
 
-The stats wand allows you to manually manipulate any of your player stats - health, thirst, hunger, immunity, or santiy.
+The `stats wand` allows you to manually manipulate any of your player stats - health, thirst, hunger, immunity, or santiy.
 
-The item spawner allows you to spawn at your feet any of the custom made items in the game, as well as a few of the default items for testing.
+The `item spawner` allows you to spawn at your feet any of the custom made items in the game, as well as a few of the default items for testing.
 
-The teleporter allows you to quickly teleport 100 meters ahead of you or toward either side.
+The `teleporter` allows you to quickly teleport 100 meters ahead of you or toward either side.
 
 ## Credits
 Thanks to everyone on the Luanti forum and Discord server for continued answers, guidance, and feedback.
