@@ -1,0 +1,17 @@
+### This file defines the Lua tables (in caps) and the item names it contains. ###
+
+CAMPFIRE_NODE_NAMES, (all variations of the campfire node)
+ss:campfire_small_new
+ss:campfire_small_burning
+ss:campfire_small_used
+ss:campfire_small_spent
+
+CAMPFIRE_STAND_NAMES, (all variations of compfire stands)
+ss:campfire_stand_wood
+
+CAMPFIRE_GRILL_NAMES, (all variations of compfire grills)
+ss:campfire_grill_wood
+
+FIRE_STARTER_NAMES, (all fire starter items that are usable)
+ss:fire_drill
+ss:match_book

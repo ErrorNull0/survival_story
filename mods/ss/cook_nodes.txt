@@ -1,0 +1,132 @@
+### These nodes will gradually be heated/cooked/destroyed when adjactent to a burning campfire.
+### "drop" cook action causes the node to be destroyed and drops the specified item(s).
+### "replace" cook action causes the node to be swapped out by the specified node.
+### "destruct" cook action triggers the node's on_destruct function
+### The cook time will typically be 3x the cook time defined in item_attributes.txt
+### <node being heated>,<cook time in seconds>,<cooked action>,<resulting node or drops>
+
+### FOOD ###
+default:apple,45,drop,ss:apple_dried 1
+flowers:mushroom_brown,27,drop,ss:mushroom_brown_dried 1
+flowers:mushroom_red,27,drop,ss:mushroom_red_dried 1
+
+### RESOURCES ###
+ss:stick,540,drop,ss:charcoal 1
+
+### STONE ###
+default:mossycobble,126,replace,default:cobble
+
+### DIRT ###
+default:dirt_with_grass,60,replace,default:dirt_with_dry_grass
+default:dirt_with_grass_footsteps,60,replace,default:dirt
+default:dirt_with_dry_grass,48,replace,default:dirt
+default:dirt_with_snow,60,replace,default:dirt
+default:dirt_with_rainforest_litter,60,replace,default:dirt
+default:dirt_with_coniferous_litter,60,replace,default:dirt
+default:dry_dirt_with_dry_grass,48,replace,default:dry_dirt
+default:permafrost_with_moss,80,replace,default:permafrost
+
+### SNOW / ICE ###
+default:snow,50,replace,default:water_flowing
+default:snowblock,150,replace,default:water_flowing
+default:ice,500,replace,default:water_flowing
+default:cave_ice,800,replace,default:water_flowing
+
+### TREE BLOCKS ###
+default:tree,10000,drop,ss:wood 3,ss:charcoal 6
+default:jungletree,12000,drop,ss:wood 3,ss:charcoal 6
+default:pine_tree,10000,drop,ss:wood 3,ss:charcoal 6
+default:acacia_tree,10000,drop,ss:wood 3,ss:charcoal 6
+default:aspen_tree,10000,drop,ss:wood 3,ss:charcoal 6
+
+### WOOD BLOCKS ###
+default:wood,3300,drop,ss:charcoal 10
+default:junglewood,4000,drop,ss:charcoal 10
+default:pine_wood,3300,drop,ss:charcoal 10
+default:acacia_wood,3300,drop,ss:charcoal 10
+default:aspen_wood,3300,drop,ss:charcoal 10
+
+### BUSH STEMS ###
+default:bush_stem,650,drop,ss:stick 1,ss:charcoal 1
+default:acacia_bush_stem,650,drop,ss:stick 1,ss:charcoal 1
+default:pine_bush_stem,650,drop,ss:stick 1,ss:charcoal 1
+
+### SAPLINGS ###
+default:sapling,300,drop,ss:stick 1,ss:leaves_dry_clump 1
+default:junglesapling,300,drop,ss:stick 1,ss:leaves_dry_clump 1
+default:emergent_jungle_sapling,300,drop,ss:stick 1,ss:leaves_dry_clump 1
+default:pine_sapling,300,drop,ss:stick 1,ss:leaves_dry_clump 1
+default:acacia_sapling,300,drop,ss:stick 1,ss:leaves_dry_clump 1
+default:aspen_sapling,300,drop,ss:stick 1,ss:leaves_dry_clump 1
+
+default:large_cactus_seedling,300,drop,ss:stick 1,ss:ash 1
+default:bush_sapling,300,drop,ss:stick 1,ss:leaves_dry_clump 1
+default:acacia_bush_sapling,300,drop,ss:stick 1,ss:leaves_dry_clump 1
+default:pine_bush_sapling,300,drop,ss:stick 1,ss:ash 1
+default:blueberry_bush_sapling,300,drop,ss:stick 1,ss:leaves_dry_clump 1
+
+### PLANTLIFE ###
+default:cactus,2400,drop,ss:cactus 2,ss:cactus_dried 1
+default:papyrus,450,drop,ss:papyrus 2,ss:ash 1
+default:dry_shrub,750,drop,ss:stick 2,ss:leaves_dry_clump 1
+default:fern_1,250,drop,ss:ash 1
+default:fern_2,275,drop,ss:leaves_fern 1,ss:ash 1
+default:fern_3,300,drop,ss:leaves_fern 2,ss:ash 1
+flowers:rose,180,drop,ss:ash 1
+flowers:tulip,180,drop,ss:ash 1
+flowers:dandelion_yellow,180,drop,ss:ash 1
+flowers:chrysanthemum_green,180,drop,ss:ash 1
+flowers:geranium,180,drop,ss:ash 1
+flowers:viola,180,drop,ss:ash 1
+flowers:dandelion_white,180,drop,ss:ash 1
+flowers:tulip_black,180,drop,ss:ash 1
+flowers:waterlily,250,drop,ss:flower_waterlily 1
+flowers:waterlily_waving,250,drop,ss:flower_waterlily 1
+
+### LEAVES ###
+default:leaves,90,drop,ss:leaves_dry_clump 2
+default:jungleleaves,120,drop,ss:leaves_dry_clump 3
+default:acacia_leaves,90,drop,ss:leaves_dry_clump 2
+default:aspen_leaves,90,drop,ss:leaves_dry_clump 2
+default:bush_leaves,90,drop,ss:leaves_dry_clump 2
+default:acacia_bush_leaves,90,drop,ss:leaves_dry_clump 2
+default:blueberry_bush_leaves_with_berries,8,drop,ss:leaves_dry_clump 2,ss:blueberries_dried 1
+default:blueberry_bush_leaves,90,drop,ss:leaves_dry_clump 2
+default:pine_needles,90,drop,ss:ash 2
+default:pine_bush_needles,90,drop,ss:ash 2
+
+### GRASSES ###
+default:junglegrass,80,drop,ss:dry_grass_clump 3
+default:marram_grass_1,50,drop,ss:dry_grass_clump 1
+default:marram_grass_2,55,drop,ss:dry_grass_clump 2
+default:marram_grass_3,60,drop,ss:dry_grass_clump 3
+default:dry_grass_1,30,drop,ss:ash 1
+default:dry_grass_2,35,drop,ss:ash 2
+default:dry_grass_3,40,drop,ss:ash 2
+default:dry_grass_4,45,drop,ss:dry_grass_clump 1,ss:ash 1
+default:dry_grass_5,50,drop,ss:dry_grass_clump 1,ss:ash 2
+default:grass_1,40,drop,ss:dry_grass_clump 1
+default:grass_2,45,drop,ss:dry_grass_clump 2
+default:grass_3,50,drop,ss:dry_grass_clump 2
+default:grass_4,55,drop,ss:dry_grass_clump 2
+default:grass_5,60,drop,ss:dry_grass_clump 3
+
+### WOODEN OBJECTS ###
+default:bookshelf,3300,drop,ss:charcoal 10
+default:sign_wall_wood,1500,drop,ss:charcoal 1
+default:ladder_wood,2000,drop,ss:charcoal 3
+default:fence_wood,10,drop,ss:wood_plank 2,ss:charcoal 3
+default:fence_rail_wood,1500,drop,ss:stick 2,ss:charcoal 1
+default:mese_post_light,1000,drop,ss:stick 1,ss:charcoal 1
+
+### SPECIAL OBJECTS ### (typically for container type nodes)
+ss:itemdrop_bag,250,destruct
+ss:itemdrop_bag_in_water,500,destruct
+ss:itemdrop_box,350,destruct
+ss:bag_fiber_small,135,destruct
+ss:bag_fiber_medium,180,destruct
+ss:bag_fiber_large,225,destruct
+ss:bag_cloth_small,15,destruct
+#ss:bag_cloth_small,180,destruct
+ss:bag_cloth_medium,225,destruct
+ss:bag_cloth_large,270,destruct
