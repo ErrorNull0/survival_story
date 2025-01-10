@@ -37,7 +37,7 @@ Here are a few tips and things to keep in mind:
 
 Create a new map with `mapgen v7` with seed `666` or `777` which results in a good play area to test with.
 
-This game was designed for screen resolution of at least `1600` **pixel width** and `1080` **pixel height**. This is to accomodate the custom inventory window.
+This game was designed for screen resolution of at least `1600` **pixel width** and `1080` **pixel height**. This is to accommodate the custom inventory window.
 
 Upon spawning into the world, the Player Setup window pops up. Customize your avatar and press Done when complete.
 
