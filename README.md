@@ -29,7 +29,7 @@ Upon extracting the zip file, the resulting `survival_story` folder should be pl
 - added a Help tab with topics covering the custom game mechanics
 - added an About tab
 
-## Currnt Stat of Gameplay
+## Current Stat of Gameplay
 There is currently not much "game" to the gameplay yet. This release is primarily to allow testing of the features currently implemented. **View the "Help" tab within the main inventory window to give you ideas on what features to try out.**
 
 Here are a few tips and things to keep in mind:
@@ -49,4 +49,8 @@ The item spawner allows you to spawn at your feet any of the custom made items i
 The teleporter allows you to quickly teleport 100 meters ahead of you or toward either side.
 
 ## Credits
-Thanks to everyone on the Luanti forum and Discord server for continued answers, guidance, and feedback. Thanks to all modders in the community for their creations, which provide inspiration and insight for some of the features in Survival Story. And of course, big thanks to Celeron55 for founding the amazing Luanti engine, and the work by the core developers in continually refining and updating Luanti for years to come.
+Thanks to everyone on the Luanti forum and Discord server for continued answers, guidance, and feedback.
+
+Thanks to all modders in the community for their creations, which provide inspiration and insight for some of the features in Survival Story.
+
+And of course, big thanks to Celeron55 for founding the amazing Luanti engine, and the work by the core developers in continually refining and updating Luanti for years to come.
