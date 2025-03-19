@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 ### these are nodes that will drop items if another node relaces it. some nodes
 ### are commented out because they are not replaceable due to its 'buildable_to'
 ### property being overridden to 'false' from 103_node_overrides.lua. other nodes
@@ -67,74 +66,4 @@ flowers:mushroom_brown,ss:mushroom_brown
 flowers:mushroom_red,ss:mushroom_red
 
 # flowers:waterlily, (not replaceable)
-=======
-### these are nodes that will drop items if another node relaces it. some nodes
-### are commented out because they are not replaceable due to its 'buildable_to'
-### property being overridden to 'false' from 103_node_overrides.lua. other nodes
-### do not have an item drop specified because they are too small of a plant to
-### sensibly have any item drop, and also should be less in quantity than digging
-### it up in the normal means with a tool.
-### <node name>,<item dropped [quantity]>
-
-ss:stick,ss:stick
-ss:stone,ss:stone
-
-default:grass_1
-default:grass_2,ss:grass_clump 1
-default:grass_3,ss:grass_clump 1
-# default:grass_4, (not replaceable)
-# default:grass_5, (not replaceable)
-
-default:dry_grass_1
-default:dry_grass_2,ss:dry_grass_clump 1
-default:dry_grass_3,ss:dry_grass_clump 1
-# default:dry_grass_4, (not replaceable)
-# default:dry_grass_5, (not replaceable)
-
-default:marram_grass_1,ss:marram_grass_clump 1
-# default:marram_grass_2, (not replaceable)
-# default:marram_grass_3, (not replaceable)
-
-default:fern_1,ss:leaves_fern 1
-# default:fern_2, (not replaceable)
-# default:fern_3, (not replaceable)
-
-# default:dry_shrub, (not replaceable)
-# default:junglegrass, (not replaceable)
-
-farming:cotton_1
-farming:cotton_2
-farming:cotton_3,ss:leaves_clump
-farming:cotton_4,ss:leaves_clump
-# farming:cotton_5, (not replaceable)
-# farming:cotton_6, (not replaceable)
-# farming:cotton_7, (not replaceable)
-# farming:cotton_8, (not replaceable)
-# farming:cotton_wild, (not replaceable)
-
-farming:wheat_1
-farming:wheat_2
-farming:wheat_3,ss:grass_clump
-farming:wheat_4,ss:grass_clump
-# farming:wheat_5, (not replaceable)
-# farming:wheat_6, (not replaceable)
-# farming:wheat_7, (not replaceable)
-# farming:wheat_8, (not replaceable)
-
-default:snow,default:snow
-
-flowers:chrysanthemum_green,ss:flower_chrysanthemum_green_picked
-flowers:dandelion_white,ss:flower_dandelion_white_picked
-flowers:dandelion_yellow,ss:flower_dandelion_yellow_picked
-flowers:geranium,ss:flower_geranium_picked
-flowers:rose,ss:flower_rose_picked
-flowers:tulip,ss:flower_tulip_picked
-flowers:tulip_black,ss:flower_tulip_black_picked
-flowers:viola,ss:flower_viola_picked
-
-flowers:mushroom_brown,ss:mushroom_brown
-flowers:mushroom_red,ss:mushroom_red
-
-# flowers:waterlily, (not replaceable)
->>>>>>> 7965987 (update to version 0.0.3)
 # flowers:waterlily_waving, (not replaceable)
