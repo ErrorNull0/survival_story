@@ -2,7 +2,7 @@
 
 Developed by ErrorNull
 
-for `Luanti 5.10.0+`
+for `Luanti 5.11.0+`
 
 Survival Story is a game that incorporates survival mechanics inspired by games like 7 Days to Die, Project Zomboid, Don't Starve, and the RLCraft mod for Minecraft.
 
@@ -17,18 +17,27 @@ Upon extracting the zip file, the resulting `survival_story` folder should be pl
 
 `Luanti-5.10.0` > `games` > `survival_story`
 
-## Changelog for v0.0.2
-- pressing right mouse button while wielding a consumable item will temporarily display its remaining use count above the hotbar
-- added custom drop items for clay, ice block, kelp, corals, cactus, and papyrus
-- added item spawner admin tool
-- added basic teleport admin tool
-- cooldown hud image displays when performing actions like eating, drinking, and using items
-- added item pickup and inventory action sound effects that are unique to each item type
-- added custom swinging (hit miss) sound effects for all item types
-- added more custom tool break sound effects
-- ensured all items have custom pointing ranges
-- added a Help tab with topics covering the custom game mechanics
-- added an About tab
+## Changelog for v0.0.3
+- Added stat bars for Hygiene, Comfort, Sanity, and Happiness
+- Added ability to show or hide any stat bar (do so from Settings tab)
+- Added core functionality for Status Effects
+- Added core functionality for Biome Climate
+- Added Radiative temperature sources
+- Added basic water temperature mechanics
+- Status effects can be triggered by low stats
+- Status effects can be triggered by climate conditions
+- Added Status tab stat values, status effects, and thermal status
+- added Weather wand and Debug wand admin tools
+- added cook result description on all cookable items
+- added text colorization to some text notifications and tooltips
+- updated Help tab relating to latest features
+- updated code to reference 'Luanti' instead of Minetest
+- improved code that modifies player stats when items are used/consumed
+- improved code organization and interaction across lua files
+- fixed crafting recipe grid not updating when items dropped while viewing campfire or storage bag
+- fixed some item interaction while using the Bundle tab
+- fixed sound effects voiced by player avatar stacking/overlapping
+- fixed entity object used as player's wield item not removing when player dies
 
 ## Current State of Gameplay
 There is currently not much "game" to the gameplay yet. This release is primarily to allow testing of the features currently implemented. **View the "Help" tab within the main inventory window to give you ideas on what features to try out.**
@@ -43,11 +52,13 @@ Upon spawning into the world, the Player Setup window pops up. Customize your av
 
 For keyboard input control, it is recommended to set **Aux1** to `Left SHIFT`, **Sneak** to `Left Ctrl`, and **Inventory** to `TAB`. 
 
-For testing purposes, you start with three admin tools in your inventory: the `stats wand`, `item spawner`, and `teleporter`. While wielding it, hold down the Aux1 key and press the primary action button to activate it. 
+For testing purposes, you start with four admin tools in your inventory: the `stats wand`, `item spawner`, `weather wand`, and `teleporter`. While wielding an admin tool, hold down the Aux1 key and press the primary action button to activate it. 
 
-The `stats wand` allows you to manually manipulate any of your player stats - health, thirst, hunger, immunity, or santiy.
+The `stats wand` allows you to manually manipulate any of your player stats - health, thirst, hunger, alertness, hygiene, comfort, immunity, sanity, happiness, breath, stamina, experience, and weight.
 
 The `item spawner` allows you to spawn at your feet any of the custom made items in the game, as well as a few of the default items for testing.
+
+The `weather spawner` allows you temporarily modify the value ranges for air temperature, humidity, and wind of the current biome you are in. The biome's current air temperature and humidity will respond to your changes right away. In contrast, the current wind speed is updated every 10 - 60 seconds. Any changes are lost after game restart.
 
 The `teleporter` allows you to quickly teleport 100 meters ahead of you or toward either side.
 

@@ -1,5 +1,12 @@
+<<<<<<< HEAD
 Copyright (C) 2025 ErrorNull
 
 CC-BY-SA-4.0 license applies to all files in this folder.
 
+=======
+Copyright (C) 2025 ErrorNull
+
+CC-BY-SA-4.0 license applies to all files in this folder.
+
+>>>>>>> 7965987 (update to version 0.0.3)
 URL: https://creativecommons.org/licenses/by-sa/4.0/legalcode.en

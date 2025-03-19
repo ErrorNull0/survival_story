@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 ### <code name>,<hud name>,<hp>,<corpse hp>,<xp gain>,<armor fists>,<armor blunt>,<armor blade>,<armor spear>,<armor mining> ###
 ### The armor values are multiplied to the player's attack damage to determine actual hp depleted.
 ### Lower armor values mean higher protection and thus less hp delpleted by the mob. Zero is invulnerable.
@@ -19,4 +20,27 @@ ss:meat_raw_beef,6,100
 ss:meat_raw_beef,1,50
 ss:meat_raw_beef,1,50
 ss:animal_hide,2,100
+=======
+### <code name>,<hud name>,<hp>,<corpse hp>,<xp gain>,<armor fists>,<armor blunt>,<armor blade>,<armor spear>,<armor mining> ###
+### The armor values are multiplied to the player's attack damage to determine actual hp depleted.
+### Lower armor values mean higher protection and thus less hp delpleted by the mob. Zero is invulnerable.
+### Subsequent lines are the items dropped from harvesting the corpse <item name>,<quantity>,<probability>
+
+ss:chicken,Chicken,20,40,30,1.0,1.0,1.0,1.0,1.0
+ss:meat_raw_chicken,1,100
+ss:feather,6,100
+ss:feather,1,50
+ss:feather,1,50
+
+ss:boar,Boar,15,50,75,0.8,0.8,1.0,1.0,1.0
+ss:meat_raw_pork,2,100
+ss:meat_raw_pork,1,50
+ss:animal_hide,1,100
+
+ss:bear,Bear,350,700,525,0.6,0.6,0.8,0.9,0.8
+ss:meat_raw_beef,6,100
+ss:meat_raw_beef,1,50
+ss:meat_raw_beef,1,50
+ss:animal_hide,2,100
+>>>>>>> 7965987 (update to version 0.0.3)
 ss:animal_hide,1,50

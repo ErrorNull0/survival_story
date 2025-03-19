@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 ### <item name>,<damage buff>,<cold buff>, <heat buff>, <wetness buff>, <disease buff>, <radiation buff>, <noise level>, <item weight> ###
 ### 'item weight' property is pulled from 'item_weights.txt' during runtime ###
 
@@ -32,4 +33,40 @@ ss:armor_head_leather_2,4,4,4,7,2,0,2
 ss:armor_chest_leather_1,8,4,2,6,2,0,3
 ss:armor_arms_leather_1,6,3,1,4,2,0,3
 ss:armor_legs_leather_1,6,3,1,5,2,0,3
+=======
+### <item name>,<damage buff>,<cold buff>, <heat buff>, <wetness buff>, <disease buff>, <radiation buff>, <noise level>, <item weight> ###
+### 'item weight' property is pulled from 'item_weights.txt' during runtime ###
+
+### CLOTHING,damage,cold,heat,wetness,disease,radiation,noise ###
+ss:clothes_glasses,0,0,0,0,1,0,0,
+ss:clothes_sunglasses,0,0,2,0,1,0,0
+ss:clothes_scarf,1,5,2,2,1,0,1
+ss:clothes_necklace,0,0,0,0,0,0,0
+ss:clothes_shirt_fiber,4,3,1,3,1,0,8
+ss:clothes_tshirt,3,3,2,2,1,0,1
+ss:clothes_gloves_fiber,2,1,1,1,1,0,5
+ss:clothes_gloves_fingerless,2,2,1,1,1,0,2
+ss:clothes_gloves_leather,3,3,1,3,2,0,2
+ss:clothes_pants_fiber,3,3,1,3,1,0,8
+ss:clothes_pants,3,3,1,3,1,0,2
+ss:clothes_shorts,1,1,3,1,1,0,1
+ss:clothes_socks,2,2,1,2,1,0,1
+
+### ARMOR,damage,cold,heat,wetness,disease,radiation,noise ###
+ss:armor_feet_fiber_1,1,1,3,1,1,0,5
+ss:armor_feet_fiber_2,2,2,1,2,1,0,6
+ss:armor_head_cloth_2,3,3,3,4,1,0,1
+ss:armor_face_cloth_1,1,3,1,3,5,0,1
+ss:armor_face_cloth_2,1,1,1,2,8,0,1
+ss:armor_feet_cloth_2,3,3,1,2,1,0,2
+ss:armor_head_wood_1,6,1,1,3,2,0,4
+ss:armor_chest_wood_1,10,1,2,3,2,0,7
+ss:armor_arms_wood_1,8,1,1,2,2,0,7
+ss:armor_legs_wood_1,8,1,1,2,2,0,8
+ss:armor_head_leather_1,4,4,2,5,2,0,2
+ss:armor_head_leather_2,4,4,4,7,2,0,2
+ss:armor_chest_leather_1,8,4,2,6,2,0,3
+ss:armor_arms_leather_1,6,3,1,4,2,0,3
+ss:armor_legs_leather_1,6,3,1,5,2,0,3
+>>>>>>> 7965987 (update to version 0.0.3)
 ss:armor_feet_leather_1,3,3,1,4,2,0,3

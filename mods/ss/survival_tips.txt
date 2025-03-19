@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 Wood:
 Wood is an important resource used in crafting many useful items like wood planks and sticks. Trees are the most common source of wood. An axe is the best tool to gather wood from trees. 
 
@@ -113,3 +114,120 @@ Campfire Charcoal Crafting
 A campfire can be used to make charcoal by using any wooden material like sticks, wood, or wooden items. Instead of placing these item in as the campfire's fuel source, simply 'cook' it as an ingredient.
 
 
+=======
+Wood:
+Wood is an important resource used in crafting many useful items like wood planks and sticks. Trees are the most common source of wood. An axe is the best tool to gather wood from trees. 
+
+Sharpen that Stone:
+If you are empty handed and need wood, punching trees won't get you anywhere. Instead, craft a sharpened stone. It's not as durable or efficient as an axe, but it will at least get you some wood chunks.
+
+Small Stones:
+Small stones are used in many crafting items like stone tools and cobblestone. It can be found littered atop any dirt or grassy area, or near cliff sides, but not sand or snow. If you have a pickaxe, you can harvest stone piles by breaking down stone blocks located behind dirt layers or within caves. Small stones can be crafted from stones piles.
+
+Sticks:
+Sticks are a useful resource that is used to craft tools like axes, pick axes, swords, and torches. Sticks can found on the ground near trees, or can sometimes drop while chopping down leaves from trees and bushes. Sticks can also be obtianed by breakind down wood chunks.
+
+Thirst and Hunger:
+Your thirst and hunger will increases over time. Actions like harvesting, digging, and mining will get you hungry and thirsty a bit sooner than being idle. At a full stomach, you will go empty and start to starve after 24 hours. Dying of thirst takes about half that time. Your health and immune system will start to suffer once you're depleted of food and water.
+
+Health and Immunity:
+You immune system is closely tied to your health. Your immunity will slowly decline as your health lowers.
+
+Immunity Boosters:
+Antioxidant rich foods, vitamins, vaccines and boosters can directly increase your immunity.
+
+Sleep and Immunity:
+Sleep can help restore your immunity.
+
+Inventory Too Heavy?
+You can only hold so much in your inventory before it gets too heavy, at which point you will have no more strength to even take another step.
+
+Dead Weight:
+Is there a hotile rushing right at you? But, you can barely move cause you've hoarded all that loot? Better drop some stash to save your ash. You can always come back for the stuff later. Maybe.
+
+Pack Mule Fuel:
+If you plan on packing a big load, be sure to bring extra food and water. The more weight you carry, the more sweat and effort it takes to do all the survivaling - in other words, you get hungry and thirsty a bit sooner than you normally would.
+
+Survival Experience:
+Gain experience by performing actions like crafting, harvesting, mining, hunting, and defeating creatures. With enough experience, you will reach the next level of capabilities and stuff.
+
+Skill Points:
+Accumulating enough experience will grant you skill points which you can designate to improve your physical and mental abilities.
+
+First Aid:
+Use bandages and first aid kits to stop bleeding and recover health. Pain pills can block the pain and recover a good amount of health, but it's only temparory as some of the pain will return.
+
+Sleep and Alertness:
+You need sleep. As you continue to stay awake, your alertness will slowly drop. Sleeping is the only way to restore you alertness. Once it is fully drained, you will start to hallucinate and go crazy.
+
+It's Scary Out there!
+Being jump scared by dangerous creatures and flinching from their ugly faces takes a toll on your alertness, along with the stress that comes with fighting them off. Take care of your mental health, find your safe space and rest up once in a while.
+
+Not so fast, buddy!
+You're not the flash. Sometimes you must wait a few moments between actions before doing it again. Improving certain skills may allow you to shorten that interval.
+
+Down the Wrong Hole
+Some are better than others when it comes to not choking on their food and drink. If you do start choking, hopefully you won't pass out while attracting baddies nearby with all your coughing...
+
+Stress and Hiccups
+Sudden stressful incidents like jump scares, sneezing, and even choking can cause your diaphram to involuntarily spasm while your vocal cords slam shut - in other words, hiccup! It's not harmful, and will go a away after a short time.
+
+Avoiding Hiccups
+To minimize your chances of hiccups, simply avoid all scary situations, avoid digging or harvesting any plants or dirt, and avoid eating or drinking food. It's that easy.
+
+Coughing, Sneezing, Hiccups, and You
+These events are harmless, unless you happen to be sneaking near an area full of baddies. Stealth and all those face noises don't usually cooperate well. Furtunately, through focus and training (aka. leveling up) you can reduce your chances of becoming a noise becon.
+
+Plant Allergies
+Digging up plantlife like grass, leaves, ferns, and flowers, can shake loose pollens and trigger a sneezing spell. Improving your plant immunity will reduce the chance of these plants triggering you.
+
+Dust Allergies
+Digging up non-grassy dirt or dry dirt can cause a sneezing spell. Improving your dust immunity will reduce the chance of these plants triggering you.
+
+Masks, Allergies, and You
+Masks not only help gaurd against airborn viruses, but also against pollens and dust. If you're allergy prone and will be working near plants or dust, wear a mask to reduce your chances of sneezing all over the place.
+
+Animal Harvesting
+The hides of animals can be harvested for use in crafting other materials and also turned into leather.
+
+Attack Frenzy Failure
+Slow down with your swings. Trying to attack a threat too quickly will cause you to miss. The tool you use to strike also determines how slowly you need to pace yourself. For example, swinging with a shovel will require a longer wait time to land your hits compared to just using your fists.
+
+Crouching
+Press the 'sneak' key to crouch into a low space. Once underneath, release the sneak key to maintain crouching and continue your surviving. If you walk out of or dig away the overhead blocks, you will automatically stand back up.
+
+Crouched Jumping
+You cannot jump while crouching. But, you CAN crouch immeidately after jumping! This is a useful way to jump into a small hole in the wall. What will you do in there afterwards? That's only for you know...
+
+Stamina and Standing
+You restore stamina while standing still.
+
+Stamina and Walking
+You restore a small amount of stamina while walking.
+
+Stamina and Crouching
+You lose a small amount of stamina when crouching.
+
+How to Crouch-Sit on your Butt
+If you're crouched beneath a block, need to resore your stamina, and don't have tools to break the block above to allow standing, press the 'sneak' key to sit on your bottom. You're stamina can recover while sitting in this way. Press 'jump' to resume the crouching position.
+
+Limits of Crouch-Sitting
+To allow proper rest, any wielded weapon or tools are automaticaly placed in your inventory. You also cannot move - since that would not be resting! You can wield and use other items like food, medical items, and consumables. To get back up, press 'jump'.
+
+Campfire Ingredients
+A campfire only has one ingredient slot for cooking your desired item. More ingredient slots can be made available by adding a campfire stand or a campfire grill.
+
+Campfire Tools
+Tools can be added to a campfire to improve its functionality. A campfire stand and campfire grill will each add one more ingredient slot. Either of these tools will also increase the fuel slot by 1, but the total number fuel slots will not go higher than 2. The campfire grill also unlocks cooking of more food ingredients.
+
+Campfires
+A source of light and heat, and can be used to cook basic food items or create charcoal. Items that are nonflammable like stone, dirt, ashes, metals, etc. cannot be placed into a campfire for cooking. For fuel, anything flammable can extend its burning time.
+
+Campfire Food Cooking
+A campfire can be used to cook meats, fruits and vegatables. Once the item has been cooked, be sure to remove it from the flame or it will get charred or even just turn into a lump of ash.
+
+Campfire Charcoal Crafting
+A campfire can be used to make charcoal by using any wooden material like sticks, wood, or wooden items. Instead of placing these item in as the campfire's fuel source, simply 'cook' it as an ingredient.
+
+
+>>>>>>> 7965987 (update to version 0.0.3)
