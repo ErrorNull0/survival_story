@@ -25,7 +25,7 @@ local player_data = ss.player_data
 local consumable_items = {
     -- FIRE STARTERS
     --ItemStack("ss:fire_drill 5"),
-    ItemStack("ss:match_book 5"),
+    --ItemStack("ss:match_book 5"),
 
     -- FOOD CONTAINERS
     --ItemStack("ss:cup_wood_water_murky 5"),
@@ -47,8 +47,8 @@ local consumable_items = {
     --ItemStack("ss:pain_pills 5"),
     --ItemStack("ss:health_shot 5"),
     --ItemStack("ss:first_aid_kit 5"),
-    ItemStack("ss:splint 5"),
-    ItemStack("ss:cast 5"),
+    --ItemStack("ss:splint 5"),
+    --ItemStack("ss:cast 5"),
 }
 
 local normal_items = {
@@ -98,17 +98,17 @@ local normal_items = {
     --ItemStack("ss:bag_cloth_large 5"),
 
     -- CAMPFIRE
-    ItemStack("ss:campfire_small_new 5"),
+    --ItemStack("ss:campfire_small_new 5"),
     --ItemStack("ss:campfire_stand_wood 5"),
     --ItemStack("ss:campfire_grill_wood 5"),
 
     -- ADMIN
     ItemStack("ss:stats_wand"),
     ItemStack("ss:item_spawner"),
-    --ItemStack("ss:weather_wand"),
+    ItemStack("ss:weather_wand"),
     --ItemStack("ss:debug_wand"),
     --ItemStack("ss:sound_wand"),
-    --ItemStack("ss:teleporter"),
+    ItemStack("ss:teleporter"),
     --ItemStack("ss:mob_spawner"),
 }
 
@@ -116,12 +116,12 @@ local clothing_names = {
     --"shirt_fiber",
     --"pants_fiber",
     --"gloves_fiber",
-    "tshirt",
-    "pants",
+    --"tshirt",
+    --"pants",
     --"gloves_leather",
     --"gloves_fingerless",
-    "socks",
-    "scarf",
+    --"socks",
+    --"scarf",
     --"sunglasses",
     --"necklace",
     --"shorts",
@@ -134,16 +134,16 @@ local armor_names = {
     --"head_cloth_2",
     --"face_cloth_1",
     --"face_cloth_2",
-    "feet_cloth_2",
+    --"feet_cloth_2",
     --"head_wood_1",
     --"chest_wood_1",
     --"arms_wood_1",
     --"legs_wood_1",
-    "head_leather_1",
+    --"head_leather_1",
     --"head_leather_2",
-    "chest_leather_1",
-    "arms_leather_1",
-    "legs_leather_1",
+    --"chest_leather_1",
+    --"arms_leather_1",
+    --"legs_leather_1",
     --"feet_leather_1"
 }
 

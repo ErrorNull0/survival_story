@@ -6055,17 +6055,17 @@ core.register_on_joinplayer(function(player)
     if statbar_settings_string == "" then
         --debug(flag1, "  initializing statbar_settings table..")
         p_data.statbar_settings = {
-            health = {hud_pos = 11, active = true},
-            thirst = {hud_pos = 10, active = true},
-            hunger = {hud_pos = 9, active = true},
-            alertness = {hud_pos = 8, active = true},
-            hygiene = {hud_pos = 7, active = true},
-            comfort = {hud_pos = 6, active = true},
-            immunity = {hud_pos = 5, active = true},
-            sanity = {hud_pos = 4, active = true},
-            happiness = {hud_pos = 3, active = true},
-            legs = {hud_pos = 2, active = true},
-            hands = {hud_pos = 1, active = true},
+            health = {hud_pos = 1, active = true},
+            thirst = {hud_pos = 2, active = true},
+            hunger = {hud_pos = 3, active = true},
+            alertness = {hud_pos = 4, active = false},
+            hygiene = {hud_pos = 5, active = false},
+            comfort = {hud_pos = 6, active = false},
+            immunity = {hud_pos = 7, active = false},
+            sanity = {hud_pos = 8, active = false},
+            happiness = {hud_pos = 9, active = false},
+            legs = {hud_pos = 10, active = false},
+            hands = {hud_pos = 11, active = false},
         }
         player_meta:set_string("statbar_settings", mt_serialize(p_data.statbar_settings))
     else
