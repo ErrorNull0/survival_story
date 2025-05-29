@@ -7,13 +7,23 @@ local mt_show_formspec = core.show_formspec
 local mt_after = core.after
 local mt_get_gametime = core.get_gametime
 local debug = ss.debug
+local after_player_check = ss.after_player_check
 local notify = ss.notify
 local play_sound = ss.play_sound
 local build_fs = ss.build_fs
 local get_fs_player_avatar = ss.get_fs_player_avatar
 
-local current_tab = ss.current_tab
+-- cache global variables for faster access
+local texture_colors = ss.texture_colors
+local texture_saturations = ss.texture_saturations
+local texture_lightnesses = ss.texture_lightnesses
+local texture_contrasts = ss.texture_contrasts
 
+-- indexed by player name, this table stores the current tab that the player is
+-- viewing within the player setup window: body, skin, hair, eyes, or underwear.
+-- this is used to re-dsplay the current tab if player accidentally exits the
+-- setup window without clicking on Done button.
+local current_tab = {}
 
 local color_hex = {
 	"#ff0000", "#ff4d00", "#ff9900", "#ffe500", "#ccff00", "#80ff00", "#33ff00",
@@ -780,16 +790,179 @@ core.register_on_joinplayer(function(player)
 	local player_name = player:get_player_name()
 	local player_meta = player:get_meta()
 	local p_data = ss.player_data[player_name]
-	local player_status = p_data.player_status
+	local metadata
 
+	metadata = player_meta:get_string("avatar_body_type_selected")
+	p_data.avatar_body_type_selected = (metadata ~= "" and metadata) or "body_type1"
+
+	-- avatar SKIN properties
+
+	metadata = player_meta:get_string("avatar_texture_skin")
+	p_data.avatar_texture_skin = (metadata ~= "" and metadata) or "ss_player_skin_1.png"
+
+	metadata = player_meta:get_string("avatar_texture_skin_mask")
+	p_data.avatar_texture_skin_mask = (metadata ~= "" and metadata) or "ss_player_skin_1_mask.png"
+
+	metadata = player_meta:get_int("avatar_texture_skin_hue")
+	p_data.avatar_texture_skin_hue = (metadata ~= 0 and metadata) or texture_colors[2][2]
+
+	metadata = player_meta:get_int("avatar_texture_skin_sat")
+	p_data.avatar_texture_skin_sat = (metadata ~= 0 and metadata) or texture_colors[2][3]
+
+	metadata = player_meta:get_int("avatar_texture_skin_light")
+	p_data.avatar_texture_skin_light = (metadata ~= 0 and metadata) or texture_colors[2][4]
+
+	metadata = player_meta:get_int("avatar_texture_skin_sat_mod")
+	p_data.avatar_texture_skin_sat_mod = (metadata ~= 0 and metadata) or texture_saturations[8]
+
+	metadata = player_meta:get_int("avatar_texture_skin_light_mod")
+	p_data.avatar_texture_skin_light_mod = (metadata ~= 0 and metadata) or texture_lightnesses[8]
+
+	metadata = player_meta:get_int("avatar_texture_skin_contrast")
+	p_data.avatar_texture_skin_contrast = (metadata ~= 0 and metadata) or texture_contrasts[5]
+
+	-- avatar selected SKIN properties
+
+	metadata = player_meta:get_string("avatar_skin_color_selected")
+	p_data.avatar_skin_color_selected = (metadata ~= "" and metadata) or "color2"
+
+	metadata = player_meta:get_string("avatar_skin_saturation_selected")
+	p_data.avatar_skin_saturation_selected = (metadata ~= "" and metadata) or "saturation8"
+
+	metadata = player_meta:get_string("avatar_skin_lightness_selected")
+	p_data.avatar_skin_lightness_selected = (metadata ~= "" and metadata) or "lightness8"
+
+	metadata = player_meta:get_string("avatar_skin_contrast_selected")
+	p_data.avatar_skin_contrast_selected = (metadata ~= "" and metadata) or "contrast5"
+
+	-- avatar HAIR properties
+
+	metadata = player_meta:get_string("avatar_texture_hair")
+	p_data.avatar_texture_hair = (metadata ~= "" and metadata) or "ss_player_hair_1.png"
+
+	metadata = player_meta:get_string("avatar_texture_hair_mask")
+	p_data.avatar_texture_hair_mask = (metadata ~= "" and metadata) or "ss_player_hair_1_mask.png"
+
+	metadata = player_meta:get_int("avatar_texture_hair_hue")
+	p_data.avatar_texture_hair_hue = (metadata ~= 0 and metadata) or texture_colors[3][2]
+
+	metadata = player_meta:get_int("avatar_texture_hair_sat")
+	p_data.avatar_texture_hair_sat = (metadata ~= 0 and metadata) or texture_colors[3][3]
+
+	metadata = player_meta:get_int("avatar_texture_hair_light")
+	p_data.avatar_texture_hair_light = (metadata ~= 0 and metadata) or texture_colors[3][4]
+
+	metadata = player_meta:get_int("avatar_texture_hair_sat_mod")
+	p_data.avatar_texture_hair_sat_mod = (metadata ~= 0 and metadata) or texture_saturations[6]
+
+	metadata = player_meta:get_int("avatar_texture_hair_light_mod")
+	p_data.avatar_texture_hair_light_mod = (metadata ~= 0 and metadata) or texture_lightnesses[2]
+
+	metadata = player_meta:get_string("avatar_texture_hair_contrast")
+	p_data.avatar_texture_hair_contrast = (metadata ~= "" and metadata) or texture_contrasts[1]
+
+	-- avatar selected HAIR properties
+
+	metadata = player_meta:get_string("avatar_hair_color_selected")
+	p_data.avatar_hair_color_selected = (metadata ~= "" and metadata) or "color3"
+
+	metadata = player_meta:get_string("avatar_hair_saturation_selected")
+	p_data.avatar_hair_saturation_selected = (metadata ~= "" and metadata) or "saturation6"
+
+	metadata = player_meta:get_string("avatar_hair_lightness_selected")
+	p_data.avatar_hair_lightness_selected = (metadata ~= "" and metadata) or "lightness2"
+
+	metadata = player_meta:get_string("avatar_hair_contrast_selected")
+	p_data.avatar_hair_contrast_selected = (metadata ~= "" and metadata) or "contrast1"
+
+	metadata = player_meta:get_string("avatar_hair_type_selected")
+	p_data.avatar_hair_type_selected = (metadata ~= "" and metadata) or "hair_type1"
+
+	-- avatar EYES properties
+
+	metadata = player_meta:get_string("avatar_texture_eye")
+	p_data.avatar_texture_eye = (metadata ~= "" and metadata) or "ss_player_eyes_1.png"
+
+	metadata = player_meta:get_int("avatar_texture_eye_hue")
+	p_data.avatar_texture_eye_hue = (metadata ~= 0 and metadata) or texture_colors[2][2]
+
+	metadata = player_meta:get_int("avatar_texture_eye_sat")
+	p_data.avatar_texture_eye_sat = (metadata ~= 0 and metadata) or texture_colors[2][3]
+
+	metadata = player_meta:get_int("avatar_texture_eye_light")
+	p_data.avatar_texture_eye_light = (metadata ~= 0 and metadata) or texture_colors[2][4]
+
+	metadata = player_meta:get_int("avatar_texture_eye_sat_mod")
+	p_data.avatar_texture_eye_sat_mod = (metadata ~= 0 and metadata) or texture_saturations[4]
+
+	metadata = player_meta:get_int("avatar_texture_eye_light_mod")
+	p_data.avatar_texture_eye_light_mod = (metadata ~= 0 and metadata) or texture_lightnesses[4]
+
+	-- avatar selected EYES properties
+
+	metadata = player_meta:get_string("avatar_eye_color_selected")
+	p_data.avatar_eye_color_selected = (metadata ~= "" and metadata) or "color2"
+
+	metadata = player_meta:get_string("avatar_eye_saturation_selected")
+	p_data.avatar_eye_saturation_selected = (metadata ~= "" and metadata) or "saturation4"
+
+	metadata = player_meta:get_string("avatar_eye_lightness_selected")
+	p_data.avatar_eye_lightness_selected = (metadata ~= "" and metadata) or "lightness4"
+
+	-- avatar UNDERWEAR properties
+
+	metadata = player_meta:get_string("avatar_texture_underwear")
+	p_data.avatar_texture_underwear = (metadata ~= "" and metadata) or "ss_player_underwear_1.png"
+
+	metadata = player_meta:get_string("avatar_texture_underwear_mask")
+	p_data.avatar_texture_underwear_mask = (metadata ~= "" and metadata) or "ss_player_underwear_1_mask.png"
+
+	metadata = player_meta:get_int("avatar_texture_underwear_hue")
+	p_data.avatar_texture_underwear_hue = (metadata ~= 0 and metadata) or texture_colors[12][2]
+
+	metadata = player_meta:get_int("avatar_texture_underwear_sat")
+	p_data.avatar_texture_underwear_sat = (metadata ~= 0 and metadata) or texture_colors[12][3]
+
+	metadata = player_meta:get_int("avatar_texture_underwear_light")
+	p_data.avatar_texture_underwear_light = (metadata ~= 0 and metadata) or texture_colors[12][4]
+
+	metadata = player_meta:get_int("avatar_texture_underwear_sat_mod")
+	p_data.avatar_texture_underwear_sat_mod = (metadata ~= 0 and metadata) or texture_saturations[3]
+
+	metadata = player_meta:get_int("avatar_texture_underwear_light_mod")
+	p_data.avatar_texture_underwear_light_mod = (metadata ~= 0 and metadata) or texture_lightnesses[5]
+
+	metadata = player_meta:get_string("avatar_texture_underwear_contrast")
+	p_data.avatar_texture_underwear_contrast = (metadata ~= "" and metadata) or texture_contrasts[1]
+
+	-- avatar selected UNDERWEAR properties
+
+	metadata = player_meta:get_string("avatar_underwear_color_selected")
+	p_data.avatar_underwear_color_selected = (metadata ~= "" and metadata) or "color12"
+
+	metadata = player_meta:get_string("avatar_underwear_saturation_selected")
+	p_data.avatar_underwear_saturation_selected = (metadata ~= "" and metadata) or "saturation3"
+
+	metadata = player_meta:get_string("avatar_underwear_lightness_selected")
+	p_data.avatar_underwear_lightness_selected = (metadata ~= "" and metadata) or "lightness5"
+
+	metadata = player_meta:get_string("avatar_underwear_contrast_selected")
+	p_data.avatar_underwear_contrast_selected = (metadata ~= "" and metadata) or "contrast1"
+
+	-- avatar FACE properties
+
+	metadata = player_meta:get_string("avatar_texture_face")
+	p_data.avatar_texture_face = (metadata ~= "" and metadata) or "ss_player_face_1.png"
+
+	-- construct final base texture file from the separate texture parts
+	local avatar_texture_base = get_avatar_texture_base(p_data, 0)
+	p_data.avatar_texture_base = get_avatar_texture_base(p_data, 0)
+	player_meta:set_string("avatar_texture_base", p_data.avatar_texture_base)
+	debug(flag16, "  avatar_texture_base: " .. dump(avatar_texture_base))
+
+	local player_status = p_data.player_status
 	if player_status == 0 then
 		debug(flag16, "  new player")
-
-		-- construct final base texture file from the separate texture parts
-		local avatar_texture_base = get_avatar_texture_base(p_data, 0)
-		p_data.avatar_texture_base = avatar_texture_base
-		player_meta:set_string("avatar_texture_base", avatar_texture_base)
-		debug(flag16, "  avatar_texture_base: " .. dump(avatar_texture_base))
 
 		-- show player setup screen
 		p_data.active_tab = "player_setup"
@@ -799,8 +972,6 @@ core.register_on_joinplayer(function(player)
 
 	elseif player_status == 1 then
 		debug(flag16, "  existing player")
-		p_data.avatar_texture_base = get_avatar_texture_base(p_data, 0)
-		debug(flag16, "  avatar_texture_base: " .. p_data.avatar_texture_base)
 
 	elseif player_status == 2 then
 		debug(flag16, "  dead player")
@@ -808,12 +979,10 @@ core.register_on_joinplayer(function(player)
 	else
 	end
 
-	-- wait 1 second to allow engine to load player object before setting its properties
-	mt_after(1, function()
-		if not player:is_player() then
-			debug(flag16, "  player no longer exists. function skipped.")
-			return
-		end
+	-- wait for the next server tick to allow engine to load player object then
+	-- initialize the player properties
+	mt_after(0, function()
+		after_player_check(player)
 		player:set_properties({
 			visual = "mesh",
 			visual_size = {x = 1, y = 1},
@@ -891,7 +1060,7 @@ core.register_on_player_receive_fields(function(player, formname, fields)
 				formspec = get_fs_setup_skin(p_data)
 			end
 			mt_show_formspec(player_name, "ss:ui_player_setup", formspec)
-			notify(player,"press DONE button when ready", 4, 0, 0.5, 3)
+			notify(player, "system", "press DONE button when ready", 4, 0, 0.5, 3)
 		end
 
 	else
@@ -1374,6 +1543,9 @@ core.register_on_respawnplayer(function(player)
     local p_data = ss.player_data[player_name]
 	local player_meta = player:get_meta()
 
+	-- *** not resetting any p_data.avatar_<properties> settings to allow player to
+	-- keep existing avatar settings if desired during the player setup window ***
+
 	-- construct final base texture file from the separate texture parts
 	local avatar_texture_base = get_avatar_texture_base(p_data, 0)
 	p_data.avatar_texture_base = avatar_texture_base
@@ -1382,11 +1554,8 @@ core.register_on_respawnplayer(function(player)
 
 	debug(flag8, "  display player setup window in 1 second..")
     current_tab[player_name] = "body"
-	mt_after(1, function()
-		if not player:is_player() then
-			debug(flag8, "  player no longer exists. function skipped.")
-			return
-		end
+	mt_after(0, function()
+		after_player_check(player)
 		p_data.active_tab = "player_setup"
 		local formspec = get_fs_setup_body(p_data)
 		mt_show_formspec(player_name, "ss:ui_player_setup", formspec)

@@ -5,8 +5,47 @@ local debug = ss.debug
 
 -- cache global variables for faster access
 local ITEM_TOOLTIP = ss.ITEM_TOOLTIP
+
+
+--[[ table indexed by 'recipe_id', where the corresponding element is a subtable
+containing data relating to that recipe, like name, categories, icon, ingredients,
+etc. Currently initialized via  recipes.lua. Example:
+{
+    tool_axe_stone = {
+        ingredients = {
+                "ss:stick 2",
+                "ss:stone 4",
+                "ss:string 3"
+        },
+        icon = "default:axe_stone",
+        tools = { "none" },
+        name = "Stone Axe",
+        output = { "default:axe_stone" },
+        station = {
+                "hands",
+                "workstation"
+        },
+        categories = { "tools" }
+    },
+} --]]
+ss.RECIPES = {}
 local RECIPES = ss.RECIPES
+
+
+--[[ Holds the ingredients tied to a recipe item for crafting. Currently intialized
+via recipes.lua, but only the keys (recipe IDs). the function get_recipe_ingredients()
+sets the element data. Unlike the 'ingredients' property of a specific recipe, this
+table also 'expands' any ingredient that is a group item, allowing faster lookup of
+crafting requirements of a recipe. Example:
+{
+    tool_sharpened_stone = {},
+    tool_axe_stone = {},
+    tool_ladder_wood = {}
+}
+--]]
+ss.RECIPE_INGREDIENTS = {}
 local RECIPE_INGREDIENTS = ss.RECIPE_INGREDIENTS
+
 
 --[[ RECIPE PROPERTIES:
 
@@ -137,7 +176,7 @@ add_recipe({
 	name = "Rope",
 	icon = "ss:rope",
     output = {"ss:rope"},
-    ingredients = {"ss:plant_fiber 5", "ss:string 5"},
+    ingredients = {"ss:plant_fiber 3", "ss:string 3"},
 })
 
 add_recipe({
@@ -613,7 +652,7 @@ add_recipe({
 	name = "Fire Drill",
 	icon = "ss:fire_drill",
     output = {"ss:fire_drill"},
-    ingredients = {"ss:stick 2", "ss:wood", "ss:string 3"},
+    ingredients = {"ss:stick 2", "ss:wood", "ss:string 2"},
 })
 
 add_recipe({
@@ -792,7 +831,7 @@ add_recipe({
 	name = "Fiber Shirt",
 	icon = "ss:clothes_shirt_fiber",
     output = {"ss:clothes_shirt_fiber"},
-    ingredients = {"ss:plant_fiber 12", "ss:string 6"},
+    ingredients = {"ss:plant_fiber 12", "ss:string 4"},
 })
 
 add_recipe({
@@ -803,7 +842,7 @@ add_recipe({
 	name = "Fiber Pants",
 	icon = "ss:clothes_pants_fiber",
     output = {"ss:clothes_pants_fiber"},
-    ingredients = {"ss:plant_fiber 12", "ss:string 6"},
+    ingredients = {"ss:plant_fiber 12", "ss:string 3"},
 })
 
 add_recipe({
@@ -814,7 +853,7 @@ add_recipe({
 	name = "T-Shirt",
 	icon = "ss:clothes_tshirt",
     output = {"ss:clothes_tshirt"},
-    ingredients = {"ss:cloth 6", "ss:string 8"},
+    ingredients = {"ss:cloth 6", "ss:string 6"},
 })
 
 add_recipe({
@@ -825,7 +864,7 @@ add_recipe({
 	name = "Pants",
 	icon = "ss:clothes_pants",
     output = {"ss:clothes_pants"},
-    ingredients = {"ss:cloth 6", "ss:string 8"},
+    ingredients = {"ss:cloth 6", "ss:string 6"},
 })
 
 add_recipe({
@@ -836,7 +875,7 @@ add_recipe({
 	name = "Shorts",
 	icon = "ss:clothes_shorts",
     output = {"ss:clothes_shorts"},
-    ingredients = {"ss:cloth 4", "ss:string 4"},
+    ingredients = {"ss:cloth 4", "ss:string 3"},
 })
 
 add_recipe({
@@ -847,7 +886,7 @@ add_recipe({
 	name = "Socks",
 	icon = "ss:clothes_socks",
     output = {"ss:clothes_socks"},
-    ingredients = {"ss:cloth 2", "ss:string 2"},
+    ingredients = {"ss:cloth 2", "ss:string"},
 })
 
 add_recipe({
@@ -858,7 +897,7 @@ add_recipe({
 	name = "Scarf",
 	icon = "ss:clothes_scarf",
     output = {"ss:clothes_scarf"},
-    ingredients = {"ss:cloth 3", "ss:string 1"},
+    ingredients = {"ss:cloth 3", "ss:string"},
 })
 
 add_recipe({
@@ -869,7 +908,7 @@ add_recipe({
 	name = "Necklace",
 	icon = "ss:clothes_necklace",
     output = {"ss:clothes_necklace"},
-    ingredients = {"ss:string 1", "ss:scrap_glass"},
+    ingredients = {"ss:string", "ss:scrap_glass"},
 })
 
 add_recipe({
@@ -880,7 +919,7 @@ add_recipe({
 	name = "Fiber Gloves",
 	icon = "ss:clothes_gloves_fiber",
     output = {"ss:clothes_gloves_fiber"},
-    ingredients = {"ss:plant_fiber 2", "ss:string 4"},
+    ingredients = {"ss:plant_fiber 2", "ss:string 3"},
 })
 
 add_recipe({
@@ -891,7 +930,7 @@ add_recipe({
 	name = "Leather Gloves",
 	icon = "ss:clothes_gloves_leather",
     output = {"ss:clothes_gloves_leather"},
-    ingredients = {"ss:leather 3", "ss:string 4"},
+    ingredients = {"ss:leather 3", "ss:string 3"},
 })
 
 add_recipe({
@@ -902,7 +941,7 @@ add_recipe({
 	name = "Figerless Gloves",
 	icon = "ss:clothes_gloves_fingerless",
     output = {"ss:clothes_gloves_fingerless"},
-    ingredients = {"ss:cloth 2", "ss:leather", "ss:string 4"},
+    ingredients = {"ss:cloth 2", "ss:leather", "ss:string 3"},
 })
 
 
@@ -917,7 +956,7 @@ add_recipe({
 	name = "Fiber Sandals",
 	icon = "ss:armor_feet_fiber_1",
     output = {"ss:armor_feet_fiber_1"},
-    ingredients = {"ss:plant_fiber 3", "ss:string 4"},
+    ingredients = {"ss:plant_fiber 3", "ss:string 3"},
 })
 
 add_recipe({
@@ -928,7 +967,7 @@ add_recipe({
 	name = "Fiber Shoes",
 	icon = "ss:armor_feet_fiber_2",
     output = {"ss:armor_feet_fiber_2"},
-    ingredients = {"ss:plant_fiber 5", "ss:string 4"},
+    ingredients = {"ss:plant_fiber 5", "ss:string 3"},
 })
 
 add_recipe({
@@ -983,7 +1022,7 @@ add_recipe({
 	name = "Baseball Cap",
 	icon = "ss:armor_head_cloth_2",
     output = {"ss:armor_head_cloth_2"},
-    ingredients = {"ss:cloth 2", "ss:string 4"},
+    ingredients = {"ss:cloth 2", "ss:string 3"},
 })
 
 add_recipe({
@@ -994,7 +1033,7 @@ add_recipe({
 	name = "Bandana",
 	icon = "ss:armor_face_cloth_1",
     output = {"ss:armor_face_cloth_1"},
-    ingredients = {"ss:cloth 3", "ss:string 1"},
+    ingredients = {"ss:cloth 3", "ss:string"},
 })
 
 add_recipe({
@@ -1016,7 +1055,7 @@ add_recipe({
 	name = "Sneakers",
 	icon = "ss:armor_feet_cloth_2",
     output = {"ss:armor_feet_cloth_2"},
-    ingredients = {"ss:cloth 4", "ss:scrap_rubber 2", "ss:string 4"},
+    ingredients = {"ss:cloth 4", "ss:scrap_rubber 2", "ss:string 3"},
 })
 
 add_recipe({
@@ -1038,7 +1077,7 @@ add_recipe({
 	name = "Cowboy Hat",
 	icon = "ss:armor_head_leather_2",
     output = {"ss:armor_head_leather_2"},
-    ingredients = {"ss:leather 4", "ss:string 4"},
+    ingredients = {"ss:leather 4", "ss:string 3"},
 })
 
 add_recipe({
@@ -1049,7 +1088,7 @@ add_recipe({
 	name = "Leather Chest Armor",
 	icon = "ss:armor_chest_leather_1",
     output = {"ss:armor_chest_leather_1"},
-    ingredients = {"ss:leather 6", "ss:string 6"},
+    ingredients = {"ss:leather 6", "ss:string 4"},
 })
 
 add_recipe({
@@ -1060,7 +1099,7 @@ add_recipe({
 	name = "Leather Arm Guards",
 	icon = "ss:armor_arms_leather_1",
     output = {"ss:armor_arms_leather_1"},
-    ingredients = {"ss:leather 4", "ss:string 6"},
+    ingredients = {"ss:leather 4", "ss:string 4"},
 })
 
 add_recipe({
@@ -1071,7 +1110,7 @@ add_recipe({
 	name = "Leather Leg Guards",
 	icon = "ss:armor_legs_leather_1",
     output = {"ss:armor_legs_leather_1"},
-    ingredients = {"ss:leather 4", "ss:string 6"},
+    ingredients = {"ss:leather 4", "ss:string 4"},
 })
 
 add_recipe({
@@ -1082,14 +1121,8 @@ add_recipe({
 	name = "Leather Shoes",
 	icon = "ss:armor_feet_leather_1",
     output = {"ss:armor_feet_leather_1"},
-    ingredients = {"ss:leather 4", "ss:string 6"},
+    ingredients = {"ss:leather 4", "ss:string 4"},
 })
-
-
-
-
-
-
 
 
 
@@ -1108,7 +1141,7 @@ add_recipe({
 	name = "Stone Sword",
 	icon = "default:sword_stone",
     output = {"default:sword_stone"},
-    ingredients = {"ss:stick 2", "ss:stone 6", "ss:string 3"},
+    ingredients = {"ss:stick 2", "ss:stone 6", "ss:string 2"},
 })
 
 add_recipe({
@@ -1231,6 +1264,17 @@ add_recipe({
 	icon = "ss:splint",
     output = {"ss:splint"},
     ingredients = {"ss:stick 2", "ss:rope"},
+})
+
+add_recipe({
+    recipe_id = "medical_cast",
+    categories = {"medical"},
+    station = {"hands", "workstation"},
+    tools = {"none"},
+	name = "Cast",
+	icon = "ss:cast",
+    output = {"ss:cast"},
+    ingredients = {"ss:clay", "ss:cloth 2", "ss:string"},
 })
 
 add_recipe({

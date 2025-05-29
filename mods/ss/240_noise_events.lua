@@ -62,9 +62,9 @@ for node_name, noise_type in pairs(NOISE_EVENT_NODES) do
     local original_after_dig_node = core.registered_nodes[node_name].after_dig_node
     core.override_item(node_name, {
         after_dig_node = function(pos, oldnode, oldmetadata, digger)
-            debug(flag1, "\nafter_dig_node() for " .. node_name)
+            --debug(flag1, "\nafter_dig_node() for " .. node_name)
             if original_after_dig_node then
-                debug(flag1, " executing original code..")
+                --debug(flag1, " executing original code..")
                 original_after_dig_node(pos, oldnode, oldmetadata, digger)
             end
             start_try_noise(digger, digger:get_meta(), noise_type)

@@ -3,6 +3,7 @@ print("- loading notifications.lua")
 -- cache global functions for faster access
 local debug = ss.debug
 local mt_after = core.after
+local after_player_check = ss.after_player_check
 
 -- cache global variables for faster access
 local CRAFTITEM_ICON = ss.CRAFTITEM_ICON
@@ -126,11 +127,7 @@ end)
 local flag21 = false
 function ss.stop_item_cooldown(player, player_name, cooldown_type)
     debug(flag21, "\nstop_item_cooldown()")
-
-    if not player:is_player() then
-        print("player no longer exists. function skipped.")
-        return
-    end
+    after_player_check(player)
 
     local hud_id = player_hud_ids[player_name].notify_box_3
     local hud_id_bg = player_hud_ids[player_name].notify_box_3_bg

@@ -32,7 +32,7 @@ local mt_serialize = core.serialize
 local debug = ss.debug
 local get_fs_weight = ss.get_fs_weight
 local build_fs = ss.build_fs
-local update_stat = ss.update_stat
+local do_stat_update_action = ss.do_stat_update_action
 local round = ss.round
 local pos_to_key = ss.pos_to_key
 local key_to_pos = ss.key_to_pos
@@ -221,6 +221,7 @@ local ITEM_COOK_PATH = {
 	["ss:health_shot"] = { "ss:ash" },
 	["ss:first_aid_kit"] = { "ss:ash 2" },
 	["ss:splint"] = { "ss:charcoal" },
+	["ss:cast"] = { "ss:ash" },
 
 	-- items that will douse the fire. must be listed here as well as in the table
 	-- 'FIRE_DOUSE_ITEMS' to allow cooking worm-up mechanic, but table element
@@ -441,8 +442,8 @@ local function count_missing_items(player, itemstack)
     -- Extract item name and required count from the itemstack
     local item_name = itemstack:get_name()
     local target_count = itemstack:get_count()
-    debug(flag26, "    item_name: " .. item_name)
-    debug(flag26, "    target_count: " .. target_count)
+    --debug(flag26, "    item_name: " .. item_name)
+    --debug(flag26, "    target_count: " .. target_count)
 
     -- Calculate the total count of the item in the 'main' inventory
     local available_count = 0
@@ -455,17 +456,17 @@ local function count_missing_items(player, itemstack)
             end
         end
     end
-    debug(flag26, "    available_count: " .. available_count)
+    --debug(flag26, "    available_count: " .. available_count)
 
     -- Calculate the amount missing
     local missing_count = target_count - available_count
-    debug(flag26, "    missing_count: " .. missing_count)
+    --debug(flag26, "    missing_count: " .. missing_count)
 
     local return_val = 0
     if missing_count > 0 then
         return_val = missing_count
     end
-    debug(flag26, "    return_val: " .. return_val)
+    --debug(flag26, "    return_val: " .. return_val)
 
     debug(flag26, "  count_missing_items() END")
     return return_val
@@ -481,12 +482,12 @@ local function cancel_refresh_formspec_job(player_name)
 	debug(flag24, "  cancel_refresh_formspec_job()")
 	local job = campfire_jobs[player_name]
 	if job then
-		debug(flag24, "    campfire job found: " .. dump(job))
+		--debug(flag24, "    campfire job found: " .. dump(job))
 		job:cancel()
 		campfire_jobs[player_name] = nil
-		debug(flag24, "    campfire job cancelled!")
+		--debug(flag24, "    campfire job cancelled!")
 	else
-		debug(flag24, "    no campfire job found.")
+		--debug(flag24, "    no campfire job found.")
 	end
 	debug(flag24, "  cancel_refresh_formspec_job() END")
 end
@@ -497,14 +498,13 @@ local flag5 = false
 -- status and campfire fuel levels to dynamically display the correct campfire visuals.
 local function get_fs_campfire(player, player_name, pos)
 	debug(flag5, "\n    get_fs_campfire()")
-	debug(flag5, "      pos: " .. mt_pos_to_string(pos))
+	--debug(flag5, "      pos: " .. mt_pos_to_string(pos))
 	local player_meta = player:get_meta()
 	local node_meta = mt_get_meta(pos)
     local node_inv = node_meta:get_inventory()
 	local campfire_status = node_meta:get_string("campfire_status")
 
 	local formspec = ""
-	local x_pos = 0
 	local fs_output = {}
 	local curr_weight = player_meta:get_float("weight_current")
     local max_weight = player_meta:get_float("weight_max")
@@ -559,26 +559,26 @@ local function get_fs_campfire(player, player_name, pos)
 	local slot_bg_campfire_stand, slot_tooltip_campfire_stand
 	local campfire_stand_image = "ss_campfire_stand_wood_detailed.png"
 	if node_inv:is_empty("campfire_stand") then
-		debug(flag5, "      no campfire stand")
+		--debug(flag5, "      no campfire stand")
 		slot_bg_campfire_stand = "image[12.6,2.0;1,1;ss_ui_slot_campfire_stand.png;]"
 		slot_tooltip_campfire_stand = "tooltip[12.6,2.0;1,1;campfire stand slot]"
 	else
-		debug(flag5, "      campfire stand is in use")
+		--debug(flag5, "      campfire stand is in use")
 		local campfire_stand_item = node_inv:get_stack("campfire_stand", 1)
 		local campfire_stand_name = campfire_stand_item:get_name()
-		debug(flag5, "      campfire_stand_name: " .. campfire_stand_name)
+		--debug(flag5, "      campfire_stand_name: " .. campfire_stand_name)
 
 		-- retrieve current condition info
 		local item_meta = campfire_stand_item:get_meta()
 		local condition = item_meta:get_float("condition")
-		debug(flag5, "      condition: " .. condition)
+		--debug(flag5, "      condition: " .. condition)
 		if condition == 0 then
 			condition = WEAR_VALUE_MAX
 		elseif condition < 9000 then
 			campfire_stand_image = "ss_campfire_stand_wood_used_detailed.png"
 		end
 		local condition_ratio = condition / WEAR_VALUE_MAX
-		debug(flag5, "      condition_ratio: " .. condition_ratio)
+		--debug(flag5, "      condition_ratio: " .. condition_ratio)
 
 		-- display the campfire stand image
 		table_insert(fs_output, "image[9.2,1.3;3.5,3.5;" .. campfire_stand_image .. ";]")
@@ -617,19 +617,19 @@ local function get_fs_campfire(player, player_name, pos)
 	local slot_bg_campfire_grill, slot_tooltip_campfire_grill
 	local campfire_grill_image = "ss_campfire_grill_wood.png"
 	if node_inv:is_empty("campfire_grill") then
-		debug(flag5, "      no campfire grill")
+		--debug(flag5, "      no campfire grill")
 		slot_bg_campfire_grill = "image[12.6,3.5;1,1;ss_ui_slot_campfire_grill.png;]"
 		slot_tooltip_campfire_grill = "tooltip[12.6,3.5;1,1;campfire grill slot]"
 	else
-		debug(flag5, "      campfire grill is in use")
+		--debug(flag5, "      campfire grill is in use")
 		local campfire_grill_item = node_inv:get_stack("campfire_grill", 1)
 		local campfire_grill_name = campfire_grill_item:get_name()
-		debug(flag5, "      campfire_grill_name: " .. campfire_grill_name)
+		--debug(flag5, "      campfire_grill_name: " .. campfire_grill_name)
 
 		-- retrieve current condition info
 		local item_meta = campfire_grill_item:get_meta()
 		local condition = item_meta:get_float("condition")
-		debug(flag5, "      condition: " .. condition)
+		--debug(flag5, "      condition: " .. condition)
 
 		if condition == 0 then
 			condition = WEAR_VALUE_MAX
@@ -638,7 +638,7 @@ local function get_fs_campfire(player, player_name, pos)
 		end
 
 		local condition_ratio = condition / WEAR_VALUE_MAX
-		debug(flag5, "      condition_ratio: " .. condition_ratio)
+		--debug(flag5, "      condition_ratio: " .. condition_ratio)
 
 		-- display the campfire grill image
 		table_insert(fs_output, "image[9.95,2.8;1.8,1.8;" .. campfire_grill_image .. ";]")
@@ -655,14 +655,14 @@ local function get_fs_campfire(player, player_name, pos)
 	-- fire starter slot image
 	local slot_bg_fire_starter, slot_tooltip_fire_starter
 	if node_inv:is_empty("fire_starter") then
-		debug(flag5, "      no fire starter item present")
+		--debug(flag5, "      no fire starter item present")
 		slot_bg_fire_starter = "image[12.6,6.5;1,1;ss_ui_slot_fire_starter.png;]"
 		slot_tooltip_fire_starter = "tooltip[12.6,6.5;1,1;fire starter slot]"
 	else
-		debug(flag5, "      fire starter item is in use")
+		--debug(flag5, "      fire starter item is in use")
 		local fire_starter_item = node_inv:get_stack("fire_starter", 1)
 		local fire_starter_name = fire_starter_item:get_name()
-		debug(flag5, "      fire_starter_name: " .. fire_starter_name)
+		--debug(flag5, "      fire_starter_name: " .. fire_starter_name)
 
 		local item_meta = fire_starter_item:get_meta()
 		local remaining_uses = item_meta:get_int("remaining_uses")
@@ -680,34 +680,34 @@ local function get_fs_campfire(player, player_name, pos)
 
 	-- green icon bg image that conveys the fuel remaining of the currently-burning fuel item
 	local current_fuel_item_name = node_meta:get_string("current_fuel_item_name")
-	debug(flag5, "      current_fuel_item_name: " .. current_fuel_item_name)
+	--debug(flag5, "      current_fuel_item_name: " .. current_fuel_item_name)
 	if current_fuel_item_name ~= "" then
 		local fuel_burn_time_max
 		if current_fuel_item_name == "ss:item_bundle" then
-			debug(flag5, "      an item bundle")
+			--debug(flag5, "      an item bundle")
 			fuel_burn_time_max = node_meta:get_int("current_fuel_item_bundle_burn_time")
 		else
-			debug(flag5, "      not an item bundle")
+			--debug(flag5, "      not an item bundle")
 			fuel_burn_time_max = ITEM_BURN_TIMES[current_fuel_item_name]
 		end
-		debug(flag5, "        fuel_burn_time_max: " .. fuel_burn_time_max)
+		--debug(flag5, "        fuel_burn_time_max: " .. fuel_burn_time_max)
 
 		local fuel_burn_time_remaining = node_meta:get_int("burn_time_current_item")
-		debug(flag5, "        fuel_burn_time_remaining: " .. fuel_burn_time_remaining)
+		--debug(flag5, "        fuel_burn_time_remaining: " .. fuel_burn_time_remaining)
 		local burn_time_remaining = fuel_burn_time_remaining / fuel_burn_time_max
-		debug(flag5, "        burn_time_remaining %: " .. burn_time_remaining * 100)
+		--debug(flag5, "        burn_time_remaining %: " .. burn_time_remaining * 100)
 
 		local current_fuel_item_inv_image = node_meta:get_string("current_fuel_item_inv_image")
-		debug(flag5, "        current_fuel_item_inv_image: " .. current_fuel_item_inv_image)
+		--debug(flag5, "        current_fuel_item_inv_image: " .. current_fuel_item_inv_image)
 
 		local image_size = 0.5
 		local bar_height = image_size * burn_time_remaining
-		debug(flag5, "        green bar_height: " .. bar_height)
-		debug(flag5, "        green bar_height %: " .. bar_height / 0.5 * 100)
+		--debug(flag5, "        green bar_height: " .. bar_height)
+		--debug(flag5, "        green bar_height %: " .. bar_height / 0.5 * 100)
 		local bar_yoffset = image_size - bar_height
-		debug(flag5, "        green bar_yoffset: " .. bar_yoffset)
+		--debug(flag5, "        green bar_yoffset: " .. bar_yoffset)
 		local bar_ypos = 4.6 + bar_yoffset
-		debug(flag5, "        green bar_ypos: " .. bar_ypos)
+		--debug(flag5, "        green bar_ypos: " .. bar_ypos)
 
 		table_insert(fs_output, table_concat({
 			"image[10.6,4.6;", image_size, ",", image_size, ";[fill:1x1:#000000]",
@@ -791,8 +791,8 @@ local function get_fs_campfire(player, player_name, pos)
 
 		-- campfire fuel display
 		local burn_time_extra = node_meta:get_int("burn_time_extra")
-		debug(flag5, "      burn_time_extra: " .. burn_time_extra)
-		debug(flag5, "      burn_time_campfire: " .. burn_time_campfire)
+		--debug(flag5, "      burn_time_extra: " .. burn_time_extra)
+		--debug(flag5, "      burn_time_campfire: " .. burn_time_campfire)
 		burn_time_extra = round(burn_time_extra, 2)
 		local burn_time_icon = "ss_ui_iteminfo_attrib_burn_time.png"
 		local font_color_extra = "#999999"
@@ -819,8 +819,8 @@ local function get_fs_campfire(player, player_name, pos)
 		-- campfire weight values display
 		local weight_fuel_total = node_meta:get_float("weight_fuel_total")
 		local weight_fuel_max = node_meta:get_float("weight_fuel_max")
-		debug(flag5, "      weight_fuel_total: " .. weight_fuel_total)
-		debug(flag5, "      weight_fuel_max: " .. weight_fuel_max)
+		--debug(flag5, "      weight_fuel_total: " .. weight_fuel_total)
+		--debug(flag5, "      weight_fuel_max: " .. weight_fuel_max)
 		weight_fuel_total = round(weight_fuel_total, 2)
 		table_insert(fs_output, table_concat({
 				"image[11.5,5.7;0.6,0.6;ss_ui_iteminfo_attrib_weight.png;]",
@@ -836,13 +836,13 @@ local function get_fs_campfire(player, player_name, pos)
 	-- campfire buttons
 	local campfire_button
 	if campfire_status == "on" then
-		debug(flag5, "      campfire is ON")
+		--debug(flag5, "      campfire is ON")
 		campfire_button = "button[9.3,6.5;3.0,1;campfire_stop;Stop Campfire]"
 	elseif campfire_status == "off" then
-		debug(flag5, "      campfire is OFF")
+		--debug(flag5, "      campfire is OFF")
 		campfire_button = "button[9.3,6.5;3.0,1;campfire_start;Light Campfire]"
 	elseif campfire_status == "spent" then
-		debug(flag5, "      campfire is SPENT")
+		--debug(flag5, "      campfire is SPENT")
 		campfire_button = "button[9.3,6.5;3.0,1;campfire_rebuild;Rebuild Campfire]"
 	else
 		debug(flag5, "      ERROR: Unexpected 'campfire_status' value: " .. campfire_status)
@@ -866,17 +866,17 @@ local flag46 = false
 -- custom metadata is removed.
 local function reset_cook_data(item)
 	debug(flag46, "  reset_cook_data()")
-	debug(flag46, "    item name: " .. item:get_name())
+	--debug(flag46, "    item name: " .. item:get_name())
 
     local item_meta = item:get_meta()
     local in_cooldown = item_meta:get_int("in_cooldown")
     if in_cooldown > 0 then
-        debug(flag46, "    item was in cooldown. clearing cooking data..")
+        --debug(flag46, "    item was in cooldown. clearing cooking data..")
         item_meta:set_string("cooker", "")
         item_meta:set_string("in_cooldown", "")
         item_meta:set_string("cooldown_counter", "")
     else
-        debug(flag46, "    item not in cooldown")
+        --debug(flag46, "    item not in cooldown")
     end
 
 	debug(flag46, "  reset_cook_data() END")
@@ -885,8 +885,7 @@ end
 
 local function update_weight_data(player, player_meta, p_data, fs, weight_change)
 	-- update vertical statbar weight HUD
-	local update_data = {"normal", "weight", weight_change, 1, 1, "curr", "add", true}
-	update_stat(player, p_data, player_meta, update_data)
+	do_stat_update_action(player, p_data, player_meta, "normal", "weight", weight_change, "curr", "add", true)
 
 	-- update weight values display tied to inventory formspec
 	fs.center.weight = get_fs_weight(player)
@@ -905,11 +904,11 @@ end
 local flag23 = false
 local function refresh_formspec(pos, pos_key)
 	debug(flag23, "\nrefresh_formspec()")
-	debug(flag23, "  formspec_viewers: " .. dump(formspec_viewers))
+	--debug(flag23, "  formspec_viewers: " .. dump(formspec_viewers))
 	for i, player_name in ipairs(formspec_viewers[pos_key]) do
 		local player = mt_get_player_by_name(player_name)
 		mt_show_formspec(player_name, "ss:ui_campfire", get_fs_campfire(player, player_name, pos))
-		debug(flag23, "  formspec refreshed for user: " .. player_name)
+		--debug(flag23, "  formspec refreshed for user: " .. player_name)
 	end
 	debug(flag23, "refresh_formspec() END *** " .. mt_get_gametime() .. " ***")
 end
@@ -921,43 +920,43 @@ local function update_fuel_stats(node_meta, node_inv)
 
 	local fuel_slots = node_inv:get_list("fuel")
 	local fuel_slot_count = node_meta:get_int("slot_count_fuel")
-	debug(flag14, "  fuel_slot_count: " .. fuel_slot_count)
+	--debug(flag14, "  fuel_slot_count: " .. fuel_slot_count)
 
 	local weight_total = 0
 	local burn_time_extra = 0
 	for i = 1, fuel_slot_count do
 		local fuel_item = fuel_slots[i]
-		debug(flag14, "  checking slot #" .. i)
+		--debug(flag14, "  checking slot #" .. i)
 
 		if fuel_item:is_empty() then
-			debug(flag14, "    no fuel item exists there")
+			--debug(flag14, "    no fuel item exists there")
 
 		else
 
 			local item_burn_time, is_reduced = get_item_burn_time(fuel_item)
-			debug(flag14, "    item_burn_time: " .. item_burn_time)
+			--debug(flag14, "    item_burn_time: " .. item_burn_time)
 
 			if is_reduced then
-				debug(flag14, "    this was a reduce burn time value")
+				--debug(flag14, "    this was a reduce burn time value")
 				node_meta:set_int("burn_time_current_item_modded", item_burn_time)
 			end
 
 			-- calculate the total burn time for the campfire's 'extra fuel'
 			burn_time_extra = burn_time_extra + (item_burn_time * fuel_item:get_count())
-			debug(flag14, "    burn_time_extra: " .. burn_time_extra)
+			--debug(flag14, "    burn_time_extra: " .. burn_time_extra)
 
 			-- calculate campfire fuel weight total
 			local item_weight = round(get_itemstack_weight(fuel_item),2)
-			debug(flag14, "    item_weight: " .. item_weight)
+			--debug(flag14, "    item_weight: " .. item_weight)
 			weight_total = weight_total + item_weight
 		end
 
 	end
-	debug(flag14, "  burn_time_current_item: " .. node_meta:get_int("burn_time_current_item"))
+	--debug(flag14, "  burn_time_current_item: " .. node_meta:get_int("burn_time_current_item"))
 
 	burn_time_extra = burn_time_extra + node_meta:get_int("burn_time_current_item")
 	node_meta:set_int("burn_time_extra", burn_time_extra)
-	debug(flag14, "  burn_time_extra: " .. burn_time_extra)
+	--debug(flag14, "  burn_time_extra: " .. burn_time_extra)
 	node_meta:set_float("weight_fuel_total", round(weight_total,2))
 
 	debug(flag14, "update_fuel_stats() end")
@@ -970,25 +969,25 @@ local function reduce_ingred_fuel_slots(player, node_meta, node_inv, pos, slot_t
 
 	local metadata_label = "slot_count_" .. slot_to_reduce
 	local slot_count = node_meta:get_int(metadata_label)
-	debug(flag16, "    checking " .. slot_to_reduce .. " slot #" .. slot_count)
+	--debug(flag16, "    checking " .. slot_to_reduce .. " slot #" .. slot_count)
 
 	local slot_item = node_inv:get_stack(slot_to_reduce, slot_count)
 	if slot_item:is_empty() then
-		debug(flag16, "    slot is empty")
+		--debug(flag16, "    slot is empty")
 
 	else
 		local slot_item_name = slot_item:get_name()
-		debug(flag16, "    slot contains: " .. slot_item_name)
+		--debug(flag16, "    slot contains: " .. slot_item_name)
 
 		-- remove item from ingred/fuel slot since it will be dropped to ground
 		node_inv:set_stack(slot_to_reduce, slot_count, ItemStack(""))
 
-		debug(flag16, "    " .. slot_to_reduce .. " slots reduced due to removal/destruction of campfire tool")
-		debug(flag16, "    dropping item to ground: " .. slot_item_name)
+		--debug(flag16, "    " .. slot_to_reduce .. " slots reduced due to removal/destruction of campfire tool")
+		--debug(flag16, "    dropping item to ground: " .. slot_item_name)
 		mt_add_item(pos, slot_item)
 
 		if player then
-			notify(player, slot_to_reduce ..  " item dropped to ground.", NOTIFY_DURATION, 0.5, 0, 2)
+			notify(player, "inventory", slot_to_reduce ..  " item dropped to ground.", NOTIFY_DURATION, 0.5, 0, 2)
 		else
 			-- this is when campfire tool is destroyed on its own due to being worn
 			-- out in a lit campfire. there is no relevent player object in this
@@ -1009,21 +1008,21 @@ local function reduce_ingred_fuel_slots(player, node_meta, node_inv, pos, slot_t
 	-- the new reduced weight max. if so, the 'overage' quantity of that itemstack
 	-- is dropped to the ground.
 	if slot_to_reduce == "fuel" then
-		debug(flag16, "    fuel slot #2 was removed")
+		--debug(flag16, "    fuel slot #2 was removed")
 		node_meta:set_float("weight_fuel_max", FUEL_WEIGHT_MAX[1])
 
 		local fuel_item = node_inv:get_stack("fuel", 1)
 		if fuel_item:is_empty() then
-			debug(flag16, "    fuel slot #1 is empty")
+			--debug(flag16, "    fuel slot #1 is empty")
 		else
 			local fuel_item_name = fuel_item:get_name()
-			debug(flag16, "    fuel slot #1 contains: " .. fuel_item_name)
+			--debug(flag16, "    fuel slot #1 contains: " .. fuel_item_name)
 			local fuel_weight = get_itemstack_weight(fuel_item)
-			debug(flag16, "    fuel_weight: " .. fuel_weight)
+			--debug(flag16, "    fuel_weight: " .. fuel_weight)
 
 			local fuel_weight_max = FUEL_WEIGHT_MAX[1]
 			if fuel_weight > fuel_weight_max then
-				debug(flag16, "    ** exceeds the reduced fuel max weight **")
+				--debug(flag16, "    ** exceeds the reduced fuel max weight **")
 				local exceed_weight_amount = fuel_weight - fuel_weight_max
 
 				local single_fuel_item_weight
@@ -1032,25 +1031,25 @@ local function reduce_ingred_fuel_slots(player, node_meta, node_inv, pos, slot_t
 				else
 					single_fuel_item_weight = ITEM_WEIGHTS[fuel_item_name]
 				end
-				debug(flag16, "    single_fuel_item_weight: " .. single_fuel_item_weight)
+				--debug(flag16, "    single_fuel_item_weight: " .. single_fuel_item_weight)
 
 				local fuel_count_to_remove = math_ceil(exceed_weight_amount / single_fuel_item_weight)
-				debug(flag16, "    fuel_count_to_remove: " .. fuel_count_to_remove)
+				--debug(flag16, "    fuel_count_to_remove: " .. fuel_count_to_remove)
 
 				fuel_item:take_item(fuel_count_to_remove)
 				node_inv:set_stack("fuel", 1, fuel_item)
-				debug(flag16, "    fuel item in slot #1 reduced by: " .. fuel_count_to_remove)
+				--debug(flag16, "    fuel item in slot #1 reduced by: " .. fuel_count_to_remove)
 
 				update_fuel_stats(node_meta, node_inv)
-				debug(flag16, "    updated campfire formspec fuel values")
+				--debug(flag16, "    updated campfire formspec fuel values")
 
-				debug(flag16, "    fuel item in slot #1 reduced for exceeding max fuel weight")
-				debug(flag16, "    dropping the overage fuel quantity to ground..")
+				--debug(flag16, "    fuel item in slot #1 reduced for exceeding max fuel weight")
+				--debug(flag16, "    dropping the overage fuel quantity to ground..")
 				local exceeded_item = ItemStack({name = fuel_item_name, count = fuel_count_to_remove})
 				mt_add_item(pos, exceeded_item)
 
 			else
-				debug(flag16, "    within acceptable fuel weight limit")
+				--debug(flag16, "    within acceptable fuel weight limit")
 			end
 		end
 
@@ -1080,60 +1079,62 @@ local function apply_wear_tool(pos, node_meta, node_inv, tool_item, tool_type, d
 	-- capture item name in case the tool is about to be destroyed/removed, and use it
 	-- to retrieve 'cooked' tool result from ITEM_COOK_PATH table below
 	local item_name = tool_item:get_name()
-	debug(flag32, "        item_name: " .. item_name)
+	--debug(flag32, "        item_name: " .. item_name)
 
 	local tool_item_meta = tool_item:get_meta()
 	local condition = tool_item_meta:get_float("condition")
 	if condition == 0 then
-		debug(flag32, "        this is an unused campfire tool. condition intialized to: " .. WEAR_VALUE_MAX)
+		--debug(flag32, "        this is an unused campfire tool. condition intialized to: " .. WEAR_VALUE_MAX)
 		condition = WEAR_VALUE_MAX
 	end
-	debug(flag32, "        condition: " .. condition)
+	--debug(flag32, "        condition: " .. condition)
 
 	local wear_rate = round(TOOL_WEAR_RATES[tool_type], 2)
-	debug(flag32, "        wear_rate: " .. wear_rate)
-	debug(flag32, "        duration: " .. duration)
+	--debug(flag32, "        wear_rate: " .. wear_rate)
+	--debug(flag32, "        duration: " .. duration)
 	wear_rate = wear_rate * duration
-	debug(flag32, "        wear_rate x duration: " .. wear_rate)
+	--debug(flag32, "        wear_rate x duration: " .. wear_rate)
 	local random_modifier = wear_rate * math_random(-15,15) * 0.01
-	debug(flag32, "        random_modifier: " .. random_modifier)
+	--debug(flag32, "        random_modifier: " .. random_modifier)
 	wear_rate = wear_rate + random_modifier
-	debug(flag32, "        wear_rate + random_modifier: " .. wear_rate)
+	--debug(flag32, "        wear_rate + random_modifier: " .. wear_rate)
 	condition = condition - wear_rate
-	debug(flag32, "        new condition: " .. condition)
+	--debug(flag32, "        new condition: " .. condition)
 
 	if condition > 0 then
-		debug(flag32, "        " .. tool_type .. " still usable")
+		--debug(flag32, "        " .. tool_type .. " still usable")
 		update_meta_and_description(tool_item_meta, item_name, {"condition"}, {condition})
 		node_inv:set_stack(tool_type, 1, tool_item)
 
 	else
-		debug(flag32, "        " .. tool_type .. " destroyed")
+		--debug(flag32, "        " .. tool_type .. " destroyed")
 		node_inv:set_stack(tool_type, 1, ItemStack(""))
 		play_sound("item_break", {item_name = item_name, pos = pos})
 
-		debug(flag32, "        dropping heated tool result to ground..")
+		--debug(flag32, "        dropping heated tool result to ground..")
 		local tool_result_item = ItemStack(ITEM_DESTRUCT_PATH[item_name][1])
 		local tool_result_name = tool_result_item:get_name()
-		debug(flag32, "        tool_result: " .. tool_result_name .. " " .. tool_result_item:get_count())
+		--debug(flag32, "        tool_result: " .. tool_result_name .. " " .. tool_result_item:get_count())
 		mt_add_item(pos, tool_result_item)
 
 		reduce_ingred_fuel_slots(nil, node_meta, node_inv, pos, "ingredients")
 		local slot_count_fuel = node_meta:get_int("slot_count_fuel")
 		if slot_count_fuel == 2 then
-			debug(flag32, "        slot_count_fuel is 2")
+			--debug(flag32, "        slot_count_fuel is 2")
 
 			local slot_to_inspect = SLOT_TO_INSPECT[item_name]
-			debug(flag32, "        inspecting tool slot: " .. slot_to_inspect)
+			--debug(flag32, "        inspecting tool slot: " .. slot_to_inspect)
 
 			if node_inv:is_empty(slot_to_inspect) then
-				debug(flag32, "        " .. slot_to_inspect .. " not used. removing fuel slot..")
+				--debug(flag32, "        " .. slot_to_inspect .. " not used. removing fuel slot..")
 				reduce_ingred_fuel_slots(nil, node_meta, node_inv, pos, "fuel")
 			else
-				debug(flag32, "        " .. slot_to_inspect .. " currently used. fuel slots unmodified.")
+				--debug(flag32, "        " .. slot_to_inspect .. " currently used. fuel slots unmodified.")
 			end
 
-		else debug(flag32, "        slot_count_fuel is not 2.") end
+		else
+			--debug(flag32, "        slot_count_fuel is not 2.")
+		end
 	end
 
 	debug(flag32, "      apply_wear_tool() END")
@@ -1152,17 +1153,17 @@ local function add_wear_campfire_tools(campfire_pos, campfire_meta, campfire_inv
 
 	local tool_item = campfire_inv:get_stack("campfire_stand", 1)
 	if tool_item:is_empty() then
-		debug(flag33, "        campfire_stand not in use. not adding wear.")
+		--debug(flag33, "        campfire_stand not in use. not adding wear.")
 	else
-		debug(flag33, "        campfire_stand in use! adding wear..")
+		--debug(flag33, "        campfire_stand in use! adding wear..")
 		apply_wear_tool(campfire_pos, campfire_meta, campfire_inv, tool_item, "campfire_stand", wear_duration)
 	end
 
 	tool_item = campfire_inv:get_stack("campfire_grill", 1)
 	if tool_item:is_empty() then
-		debug(flag33, "        campfire_grill not in use. not adding wear.")
+		--debug(flag33, "        campfire_grill not in use. not adding wear.")
 	else
-		debug(flag33, "        campfire_grill in use! adding wear..")
+		--debug(flag33, "        campfire_grill in use! adding wear..")
 		apply_wear_tool(campfire_pos, campfire_meta, campfire_inv, tool_item, "campfire_grill", wear_duration)
 	end
 
@@ -1183,24 +1184,24 @@ local flag21 = false
 --- @param tool_type string can be either 'campfire_stand' or 'campfire_grill'
 local function burnout_campfire_tool(campfire_pos, campfire_meta, campfire_inv, burnout_time, data, elapsed_time, tool_type)
 	debug(flag21, "\n    burnout_campfire_tool()")
-	debug(flag21, "      tool_type: " .. tool_type)
-	debug(flag21, "      burnout_time: " .. burnout_time)
+	--debug(flag21, "      tool_type: " .. tool_type)
+	--debug(flag21, "      burnout_time: " .. burnout_time)
 
 	if data.elapsed_time_used then
-		debug(flag21, "      this is a subsequent burnout action")
+		--debug(flag21, "      this is a subsequent burnout action")
 		elapsed_time = data.elapsed_time_used
-		debug(flag21, "      elapsed_time taken from prior burnout action: " .. elapsed_time)
+		--debug(flag21, "      elapsed_time taken from prior burnout action: " .. elapsed_time)
 	else
-		debug(flag21, "      this is the 1st running burnout action")
-		debug(flag21, "      elapsed_time taken from main context: " .. elapsed_time)
+		--debug(flag21, "      this is the 1st running burnout action")
+		--debug(flag21, "      elapsed_time taken from main context: " .. elapsed_time)
 	end
 
 	if elapsed_time == 0 then
-		debug(flag21, "      no 'current fuel item' was present. tool wear will be calculated at later phase.")
+		--debug(flag21, "      no 'current fuel item' was present. tool wear will be calculated at later phase.")
 		data.elapsed_time_used = elapsed_time
 
 	else
-		debug(flag21, "      'current fuel item' was present. applying campfire tool wear based on that state..")
+		--debug(flag21, "      'current fuel item' was present. applying campfire tool wear based on that state..")
 		apply_wear_tool(
 			campfire_pos,
 			campfire_meta,
@@ -1230,54 +1231,54 @@ local flag20 = false
 --- @param item_type string should always be 'current_fuel_item'
 local function burnout_current_fuel_item(campfire_pos, campfire_meta, campfire_inv, burnout_time, data, elapsed_time, item_type)
 	debug(flag20, "\n    burnout_current_fuel_item()")
-	debug(flag20, "      burnout_time: " .. burnout_time)
+	--debug(flag20, "      burnout_time: " .. burnout_time)
 
 	if data.elapsed_time_used then
-		debug(flag21, "      this is a subsequent burnout action")
+		--debug(flag21, "      this is a subsequent burnout action")
 		elapsed_time = data.elapsed_time_used
-		debug(flag21, "      elapsed_time value is taken from prior burnout action: " .. elapsed_time)
+		--debug(flag21, "      elapsed_time value is taken from prior burnout action: " .. elapsed_time)
 	else
-		debug(flag21, "      this is the 1st running burnout action")
-		debug(flag21, "      elapsed_time value is taken from main context: " .. elapsed_time)
+		--debug(flag21, "      this is the 1st running burnout action")
+		--debug(flag21, "      elapsed_time value is taken from main context: " .. elapsed_time)
 	end
 
 	local burnout_time_remaining = burnout_time - elapsed_time
-	debug(flag20, "      burnout_time_remaining: " .. burnout_time_remaining)
+	--debug(flag20, "      burnout_time_remaining: " .. burnout_time_remaining)
 
 	if burnout_time_remaining > 0 then
-		debug(flag20, "      current fuel item still intact. updating burn time..")
+		--debug(flag20, "      current fuel item still intact. updating burn time..")
 		campfire_meta:set_int("burn_time_current_item", burnout_time_remaining)
-		debug(flag20, "      burn time reduced by " .. elapsed_time)
+		--debug(flag20, "      burn time reduced by " .. elapsed_time)
 		local burn_time_extra = campfire_meta:get_int("burn_time_extra")
-		debug(flag20, "      burn_time_extra: " .. burn_time_extra)
+		--debug(flag20, "      burn_time_extra: " .. burn_time_extra)
 		campfire_meta:set_int("burn_time_extra", burn_time_extra - elapsed_time)
-		debug(flag20, "      burn_time_extra_remaining: " .. campfire_meta:get_int("burn_time_extra"))
+		--debug(flag20, "      burn_time_extra_remaining: " .. campfire_meta:get_int("burn_time_extra"))
 
 		data.elapsed_time_used = elapsed_time
 
 	elseif burnout_time_remaining == 0 then
-		debug(flag20, "      current fuel item burned out, and all elapsed time now applied.")
+		--debug(flag20, "      current fuel item burned out, and all elapsed time now applied.")
 		campfire_meta:set_int("burn_time_current_item", 0)
 		campfire_meta:set_string("current_fuel_item_inv_image", "")
 		campfire_meta:set_string("current_fuel_item_name", "")
 
 		local burn_time_extra = campfire_meta:get_int("burn_time_extra")
-		debug(flag20, "      burn_time_extra: " .. burn_time_extra)
+		--debug(flag20, "      burn_time_extra: " .. burn_time_extra)
 		campfire_meta:set_int("burn_time_extra", burn_time_extra - elapsed_time)
-		debug(flag20, "      burn_time_extra_remaining: " .. campfire_meta:get_int("burn_time_extra"))
+		--debug(flag20, "      burn_time_extra_remaining: " .. campfire_meta:get_int("burn_time_extra"))
 
 		data.elapsed_time_used = burnout_time
 
 	else
-		debug(flag20, "      current fuel item burned out, and elapsed time still remain..")
+		--debug(flag20, "      current fuel item burned out, and elapsed time still remain..")
 		campfire_meta:set_int("burn_time_current_item", 0)
 		campfire_meta:set_string("current_fuel_item_inv_image", "")
 		campfire_meta:set_string("current_fuel_item_name", "")
 
 		local burn_time_extra = campfire_meta:get_int("burn_time_extra")
-		debug(flag20, "      burn_time_extra: " .. burn_time_extra)
+		--debug(flag20, "      burn_time_extra: " .. burn_time_extra)
 		campfire_meta:set_int("burn_time_extra", burn_time_extra - burnout_time)
-		debug(flag20, "      burn_time_extra_remaining: " .. campfire_meta:get_int("burn_time_extra"))
+		--debug(flag20, "      burn_time_extra_remaining: " .. campfire_meta:get_int("burn_time_extra"))
 
 		data.elapsed_time_remain = -burnout_time_remaining
 		data.elapsed_time_used = burnout_time
@@ -1304,15 +1305,15 @@ local function cook_ingredient(item, slot_index, node_inv, pos, duration)
 	debug(flag39, "    cook_ingredient()")
 
 	local item_name = item:get_name()
-	debug(flag39, "      item_name: " .. item_name)
+	--debug(flag39, "      item_name: " .. item_name)
 
 	local item_meta = item:get_meta()
 	--debug(flag39, "      item_meta: " .. dump(item_meta:to_table()))
 
 	local heat_progress = item_meta:get_float("heat_progress")
-	debug(flag39, "      current heat_progress: " .. heat_progress)
+	--debug(flag39, "      current heat_progress: " .. heat_progress)
 	local heat_rate = ITEM_HEAT_RATES[item_name]
-	debug(flag39, "      heat_rate: " .. heat_rate)
+	--debug(flag39, "      heat_rate: " .. heat_rate)
 	-- heat_rate = 1539  -- for testing
 
 	-- charcoal is the only item that can result in quantity greater than 1 within
@@ -1320,95 +1321,93 @@ local function cook_ingredient(item, slot_index, node_inv, pos, duration)
 	-- is decreased for the stack of charcol based on its count/quantity.
 	local quantity = 1
 	if item_name == "ss:charcoal" then
-		debug(flag39, "      this is charcoal")
+		--debug(flag39, "      this is charcoal")
 		quantity = item:get_count()
-		debug(flag39, "      quantity: " .. quantity)
+		--debug(flag39, "      quantity: " .. quantity)
 		if quantity > 1 then
-			debug(flag39, "      quantity is more than 1. reducing heat rate by quantity factor..")
-			debug(flag39, "      current heat_rate: " .. heat_rate)
+			--debug(flag39, "      quantity is more than 1. reducing heat rate by quantity factor..")
+			--debug(flag39, "      current heat_rate: " .. heat_rate)
 			heat_rate = heat_rate / quantity
-			debug(flag39, "      new heat_rate: " .. heat_rate)
+			--debug(flag39, "      new heat_rate: " .. heat_rate)
 		end
 	end
 
 	-- during normal campfire use, 'duration' is 1 second, but can be much longer
 	-- due to player returning to an lit campfire that was previously unloaded and
 	-- thus it needs to apply all elapsed time since the campfire was unloaded
-	debug(flag39, "      duration: " .. duration)
+	--debug(flag39, "      duration: " .. duration)
 	heat_rate = heat_rate * duration
-	debug(flag39, "      heat_rate x duration: " .. heat_rate)
+	--debug(flag39, "      heat_rate x duration: " .. heat_rate)
 
 	local random_modifier = heat_rate * math_random(-15,15) * 0.01
-	debug(flag39, "      random_modifier: " .. random_modifier)
+	--debug(flag39, "      random_modifier: " .. random_modifier)
 	heat_rate = heat_rate + random_modifier
-	debug(flag39, "      heat_rate + random_modifier: " .. heat_rate)
+	--debug(flag39, "      heat_rate + random_modifier: " .. heat_rate)
 	heat_progress = heat_progress + heat_rate
-	debug(flag39, "      new heat_progress: " .. heat_progress)
+	--debug(flag39, "      new heat_progress: " .. heat_progress)
 
 	if heat_progress < COOK_THRESHOLD then
-		debug(flag39, "      ingredient still cooking further..")
+		--debug(flag39, "      ingredient still cooking further..")
 		update_meta_and_description(item_meta, item_name, {"heat_progress"}, {heat_progress})
 		node_inv:set_stack("ingredients", slot_index, item)
 
 	else
-		debug(flag39, "      ***** INGREDIENT COOKED *****")
+		--debug(flag39, "      ***** INGREDIENT COOKED *****")
 		play_sound("campfire_cooked", {pos = pos})
 
 		-- give experience to the player assigned as the 'cooker' for the item
 		local cooker = item_meta:get_string("cooker")
-		debug(flag39, "      awarding xp to the cooker: " .. cooker)
-		local xp_gain_cooking = player_data[cooker].experience_gain_cooking * quantity
-		debug(flag39, "      xp_gain_cooking: " .. xp_gain_cooking)
+		--debug(flag39, "      awarding xp to the cooker: " .. cooker)
+		local p_data = player_data[cooker]
+		local xp_gain_cooking = player_data[cooker].experience_gain_cooking * quantity * p_data.experience_rec_mod_fast_learner
+		--debug(flag39, "      xp_gain_cooking: " .. xp_gain_cooking)
 
 		-- store xp to mod storage if player is offline to ensure it is awarded
 		-- once player reterns to game
 		local player = mt_get_player_by_name(cooker)
 		if player then
-			local p_data = player_data[player:get_player_name()]
-			local update_data = {"normal", "experience", xp_gain_cooking, 1, 1, "curr", "add", true}
-			update_stat(player, p_data, player:get_meta(), update_data)
-
-			debug(flag39, "      player XP increased successfully")
+			do_stat_update_action(player, p_data, player:get_meta(), "normal", "experience", xp_gain_cooking, "curr", "add", true)
+			--debug(flag39, "      player XP increased successfully")
 		else
-			debug(flag39, "      player offline: " .. cooker)
-			debug(flag39, "      saving XP gain for when player returns..")
+			--debug(flag39, "      player offline: " .. cooker)
+			--debug(flag39, "      saving XP gain for when player returns..")
 			local meta_key = "xp_cooking_" .. cooker
 			local existing_xp_cooking_owed = mod_storage:get_float(meta_key)
-			debug(flag39, "      existing_xp_cooking_owed: " .. existing_xp_cooking_owed)
+			--debug(flag39, "      existing_xp_cooking_owed: " .. existing_xp_cooking_owed)
 			local total_xp_owed = existing_xp_cooking_owed + xp_gain_cooking
-			debug(flag39, "      total_xp_owed: " .. total_xp_owed)
+			--debug(flag39, "      total_xp_owed: " .. total_xp_owed)
 			mod_storage:set_float(meta_key, total_xp_owed)
 		end
 
-		debug(flag39, "      current item_meta: " .. dump(item_meta:to_table()))
+		--debug(flag39, "      current item_meta: " .. dump(item_meta:to_table()))
 
-		debug(flag39, "      getting next item variant in the cook path")
+		--debug(flag39, "      getting next item variant in the cook path")
 		local next_items = ITEM_COOK_PATH[item_name]
 		local next_item = ItemStack(next_items[1] .. " " .. quantity)
 		local next_item_name = next_item:get_name()
-		debug(flag39, "      next_item_name: " .. next_item_name)
+		--debug(flag39, "      next_item_name: " .. next_item_name)
 
 		-- transfer metadata from prior ingred item to this next ingred item if
 		-- appropriate. ash and charcoal receives no or limited metadata.
 
 		local next_item_meta = next_item:get_meta()
 		if next_item_name == "ss:ash" then
-			debug(flag39, "      this is ash. no metadata transferred.")
+			--debug(flag39, "      this is ash. no metadata transferred.")
 
 		elseif next_item_name == "ss:charcoal" then
-			debug(flag39, "      this is charcoal. transferring only 'cooker' metadata..")
+			--debug(flag39, "      this is charcoal. transferring only 'cooker' metadata..")
 			next_item_meta:set_string("cooker", cooker)
-			debug(flag39, "      transferred cooker: " .. cooker)
+			--debug(flag39, "      transferred cooker: " .. cooker)
 
 		elseif HEAT_DESTRUCT_CONTAINERS[item_name] then
-			debug(flag39, "      cooked an empty heat destructable container")
+			--debug(flag39, "      cooked an empty heat destructable container")
 			mt_after(0.25, play_sound, "item_break", {item_name = item_name, pos = pos})
 
 		else
 
 			-- transfer 'cooker' data
 			next_item_meta:set_string("cooker", cooker)
-			debug(flag39, "      transferred cooker: " .. cooker)
+			--debug(flag39, "      transferred cooker: " .. cooker)
 
 			-- transfer 'remaining_uses' if the next resulting item is a consumable
 			-- item and if the prior cooked item had more uses to transfer
@@ -1423,48 +1422,48 @@ local function cook_ingredient(item, slot_index, node_inv, pos, duration)
 			-- transfer it to the next item
 			local condition = item_meta:get_float("condition")
 			if CONTAINER_WEAR_RATES[item_name] then
-				debug(flag39, "      decreasing food container condition..")
+				--debug(flag39, "      decreasing food container condition..")
 				local wear_rate = CONTAINER_WEAR_RATES[item_name]
-				debug(flag39, "      wear_rate: " .. wear_rate)
+				--debug(flag39, "      wear_rate: " .. wear_rate)
 				local random_mod = wear_rate * math_random(-15,15) * 0.01
-				debug(flag39, "      random_mod: " .. random_mod)
+				--debug(flag39, "      random_mod: " .. random_mod)
 				wear_rate = wear_rate + random_mod
-				debug(flag39, "      wear_rate + random_mod: " .. wear_rate)
+				--debug(flag39, "      wear_rate + random_mod: " .. wear_rate)
 				if condition == 0 then
-					debug(flag39, "      this item has no wear. 'condition' intialized to: " .. WEAR_VALUE_MAX)
+					--debug(flag39, "      this item has no wear. 'condition' intialized to: " .. WEAR_VALUE_MAX)
 					condition = WEAR_VALUE_MAX
 				end
 				condition = condition - wear_rate
-				debug(flag39, "      new condition: " .. condition)
+				--debug(flag39, "      new condition: " .. condition)
 				if condition > 0 then
-					debug(flag39, "      food container still usable")
+					--debug(flag39, "      food container still usable")
 					update_meta_and_description(next_item_meta, next_item_name, {"condition"}, {condition})
 
 				else
-					debug(flag39, "      food container worn out and destroyed")
+					--debug(flag39, "      food container worn out and destroyed")
 					next_items = ITEM_DESTRUCT_PATH[item_name]
 					next_item = ItemStack(next_items[1])
-					debug(flag39, "      resulting item name: " .. next_item:get_name())
+					--debug(flag39, "      resulting item name: " .. next_item:get_name())
 					next_item_meta = next_item:get_meta()
 					next_item_meta:set_string("cooker", cooker)
 					mt_after(0.25, play_sound, "item_break", {item_name = item_name, pos = pos})
 				end
 			else
-				debug(flag39, "      not a food container")
+				--debug(flag39, "      not a food container")
 				if condition > 0 then
 					next_item_meta:set_float("condition", condition)
-					debug(flag39, "      transferred condition: " .. condition)
+					--debug(flag39, "      transferred condition: " .. condition)
 				end
 			end
 		end
 
-		debug(flag39, "      next_item_meta: " .. dump(next_item_meta:to_table()))
+		--debug(flag39, "      next_item_meta: " .. dump(next_item_meta:to_table()))
 		node_inv:set_stack("ingredients", slot_index, next_item)
 
 		-- drop secondary result item (if exists) to the ground
 		local dropped_item = next_items[2]
 		if dropped_item then
-			debug(flag39, "      dropping secondary item: " .. dropped_item)
+			--debug(flag39, "      dropping secondary item: " .. dropped_item)
 			mt_add_item(pos, ItemStack(dropped_item))
 		end
 
@@ -1472,22 +1471,22 @@ local function cook_ingredient(item, slot_index, node_inv, pos, duration)
 		-- where its residing mapchunk was reloaded, see if elapsed cook time was
 		-- enough to heat/cook the item into its next item result in ITEM_COOK_PATH.
 		if duration > 1 then
-			debug(flag39, "      ** this cook cycle due to mapchunk reload **")
+			--debug(flag39, "      ** this cook cycle due to mapchunk reload **")
 			local overheat_amount = heat_progress - COOK_THRESHOLD
-			debug(flag39, "      overheat_amount: " .. overheat_amount)
+			--debug(flag39, "      overheat_amount: " .. overheat_amount)
 			local overheat_duration = overheat_amount / heat_rate
-			debug(flag39, "      overheat_duration: " .. overheat_duration)
+			--debug(flag39, "      overheat_duration: " .. overheat_duration)
 			if overheat_duration > 0 then
-				debug(flag39, "      there is leftover heat/cook time")
+				--debug(flag39, "      there is leftover heat/cook time")
 				if ITEM_COOK_PATH[next_item_name] then
-					debug(flag39, "      proceed to heat/cook the next item..")
+					--debug(flag39, "      proceed to heat/cook the next item..")
 					cook_ingredient(next_item, slot_index, node_inv, pos, overheat_duration)
 				else
-					debug(flag39, "      next item is nonflammable. NO FURTHER ACTION.")
+					--debug(flag39, "      next item is nonflammable. NO FURTHER ACTION.")
 				end
 			end
 		else
-			debug(flag39, "      end of standard cook cycle")
+			--debug(flag39, "      end of standard cook cycle")
 		end
 
 	end
@@ -1508,14 +1507,14 @@ local function cook_ingredient_all(pos, node_inv, duration)
 	local node_meta = mt_get_meta(pos)
 	local slot_count = node_meta:get_int("slot_count_ingredients")
 	local ingredient_slots = node_inv:get_list("ingredients")
-	debug(flag45, "      ingredient_slots: " .. dump(ingredient_slots))
+	--debug(flag45, "      ingredient_slots: " .. dump(ingredient_slots))
 	for i = 1, slot_count do
 		local ingred_item = ingredient_slots[i]
 		if ingred_item:is_empty() then
-			debug(flag45, "    Ingred Slot #" .. i .. " is EMPTY")
+			--debug(flag45, "    Ingred Slot #" .. i .. " is EMPTY")
 		else
 			local ingred_item_name = ingred_item:get_name()
-			debug(flag45, "    Ingred Item #" .. i .. ": " .. ingred_item_name)
+			--debug(flag45, "    Ingred Item #" .. i .. ": " .. ingred_item_name)
 			cook_ingredient(ingred_item, i, node_inv, pos, duration)
 		end
 	end
@@ -1536,44 +1535,43 @@ local flag37 = false
 --- @param item_type string should always be 'ingredient_item'
 local function burnout_ingredient_item(campfire_pos, campfire_meta, campfire_inv, burnout_time, data, elapsed_time, item_type)
 	debug(flag37, "\n    burnout_ingredient_item()")
-	debug(flag37, "      item_type: " .. item_type)
-	debug(flag37, "      burnout_time: " .. burnout_time)
+	--debug(flag37, "      item_type: " .. item_type)
+	--debug(flag37, "      burnout_time: " .. burnout_time)
 
 	local item_type_tokens = string_split(item_type)
 	local slot_index = item_type_tokens[2]
-	debug(flag37, "      slot_index: " .. slot_index)
+	--debug(flag37, "      slot_index: " .. slot_index)
 	local item = campfire_inv:get_stack("ingredients", slot_index)
 
 	if item:is_empty() then
 		-- the ingredient item was previously dropped to the ground because the slot
 		-- was removed due to the campfire tool being worn out and destroyed
-		debug(flag37, "      empty slot due to item dropped to ground. NO FURTHER ACTION.")
+		--debug(flag37, "      empty slot due to item dropped to ground. NO FURTHER ACTION.")
 		if data.elapsed_time_used then
-			debug(flag37, "      data.elapsed_time_used: " .. data.elapsed_time_used)
+			--debug(flag37, "      data.elapsed_time_used: " .. data.elapsed_time_used)
 		else
-			debug(flag37, "      data.elapsed_time_used is NIL"
-		)
+			--debug(flag37, "      data.elapsed_time_used is NIL")
 		end
 
 	else
 		local item_name = item:get_name()
-		debug(flag37, "      item_name: " .. item_name)
+		--debug(flag37, "      item_name: " .. item_name)
 
 		if data.elapsed_time_used then
-			debug(flag37, "      this is a subsequent burnout action")
+			--debug(flag37, "      this is a subsequent burnout action")
 			elapsed_time = data.elapsed_time_used
-			debug(flag37, "      elapsed_time taken from prior burnout action: " .. elapsed_time)
+			--debug(flag37, "      elapsed_time taken from prior burnout action: " .. elapsed_time)
 		else
-			debug(flag37, "      this is the 1st running burnout action")
-			debug(flag37, "      elapsed_time taken from main context: " .. elapsed_time)
+			--debug(flag37, "      this is the 1st running burnout action")
+			--debug(flag37, "      elapsed_time taken from main context: " .. elapsed_time)
 		end
 
 		if elapsed_time == 0 then
-			debug(flag37, "      no 'current fuel item' was present. heating/cooking will be simulated at later phase.")
+			--debug(flag37, "      no 'current fuel item' was present. heating/cooking will be simulated at later phase.")
 			data.elapsed_time_used = elapsed_time
 
 		else
-			debug(flag37, "      'current fuel item' was present. heating/cooking based on that state..")
+			--debug(flag37, "      'current fuel item' was present. heating/cooking based on that state..")
 			cook_ingredient(item, slot_index, campfire_inv, campfire_pos, elapsed_time)
 			data.elapsed_time_used = elapsed_time
 		end
@@ -1589,15 +1587,15 @@ local function heat_node(pos, location, duration)
 
 	local node = mt_get_node(pos)
 	local node_name = node.name
-	debug(flag49, "      [" .. location .. "] " .. node_name .. " " .. mt_pos_to_string(pos))
+	--debug(flag49, "      [" .. location .. "] " .. node_name .. " " .. mt_pos_to_string(pos))
 
 	-- when a campfire burns out a node above, which above that is default:snow,
 	-- the snow falls onto the campfire. code below ensures the snow turns into
 	-- water and causes the campfire to get destroyed and drop its contents.
 	if location == "top" then
-		debug(flag49, "      this is a top node")
+		--debug(flag49, "      this is a top node")
 		if node_name == "default:snow" then
-			debug(flag49, "      soft snow on top of the campfire. dropping snow/water and campfire..")
+			--debug(flag49, "      soft snow on top of the campfire. dropping snow/water and campfire..")
 			mt_remove_node(pos)
 			mt_remove_node(pos)
 			mt_set_node(pos, {name = "default:water_flowing"})
@@ -1607,46 +1605,46 @@ local function heat_node(pos, location, duration)
 	local node_cook_data = COOK_NODES[node_name]
 	local cook_time = node_cook_data.cook_time
 	-- cook_time = 10 -- for  ses
-	debug(flag49, "      cook_time: " .. cook_time)
+	--debug(flag49, "      cook_time: " .. cook_time)
 
 	local node_meta = mt_get_meta(pos)
 	local heat_progress = node_meta:get_float("heat_progress")
-	debug(flag49, "      curr heat_progress: " .. heat_progress)
+	--debug(flag49, "      curr heat_progress: " .. heat_progress)
 	local heat_rate = COOK_THRESHOLD / cook_time
-	debug(flag49, "      heat_rate: " .. heat_rate)
-	debug(flag49, "      duration: " .. duration)
+	--debug(flag49, "      heat_rate: " .. heat_rate)
+	--debug(flag49, "      duration: " .. duration)
 	heat_rate = heat_rate * duration
-	debug(flag49, "      heat_rate x duration: " .. heat_rate)
+	--debug(flag49, "      heat_rate x duration: " .. heat_rate)
 
 	local random_modifier = heat_rate * math_random(-15,15) * 0.01
-	debug(flag49, "      random_modifier: " .. random_modifier)
+	--debug(flag49, "      random_modifier: " .. random_modifier)
 	heat_rate = heat_rate + random_modifier
-	debug(flag49, "      heat_rate + random_modifier: " .. heat_rate)
+	--debug(flag49, "      heat_rate + random_modifier: " .. heat_rate)
 	heat_progress = heat_progress + heat_rate
-	debug(flag49, "      new heat_progress: " .. heat_progress)
+	--debug(flag49, "      new heat_progress: " .. heat_progress)
 
 
 	if heat_progress < COOK_THRESHOLD then
-		debug(flag49, "      node still heating and not yet destroyed..")
+		--debug(flag49, "      node still heating and not yet destroyed..")
 		node_meta:set_float("heat_progress", heat_progress)
 
 	else
-		debug(flag49, "     *** NODE IS COOKED! ***")
+		--debug(flag49, "     *** NODE IS COOKED! ***")
 		node_meta:set_float("heat_progress", 0)
 
 		local action_type = node_cook_data.action_type
-		debug(flag49, "      action_type: " .. action_type)
+		--debug(flag49, "      action_type: " .. action_type)
 		if action_type == "drop" then
-			debug(flag49, "      destroying node..")
+			--debug(flag49, "      destroying node..")
 			mt_remove_node(pos)
 			for j, item_drop in ipairs(node_cook_data.drops) do
 				local item_drop_name = item_drop:get_name()
-				debug(flag49, "      item drop #" .. j .. ": " .. item_drop_name)
+				--debug(flag49, "      item drop #" .. j .. ": " .. item_drop_name)
 
 				-- add random heat progress to the item drop only if it's
 				-- a heatable/flammable item
 				if ITEM_COOK_PATH[item_drop_name] then
-					debug(flag49, "        this item is flammable/cookable")
+					--debug(flag49, "        this item is flammable/cookable")
 					local item_drop_count = item_drop:get_count()
 					for k = 1, item_drop_count do
 						local random_heat_progress = math_random(1, COOK_THRESHOLD)
@@ -1655,16 +1653,16 @@ local function heat_node(pos, location, duration)
 
 						-- if the item drop is consumable, add remaining_uses metadata
 						if ITEM_MAX_USES[item_drop_name] then
-							debug(flag49, "        this item is also consumable")
+							--debug(flag49, "        this item is also consumable")
 							update_meta_and_description(
 								item_meta,
 								item_drop_name,
 								{"remaining_uses", "heat_progress"},
 								{ITEM_MAX_USES[item_drop_name], random_heat_progress}
 							)
-							debug(flag49, "          count [#" .. k .. "] " .. item_drop_name
-								.. ", new cook progres = " .. random_heat_progress
-								.. ", new remaining uses = " .. ITEM_MAX_USES[item_drop_name])
+							--debug(flag49, "          count [#" .. k .. "] " .. item_drop_name
+							--	.. ", new cook progres = " .. random_heat_progress
+							--	.. ", new remaining uses = " .. ITEM_MAX_USES[item_drop_name])
 						else
 							update_meta_and_description(
 								item_meta,
@@ -1672,8 +1670,8 @@ local function heat_node(pos, location, duration)
 								{"heat_progress"},
 								{random_heat_progress}
 							)
-							debug(flag49, "          count [#" .. k .. "] ".. item_drop_name
-								.. ", new cook progres = " .. random_heat_progress)
+							--debug(flag49, "          count [#" .. k .. "] ".. item_drop_name
+							--	.. ", new cook progres = " .. random_heat_progress)
 						end
 
 						mt_add_item({
@@ -1682,78 +1680,78 @@ local function heat_node(pos, location, duration)
 							z = pos.z + math_random(-2, 2) * 0.1}, heated_item)
 					end
 				else
-					debug(flag49, "        this is nonflammable. no heat applied.")
+					--debug(flag49, "        this is nonflammable. no heat applied.")
 					mt_add_item(pos, item_drop)
 				end
 
 
 			end
 
-			debug(flag49, "      inspecting adj top node..")
+			--debug(flag49, "      inspecting adj top node..")
 			local top_pos = {x = pos.x, y = pos.y + 1, z = pos.z}
 			local top_pos_node = mt_get_node(top_pos)
 			local top_pos_node_name = top_pos_node.name
-			debug(flag49, "      top_pos_node_name: " .. top_pos_node_name)
+			--debug(flag49, "      top_pos_node_name: " .. top_pos_node_name)
 
 			if CAMPFIRE_NODE_NAMES[top_pos_node_name] then
-				debug(flag49, "      ** it's a campfire **")
+				--debug(flag49, "      ** it's a campfire **")
 				mt_remove_node(top_pos)
-				debug(flag49, "      removed campfire")
+				--debug(flag49, "      removed campfire")
 
 			elseif top_pos_node_name == "default:snow" then
-				debug(flag49, "      it's soft snow")
+				--debug(flag49, "      it's soft snow")
 				mt_check_for_falling(top_pos)
 
 			else
-				debug(flag49, "      not a campfire or soft snow")
+				--debug(flag49, "      not a campfire or soft snow")
 			end
 
 		elseif action_type == "replace" then
 			local target_node = node_cook_data.node
 			local target_node_name = target_node.name
-			debug(flag49, "      replacing node with: " .. target_node_name)
+			--debug(flag49, "      replacing node with: " .. target_node_name)
 			mt_set_node(pos, target_node)
 			if target_node_name == "default:water_flowing" then
 
-				debug(flag49, "      inspecting adj top node..")
+				--debug(flag49, "      inspecting adj top node..")
 				local top_pos = {x = pos.x, y = pos.y + 1, z = pos.z}
 				local top_pos_node = mt_get_node(top_pos)
 				local top_pos_node_name = top_pos_node.name
-				debug(flag49, "      top_pos_node_name: " .. top_pos_node_name)
+				--debug(flag49, "      top_pos_node_name: " .. top_pos_node_name)
 
 				if CAMPFIRE_NODE_NAMES[top_pos_node_name] then
-					debug(flag49, "      ** it's a campfire **")
+					--debug(flag49, "      ** it's a campfire **")
 					mt_remove_node(top_pos)
-					debug(flag49, "      removed campfire")
+					--debug(flag49, "      removed campfire")
 
 				elseif top_pos_node_name == "default:snow" then
-					debug(flag49, "      it's soft snow")
+					--debug(flag49, "      it's soft snow")
 					mt_check_for_falling(top_pos)
 
 				else
-					debug(flag49, "      inspecting adj bottom node..")
+					--debug(flag49, "      inspecting adj bottom node..")
 					local bottom_pos = {x = pos.x, y = pos.y - 1, z = pos.z}
 					local bottom_pos_node = mt_get_node(bottom_pos)
 					local bottom_pos_node_name = bottom_pos_node.name
-					debug(flag49, "      bottom_pos_node_name: " .. bottom_pos_node_name)
+					--debug(flag49, "      bottom_pos_node_name: " .. bottom_pos_node_name)
 
 					if CAMPFIRE_NODE_NAMES[bottom_pos_node_name] then
-						debug(flag49, "      ** it's a campfire **")
-						debug(flag49, "      dropping water on campfire")
+						--debug(flag49, "      ** it's a campfire **")
+						--debug(flag49, "      dropping water on campfire")
 						mt_remove_node(bottom_pos)
 						mt_set_node(bottom_pos, target_node)
 					else
-						debug(flag49, "      not a campfire")
+						--debug(flag49, "      not a campfire")
 					end
 				end
 
 			else
-				debug(flag49, "      replacement node is not water")
+				--debug(flag49, "      replacement node is not water")
 
 				-- apply any heat_progress that went beyond that COOK_THRESHOLD
 				-- into the replacement node
 				local heat_overage = heat_progress - COOK_THRESHOLD
-				debug(flag49, "      heat_overage: " .. heat_overage)
+				--debug(flag49, "      heat_overage: " .. heat_overage)
 				if heat_overage > 0 then
 					local new_meta = mt_get_meta(pos)
 					new_meta:set_float("heat_progress", heat_overage)
@@ -1763,7 +1761,7 @@ local function heat_node(pos, location, duration)
 		elseif action_type == "destruct" then
 
 			if BAG_NODE_NAMES_ALL[node_name] then
-				debug(flag49, "      this is a storage node. not dropping the storage item itself.")
+				--debug(flag49, "      this is a storage node. not dropping the storage item itself.")
 
 				-- set storage node's condition to -1 to signify to its on_destruct()
 				-- to not drop the storage item itself (since it was burn out from
@@ -1775,7 +1773,7 @@ local function heat_node(pos, location, duration)
 				mt_add_item(pos, storage_item_drop)
 			end
 
-			debug(flag49, "      triggering node's on-destruct..")
+			--debug(flag49, "      triggering node's on-destruct..")
 			mt_remove_node(pos)
 
 		else
@@ -1801,33 +1799,33 @@ local flag48 = false
 --- @param item_type string should always be 'ingredient_item'
 local function burnout_adjacent_node(campfire_pos, campfire_meta, campfire_inv, burnout_time, data, elapsed_time, item_type)
 	debug(flag48, "\n    burnout_adjacent_node()")
-	debug(flag48, "      item_type: " .. item_type)
-	debug(flag48, "      burnout_time: " .. burnout_time)
+	--debug(flag48, "      item_type: " .. item_type)
+	--debug(flag48, "      burnout_time: " .. burnout_time)
 
 	local item_type_tokens = string_split(item_type, " ")
-	debug(flag48, "      item_type_tokens: " .. dump(item_type_tokens))
+	--debug(flag48, "      item_type_tokens: " .. dump(item_type_tokens))
 	local location = item_type_tokens[2]
-	debug(flag48, "      location: " .. location)
+	--debug(flag48, "      location: " .. location)
 	local pos_key = item_type_tokens[3]
-	debug(flag48, "      pos_key: " .. pos_key)
+	--debug(flag48, "      pos_key: " .. pos_key)
 	local pos = key_to_pos(pos_key)
-	debug(flag48, "      pos: " .. mt_pos_to_string(pos))
+	--debug(flag48, "      pos: " .. mt_pos_to_string(pos))
 
 	if data.elapsed_time_used then
-		debug(flag48, "      this is a subsequent burnout action")
+		--debug(flag48, "      this is a subsequent burnout action")
 		elapsed_time = data.elapsed_time_used
-		debug(flag48, "      elapsed_time taken from prior burnout action: " .. elapsed_time)
+		--debug(flag48, "      elapsed_time taken from prior burnout action: " .. elapsed_time)
 	else
-		debug(flag48, "      this is the 1st running burnout action")
-		debug(flag48, "      elapsed_time taken from main context: " .. elapsed_time)
+		--debug(flag48, "      this is the 1st running burnout action")
+		--debug(flag48, "      elapsed_time taken from main context: " .. elapsed_time)
 	end
 
 	if elapsed_time == 0 then
-		debug(flag48, "      no 'current fuel item' was present. heating/cooking will be simulated at later phase.")
+		--debug(flag48, "      no 'current fuel item' was present. heating/cooking will be simulated at later phase.")
 		data.elapsed_time_used = elapsed_time
 
 	else
-		debug(flag48, "      'current fuel item' was present. heating node based on that state..")
+		--debug(flag48, "      'current fuel item' was present. heating node based on that state..")
 		heat_node(pos, location, elapsed_time)
 		data.elapsed_time_used = elapsed_time
 	end
@@ -1847,32 +1845,32 @@ local function get_fuel_item_count(player, node_meta, item)
 
 	local item_count, individual_item_weight
 	if item_name == "ss:item_bundle" then
-		debug(flag15, "  this is an item bundle")
+		--debug(flag15, "  this is an item bundle")
 		local item_meta = item:get_meta()
 		item_count = 1
 		individual_item_weight = item_meta:get_float("bundle_weight")
 	else
-		debug(flag15, "  this is a normal item stack")
+		--debug(flag15, "  this is a normal item stack")
 		item_count = item:get_count()
 		individual_item_weight = ITEM_WEIGHTS[item:get_name()]
 	end
 
 	-- take only the whole number result
 	local item_count_that_fits = math_floor(available_weight / individual_item_weight)
-	debug(flag15, "  available_weight: " .. available_weight)
-	debug(flag15, "  item_count_that_fits: " .. item_count_that_fits)
+	--debug(flag15, "  available_weight: " .. available_weight)
+	--debug(flag15, "  item_count_that_fits: " .. item_count_that_fits)
 
 	if item_count_that_fits < item_count then
 		if item_count_that_fits > 0 then
-			debug(flag15, "  itemstack partial amount fit")
-			notify(player, "Only " .. item_count_that_fits
+			--debug(flag15, "  itemstack partial amount fit")
+			notify(player, "inventory", "Only " .. item_count_that_fits
 				.. " could be added due to max weight.", NOTIFY_DURATION, 0.5, 0, 2)
 		else
-			debug(flag15, "  itemstack too heavy to fit")
-			notify(player, "Exceeds max fuel weight", NOTIFY_DURATION, 0, 0.5, 3)
+			--debug(flag15, "  itemstack too heavy to fit")
+			notify(player, "inventory", "Exceeds max fuel weight", NOTIFY_DURATION, 0, 0.5, 3)
 		end
 	else
-		debug(flag15, "  full itemstack amount fit")
+		--debug(flag15, "  full itemstack amount fit")
 	end
 
 	debug(flag15, "get_fuel_item_count() end")
@@ -1901,8 +1899,8 @@ local function start_smoke_particles(pos)
     })
 	local node_id = mt_hash_node_position(pos)
 	particle_ids[node_id] = particle_id
-	debug(flag31, "    particle_id: " .. particle_id)
-	debug(flag31, "    particle_ids table: " .. dump(particle_ids))
+	--debug(flag31, "    particle_id: " .. particle_id)
+	--debug(flag31, "    particle_ids table: " .. dump(particle_ids))
 	debug(flag31, "  start_smoke_particles() END")
 end
 
@@ -1912,17 +1910,17 @@ local function stop_smoke_particles(pos)
 	debug(flag30, "  stop_smoke_particles()")
 	local node_id = mt_hash_node_position(pos)
 	local particle_id = particle_ids[node_id]
-	debug(flag30, "    particle_id: " .. particle_id)
+	--debug(flag30, "    particle_id: " .. particle_id)
     mt_delete_particlespawner(particle_id)
 	particle_ids[node_id] = nil
-	debug(flag31, "    particle_ids table: " .. dump(particle_ids))
+	--debug(flag31, "    particle_ids table: " .. dump(particle_ids))
 	debug(flag30, "  stop_smoke_particles() END")
 end
 
 
 local flag18 = false
 local function stop_campfire(pos, pos_key, node_meta)
-	--debug(flag18, "    stop_campfire()")
+	debug(flag18, "    stop_campfire()")
 
 	--debug(flag18, "      update campfire ui to reflect 'off' state")
 	node_meta:set_string("campfire_status", "off")
@@ -1959,7 +1957,7 @@ local function stop_campfire(pos, pos_key, node_meta)
 	--debug(flag18, "      removing campfire from radiant sources")
 	radiant_sources[pos_key] = nil
 
-	--debug(flag18, "    stop_campfire() END")
+	debug(flag18, "    stop_campfire() END")
 end
 
 
@@ -1971,11 +1969,11 @@ local function get_burnt_drops(item_name, count)
 	local burnt_items = {}
 
 	for i = 1, count do
-		debug(flag36, "    item #" .. i)
+		--debug(flag36, "    item #" .. i)
 
 		-- generate random heat progress
 		local heat_progress = math_random(1, COOK_THRESHOLD)
-		debug(flag36, "      random heat_progress: " .. heat_progress)
+		--debug(flag36, "      random heat_progress: " .. heat_progress)
 
 		-- save heat progress value to item meta data
 		local burnt_item = ItemStack(item_name)
@@ -2060,10 +2058,10 @@ local function check_timer_active_1(pos)
 	local node_meta = mt_get_meta(pos)
 	local is_timer_active = node_meta:get_int("is_timer_active")
 	if is_timer_active == 1 then
-		debug(flag28, "    campfire still loaded")
+		--debug(flag28, "    campfire still loaded")
 		node_meta:set_int("is_timer_active", 0)
 	else
-		debug(flag28, "    ** campfire NOT loaded **")
+		--debug(flag28, "    ** campfire NOT loaded **")
 	end
 
 	debug(flag28, "  check_campfire() END")
@@ -2078,11 +2076,14 @@ local function check_timer_active_2(pos)
 	local is_timer_active = campfire_meta:get_int("is_timer_active")
 
 	if is_timer_active == 1 then
-		debug(flag29, "    campfire is loaded")
+		--debug(flag29, "    campfire is loaded")
 		local unload_time = campfire_meta:get_int("unload_time")
 
 		if unload_time > 0 then
-			debug(flag29, "    ** campfire reloaded ** ")
+			--debug(flag29, "    ** campfire reloaded ** ")
+			radiant_sources[pos_to_key(pos)] = RADIANT_SOURCES_DATA["ss:campfire_small_burning"]
+			--debug(flag29, "    campfire added as radiant source")
+
 			local campfire_inv = campfire_meta:get_inventory()
 
 			-- determine the amount of elapsed time that the campfire was unloaded from
@@ -2090,7 +2091,7 @@ local function check_timer_active_2(pos)
 			-- like the campfire fuel, campfire tools, and cooking ingredients
 			local current_time = mt_get_gametime()
 			local elapsed_time = current_time - unload_time
-			debug(flag29, "    ELAPSED TIME: " .. elapsed_time .. " = " .. current_time .. " - " .. unload_time)
+			--debug(flag29, "    ELAPSED TIME: " .. elapsed_time .. " = " .. current_time .. " - " .. unload_time)
 
 			-- stores burnout time and an action function relating to the campfire items:
 			-- current fuel item, campfire stand, campfire grill, and ingredient items.
@@ -2108,18 +2109,18 @@ local function check_timer_active_2(pos)
 			-- get remaining burn time of campfire STAND tool
 			local campfire_stand_item = campfire_inv:get_stack("campfire_stand", 1)
 			if campfire_stand_item:is_empty() then
-				debug(flag29, "    Campfire Stand UNUSED")
+				--debug(flag29, "    Campfire Stand UNUSED")
 			else
-				debug(flag29, "    Campfire Stand EQUIPPED")
+				--debug(flag29, "    Campfire Stand EQUIPPED")
 				local item_meta = campfire_stand_item:get_meta()
 				local condition = item_meta:get_float("condition")
-				debug(flag29, "      condition: " .. condition)
+				--debug(flag29, "      condition: " .. condition)
 				if condition == 0 then
-					debug(flag29, "      this stand is unused. condition initialized to 10000")
+					--debug(flag29, "      this stand is unused. condition initialized to 10000")
 					condition = WEAR_VALUE_MAX
 				end
 				burn_time_remaining = math_ceil(condition / TOOL_WEAR_RATES.campfire_stand)
-				debug(flag29, "      burn_time_remaining: " .. burn_time_remaining)
+				--debug(flag29, "      burn_time_remaining: " .. burn_time_remaining)
 				table_insert(campfire_items_burnout_data, {
 					item_type = "campfire_stand",
 					burnout_time = burn_time_remaining,
@@ -2130,18 +2131,18 @@ local function check_timer_active_2(pos)
 			-- get remaining burn time of campfire GRILL tool
 			local campfire_grill_item = campfire_inv:get_stack("campfire_grill", 1)
 			if campfire_grill_item:is_empty() then
-				debug(flag29, "    Campfire Grill UNUSED")
+				--debug(flag29, "    Campfire Grill UNUSED")
 			else
-				debug(flag29, "    Campfire Grill EQUIPPED")
+				--debug(flag29, "    Campfire Grill EQUIPPED")
 				local item_meta = campfire_grill_item:get_meta()
 				local condition = item_meta:get_float("condition")
-				debug(flag29, "      condition: " .. condition)
+				--debug(flag29, "      condition: " .. condition)
 				if condition == 0 then
-					debug(flag29, "      this grill is unused. condition initialized to 10000")
+					--debug(flag29, "      this grill is unused. condition initialized to 10000")
 					condition = WEAR_VALUE_MAX
 				end
 				burn_time_remaining = math_ceil(condition / TOOL_WEAR_RATES.campfire_grill)
-				debug(flag29, "      burn_time_remaining: " .. burn_time_remaining)
+				--debug(flag29, "      burn_time_remaining: " .. burn_time_remaining)
 				table_insert(campfire_items_burnout_data, {
 					item_type = "campfire_grill",
 					burnout_time = burn_time_remaining,
@@ -2155,17 +2156,17 @@ local function check_timer_active_2(pos)
 			for i = 1, slot_count do
 				local ingred_item = ingredient_slots[i]
 				if ingred_item:is_empty() then
-					debug(flag29, "    Ingred Slot #" .. i .. " is EMPTY")
+					--debug(flag29, "    Ingred Slot #" .. i .. " is EMPTY")
 				else
 					local ingred_item_name = ingred_item:get_name()
-					debug(flag29, "    Ingred Slot #" .. i .. ": " .. ingred_item_name)
+					--debug(flag29, "    Ingred Slot #" .. i .. ": " .. ingred_item_name)
 					local item_meta = ingred_item:get_meta()
 					local heat_progress = item_meta:get_float("heat_progress")
-					debug(flag29, "      heat_progress: " .. heat_progress)
+					--debug(flag29, "      heat_progress: " .. heat_progress)
 					local heat_rate = ITEM_HEAT_RATES[ingred_item_name]
-					debug(flag29, "      heat_rate: " .. heat_rate)
+					--debug(flag29, "      heat_rate: " .. heat_rate)
 					burn_time_remaining = math_ceil((COOK_THRESHOLD - heat_progress) / heat_rate)
-					debug(flag29, "      burn_time_remaining: " .. burn_time_remaining)
+					--debug(flag29, "      burn_time_remaining: " .. burn_time_remaining)
 					table_insert(campfire_items_burnout_data, {
 						item_type = "ingredient_item," .. i,
 						burnout_time = burn_time_remaining,
@@ -2182,20 +2183,20 @@ local function check_timer_active_2(pos)
 				adj_pos = vector_add(pos, adj_pos)
 				local adj_node = mt_get_node(adj_pos)
 				local adj_node_name = adj_node.name
-				debug(flag29, "    [" .. location .. "] " .. adj_node_name .. "  " .. mt_pos_to_string(adj_pos))
+				--debug(flag29, "    [" .. location .. "] " .. adj_node_name .. "  " .. mt_pos_to_string(adj_pos))
 				local node_cook_data = COOK_NODES[adj_node_name]
 				if node_cook_data then
-					debug(flag29, "      this node is cookable")
+					--debug(flag29, "      this node is cookable")
 					table_insert(adj_positions_flammable, {adj_pos, location})
 					local cook_time = node_cook_data.cook_time
 					local heat_rate = COOK_THRESHOLD/cook_time
-					debug(flag29, "      heat_rate: " .. heat_rate)
+					--debug(flag29, "      heat_rate: " .. heat_rate)
 					local node_meta = mt_get_meta(adj_pos)
 					local heat_progress = node_meta:get_float("heat_progress")
-					debug(flag29, "      heat_progress: " .. heat_progress)
+					--debug(flag29, "      heat_progress: " .. heat_progress)
 					local heat_progress_remaining = COOK_THRESHOLD - heat_progress
 					burn_time_remaining = math_ceil(heat_progress_remaining / heat_rate)
-					debug(flag29, "      burn_time_remaining: " .. burn_time_remaining)
+					--debug(flag29, "      burn_time_remaining: " .. burn_time_remaining)
 					table_insert(campfire_items_burnout_data, {
 						item_type = "node " .. location .. " " .. pos_to_key(adj_pos),
 						burnout_time = burn_time_remaining,
@@ -2209,7 +2210,7 @@ local function check_timer_active_2(pos)
 			-- sort the campfire items (current fuel item, campfire stand, and campfire grill) by
 			-- their 'burnout_item' from least to greatest
 			table_sort(campfire_items_burnout_data, function(a, b) return a.burnout_time < b.burnout_time end)
-			debug(flag29, "    campfire_items_burnout_data (sorted): " .. dump(campfire_items_burnout_data))
+			--debug(flag29, "    campfire_items_burnout_data (sorted): " .. dump(campfire_items_burnout_data))
 
 			local data = {
 				elapsed_time_remain = nil,
@@ -2237,77 +2238,77 @@ local function check_timer_active_2(pos)
 				)
 			end
 
-			debug(flag29, "\n    Elapsed time now applied to current fuel item and to any campfire tools")
-			debug(flag29, "    data: " .. dump(data))
+			--debug(flag29, "\n    Elapsed time now applied to current fuel item and to any campfire tools")
+			--debug(flag29, "    data: " .. dump(data))
 
 			local remaining_elapsed_time = data.elapsed_time_remain or 0
-			debug(flag29, "    REMAINING ELAPSED TIME: " .. remaining_elapsed_time .. "\n")
+			--debug(flag29, "    REMAINING ELAPSED TIME: " .. remaining_elapsed_time .. "\n")
 
 			if remaining_elapsed_time > 0 then
-				debug(flag29, "    current fuel item burned out with elapsed time remaining: " .. remaining_elapsed_time)
-				debug(flag29, "    proceed to burn fuel slot items..")
+				--debug(flag29, "    current fuel item burned out with elapsed time remaining: " .. remaining_elapsed_time)
+				--debug(flag29, "    proceed to burn fuel slot items..")
 
 				local node_inv = campfire_meta:get_inventory()
 				local fuel_slots = node_inv:get_list("fuel")
 				local fuel_slot_count = campfire_meta:get_int("slot_count_fuel")
-				debug(flag29, "    fuel_slot_count: " .. fuel_slot_count)
+				--debug(flag29, "    fuel_slot_count: " .. fuel_slot_count)
 
 				for i = 1, fuel_slot_count do
-					debug(flag29, "    checking slot #" .. i)
+					--debug(flag29, "    checking slot #" .. i)
 
 					local fuel_itemstack = fuel_slots[i]
 					if fuel_itemstack:is_empty() then
-						debug(flag29, "      no fuel item exists there")
+						--debug(flag29, "      no fuel item exists there")
 
 					else
 						local fuel_item_name = fuel_itemstack:get_name()
-						debug(flag29, "      fuel item found: " .. fuel_item_name)
+						--debug(flag29, "      fuel item found: " .. fuel_item_name)
 
 						local item_burn_time, fuel_item_count
 						if fuel_item_name == "ss:item_bundle" then
-							debug(flag29, "      an item bundle")
+							--debug(flag29, "      an item bundle")
 							local fuel_item_meta = fuel_itemstack:get_meta()
 							item_burn_time = fuel_item_meta:get_int("bundle_burn_time")
 							local inventory_image = fuel_item_meta:get_string("inventory_image")
-							debug(flag29, "      inventory_image: " .. inventory_image)
+							--debug(flag29, "      inventory_image: " .. inventory_image)
 							fuel_item_count = 1
 						else
-							debug(flag29, "      not an item bundle")
+							--debug(flag29, "      not an item bundle")
 							item_burn_time = ITEM_BURN_TIMES[fuel_item_name]
 							fuel_item_count = fuel_itemstack:get_count()
 						end
 
 						local itemstack_burn_time = item_burn_time * fuel_item_count
-						debug(flag29, "      itemstack_burn_time: " .. itemstack_burn_time)
-						debug(flag29, "      remaining_elapsed_time: " .. remaining_elapsed_time)
+						--debug(flag29, "      itemstack_burn_time: " .. itemstack_burn_time)
+						--debug(flag29, "      remaining_elapsed_time: " .. remaining_elapsed_time)
 
 						local itemstack_burn_time_leftover = itemstack_burn_time - remaining_elapsed_time
-						debug(flag29, "      itemstack_burn_time_leftover: " .. itemstack_burn_time_leftover)
+						--debug(flag29, "      itemstack_burn_time_leftover: " .. itemstack_burn_time_leftover)
 
 						-- item in fuel slot absorbed all remaining elapsed time with
 						-- some fuel/burn time remaining
 						if itemstack_burn_time_leftover > 0 then
-							debug(flag29, "      fuel slot " .. i .. " still has some " .. fuel_item_name .. " un-burned")
-							debug(flag29, "      removing the whole-number burned portions of this stack..")
+							--debug(flag29, "      fuel slot " .. i .. " still has some " .. fuel_item_name .. " un-burned")
+							--debug(flag29, "      removing the whole-number burned portions of this stack..")
 							local consumed_item_count_raw = remaining_elapsed_time / item_burn_time
-							debug(flag29, "        consumed_item_count_raw: " .. consumed_item_count_raw)
+							--debug(flag29, "        consumed_item_count_raw: " .. consumed_item_count_raw)
 							local consumed_item_count_whole = math_floor(consumed_item_count_raw)
-							debug(flag29, "        consumed_item_count_whole: " .. consumed_item_count_whole)
+							--debug(flag29, "        consumed_item_count_whole: " .. consumed_item_count_whole)
 							local consumed_burn_time_whole = consumed_item_count_whole * item_burn_time
-							debug(flag29, "        consumed_burn_time_whole: " .. consumed_burn_time_whole)
+							--debug(flag29, "        consumed_burn_time_whole: " .. consumed_burn_time_whole)
 							local consumed_burn_time_partial =  remaining_elapsed_time - consumed_burn_time_whole
-							debug(flag29, "        consumed_burn_time_partial: " .. consumed_burn_time_partial)
+							--debug(flag29, "        consumed_burn_time_partial: " .. consumed_burn_time_partial)
 
 							-- calculate the resulting reduced count of the fuel itemstack
 							local reduce_amount = math_ceil(consumed_item_count_raw)
-							debug(flag29, "      reducing stack amount by " .. reduce_amount)
+							--debug(flag29, "      reducing stack amount by " .. reduce_amount)
 							local current_stack_amount = fuel_itemstack:get_count()
-							debug(flag29, "      current_stack_amount: " .. current_stack_amount)
+							--debug(flag29, "      current_stack_amount: " .. current_stack_amount)
 							local new_stack_amount = current_stack_amount - reduce_amount
 
-							debug(flag29, "      updating campfire fuel weight..")
+							--debug(flag29, "      updating campfire fuel weight..")
 							local weight_fuel_total = campfire_meta:get_float("weight_fuel_total")
-							debug(flag29, "        current weight_fuel_total: " .. weight_fuel_total)
+							--debug(flag29, "        current weight_fuel_total: " .. weight_fuel_total)
 
 							local fuel_weight_to_remove
 							if fuel_item_name == "ss:item_bundle" then
@@ -2316,35 +2317,35 @@ local function check_timer_active_2(pos)
 							else
 								fuel_weight_to_remove = reduce_amount * ITEM_WEIGHTS[fuel_item_name]
 							end
-							debug(flag29, "        fuel_weight_to_remove: " .. fuel_weight_to_remove)
+							--debug(flag29, "        fuel_weight_to_remove: " .. fuel_weight_to_remove)
 
 							local new_weight_fuel_total = weight_fuel_total - fuel_weight_to_remove
-							debug(flag29, "        new_weight_fuel_total: " .. new_weight_fuel_total)
+							--debug(flag29, "        new_weight_fuel_total: " .. new_weight_fuel_total)
 							campfire_meta:set_float("weight_fuel_total", new_weight_fuel_total)
 
 							-- any partially burnt fuel item in the stack turns into the 'current fuel item'
 							local remaining_burn_time_partial = item_burn_time - consumed_burn_time_partial
 							if remaining_burn_time_partial > 0 then
-								debug(flag29, "    set partial-burnt fuel as 'current_fuel_item'")
+								--debug(flag29, "    set partial-burnt fuel as 'current_fuel_item'")
 								campfire_meta:set_string("current_fuel_item_name", fuel_item_name)
 								campfire_meta:set_int("burn_time_current_item", remaining_burn_time_partial)
 								local fuel_item_meta = fuel_itemstack:get_meta()
 								local fuel_item_inv_image = fuel_item_meta:get_string("inventory_image")
 								if fuel_item_inv_image == "" then
-									debug(flag29, "      using vanilla item icon filename and colorization")
+									--debug(flag29, "      using vanilla item icon filename and colorization")
 									fuel_item_inv_image = CRAFTITEM_ICON[fuel_item_name]
 								end
 								
 								campfire_meta:set_string("current_fuel_item_inv_image", fuel_item_inv_image)
-								debug(flag29, "      fuel_item_inv_image: " .. fuel_item_inv_image)
+								--debug(flag29, "      fuel_item_inv_image: " .. fuel_item_inv_image)
 
 							else
-								debug(flag29, "    no partially burned fuel item to show")
+								--debug(flag29, "    no partially burned fuel item to show")
 							end
 
 							-- update the fuel itemstack to the reduced itemstack count
 							fuel_itemstack:set_count(new_stack_amount)
-							debug(flag29, "      new_stack_amount: " .. new_stack_amount)
+							--debug(flag29, "      new_stack_amount: " .. new_stack_amount)
 							node_inv:set_stack("fuel", i, fuel_itemstack)
 
 							-- reduce campfire burn_time_extra time by remaining_elapsed_time
@@ -2367,14 +2368,14 @@ local function check_timer_active_2(pos)
 						-- item in fuel slot absorbed all remaining elapsed time with
 						-- zero fuel/burn time remaining
 						elseif itemstack_burn_time_leftover == 0 then
-							debug(flag29, "      " .. fuel_item_name .. " in fuel slot " .. i .. " is all used up")
-							debug(flag29, "      removing entire itemstack from slot..")
+							--debug(flag29, "      " .. fuel_item_name .. " in fuel slot " .. i .. " is all used up")
+							--debug(flag29, "      removing entire itemstack from slot..")
 
 							node_inv:set_stack("fuel", i, ItemStack(""))
 
-							debug(flag29, "      updating campfire fuel weight..")
+							--debug(flag29, "      updating campfire fuel weight..")
 							local weight_fuel_total = campfire_meta:get_float("weight_fuel_total")
-							debug(flag29, "        current weight_fuel_total: " .. weight_fuel_total)
+							--debug(flag29, "        current weight_fuel_total: " .. weight_fuel_total)
 
 							local fuel_weight_to_remove
 							if fuel_item_name == "ss:item_bundle" then
@@ -2383,10 +2384,10 @@ local function check_timer_active_2(pos)
 							else
 								fuel_weight_to_remove = fuel_item_count * ITEM_WEIGHTS[fuel_item_name]
 							end
-							debug(flag29, "        fuel_weight_to_remove: " .. fuel_weight_to_remove)
+							--debug(flag29, "        fuel_weight_to_remove: " .. fuel_weight_to_remove)
 
 							local new_weight_fuel_total = weight_fuel_total - fuel_weight_to_remove
-							debug(flag29, "        new_weight_fuel_total: " .. new_weight_fuel_total)
+							--debug(flag29, "        new_weight_fuel_total: " .. new_weight_fuel_total)
 							campfire_meta:set_float("weight_fuel_total", new_weight_fuel_total)
 
 							-- reduce campfire burn_time_extra time by remaining_elapsed_time
@@ -2409,14 +2410,14 @@ local function check_timer_active_2(pos)
 						-- item in fuel slot was completely used up and there is
 						-- still some elapsed time remaining
 						else
-							debug(flag29, "      " .. fuel_item_name .. " in fuel slot " .. i .. " is all used up")
-							debug(flag29, "      remaining_elapsed_time of " .. remaining_elapsed_time .. " still remains")
+							--debug(flag29, "      " .. fuel_item_name .. " in fuel slot " .. i .. " is all used up")
+							--debug(flag29, "      remaining_elapsed_time of " .. remaining_elapsed_time .. " still remains")
 
 							node_inv:set_stack("fuel", i, ItemStack(""))
 
-							debug(flag29, "      updating campfire fuel weight..")
+							--debug(flag29, "      updating campfire fuel weight..")
 							local weight_fuel_total = campfire_meta:get_float("weight_fuel_total")
-							debug(flag29, "        current weight_fuel_total: " .. weight_fuel_total)
+							--debug(flag29, "        current weight_fuel_total: " .. weight_fuel_total)
 
 							local fuel_weight_to_remove
 							if fuel_item_name == "ss:item_bundle" then
@@ -2425,11 +2426,11 @@ local function check_timer_active_2(pos)
 							else
 								fuel_weight_to_remove = fuel_item_count * ITEM_WEIGHTS[fuel_item_name]
 							end
-							debug(flag29, "        fuel_weight_to_remove: " .. fuel_weight_to_remove)
+							--debug(flag29, "        fuel_weight_to_remove: " .. fuel_weight_to_remove)
 
 
 							local new_weight_fuel_total = weight_fuel_total - fuel_weight_to_remove
-							debug(flag29, "        new_weight_fuel_total: " .. new_weight_fuel_total)
+							--debug(flag29, "        new_weight_fuel_total: " .. new_weight_fuel_total)
 							campfire_meta:set_float("weight_fuel_total", new_weight_fuel_total)
 
 							-- reduce campfire burn_time_extra time by itemstack_burn_time
@@ -2451,42 +2452,42 @@ local function check_timer_active_2(pos)
 					end
 				end
 
-				debug(flag29, "      finished applying elapsed time to fuel slots, along with campfire tools/ingredients/adj nodes")
-				debug(flag29, "      remaining_elapsed_time: " .. remaining_elapsed_time)
-				debug(flag29, "      burn_time_extra: " ..campfire_meta:get_int("burn_time_extra"))
-				debug(flag29, "      burn_time_campfire: " ..campfire_meta:get_int("burn_time_campfire"))
+				--debug(flag29, "      finished applying elapsed time to fuel slots, along with campfire tools/ingredients/adj nodes")
+				--debug(flag29, "      remaining_elapsed_time: " .. remaining_elapsed_time)
+				--debug(flag29, "      burn_time_extra: " ..campfire_meta:get_int("burn_time_extra"))
+				--debug(flag29, "      burn_time_campfire: " ..campfire_meta:get_int("burn_time_campfire"))
 
 				if remaining_elapsed_time > 0 then
-					debug(flag29, "\n      applying elapsed time to core campfire fuel..")
+					--debug(flag29, "\n      applying elapsed time to core campfire fuel..")
 					local burn_time_campfire = campfire_meta:get_int("burn_time_campfire")
 					local burn_time_campfire_leftover = burn_time_campfire - remaining_elapsed_time
 					if burn_time_campfire_leftover > 0 then
-						debug(flag29, "      core campfire fuel still remains")
+						--debug(flag29, "      core campfire fuel still remains")
 						campfire_meta:set_int("burn_time_campfire", burn_time_campfire_leftover)
-						debug(flag29, "      burn_time_campfire_leftover: " .. burn_time_campfire_leftover)
+						--debug(flag29, "      burn_time_campfire_leftover: " .. burn_time_campfire_leftover)
 
-						debug(flag29, "\n      applying remaining elapsed time to campfire tools, ingredients, and adj nodes..")
+						--debug(flag29, "\n      applying remaining elapsed time to campfire tools, ingredients, and adj nodes..")
 						add_wear_campfire_tools(pos, campfire_meta, node_inv, remaining_elapsed_time)
 						cook_ingredient_all(pos, node_inv, remaining_elapsed_time)
 						for j, pos_data in ipairs(adj_positions_flammable) do
 							heat_node(pos_data[1], pos_data[2], remaining_elapsed_time)
 						end
 
-						debug(flag29, "    ** all remaining elapsed_time now accounted for **")
-						debug(flag29, "    SUMMARY: All fuel items used up, and some core campfire fuel was used.")
+						--debug(flag29, "    ** all remaining elapsed_time now accounted for **")
+						--debug(flag29, "    SUMMARY: All fuel items used up, and some core campfire fuel was used.")
 
 					else
-						debug(flag29, "      ** core campfire fuel depleted **")
+						--debug(flag29, "      ** core campfire fuel depleted **")
 
-						debug(flag29, "\n      applying remaining campfire core burn time to campfire tools, ingredients, and adj nodes..")
+						--debug(flag29, "\n      applying remaining campfire core burn time to campfire tools, ingredients, and adj nodes..")
 						add_wear_campfire_tools(pos, campfire_meta, node_inv, burn_time_campfire)
 						cook_ingredient_all(pos, node_inv, remaining_elapsed_time)
 						for j, pos_data in ipairs(adj_positions_flammable) do
 							heat_node(pos_data[1], pos_data[2], remaining_elapsed_time)
 						end
 
-						debug(flag29, "    ** core campfire fuel all used up **")
-						debug(flag29, "    SUMMARY: All fuel items and core campfire fuel used up. Campfire Spent.")
+						--debug(flag29, "    ** core campfire fuel all used up **")
+						--debug(flag29, "    SUMMARY: All fuel items and core campfire fuel used up. Campfire Spent.")
 						campfire_meta:set_int("burn_time_campfire", 0)
 						-- in this scenario burn_time_extra and burn_time_campfire are zero,
 						-- so on the next campfire_burn_loop, the campfire will automatically
@@ -2494,33 +2495,36 @@ local function check_timer_active_2(pos)
 					end
 
 				else
-					debug(flag29, "      fuel items absorbed all elapsed time. core campfire fuel untouched.")
+					--debug(flag29, "      fuel items absorbed all elapsed time. core campfire fuel untouched.")
 				end
 
 			else
-				debug(flag29, "    current fuel item absorbed all elapsed time. NO FURTHER ACTION.")
+				--debug(flag29, "    current fuel item absorbed all elapsed time. NO FURTHER ACTION.")
 			end
 
 			campfire_meta:set_int("unload_time", 0)
 		end
 	else
-		debug(flag29, "    ** campfire NOT loaded **")
+		--debug(flag29, "    ** campfire NOT loaded **")
+		radiant_sources[pos_to_key(pos)] = nil
+		--debug(flag29, "    campfire removed as radiant source")
+
 
 		-- campfire status is usually 'on' status. it can become 'spent' when core fuel
-		--  is used up while campfire was unloaded. don't save unload_time when campfire
+		-- is used up while campfire was unloaded. don't save unload_time when campfire
 		-- becomes spent, because then the elpased time value is no longer needed.
 		local campfire_status = campfire_meta:get_string("campfire_status")
-		debug(flag29, "    campfire_status: " .. campfire_status)
+		--debug(flag29, "    campfire_status: " .. campfire_status)
 		if campfire_status == "" then
-			debug(flag29, "    campfire no longer exists")
-			debug(flag29, "  check_campfire() END")
+			--debug(flag29, "    campfire no longer exists")
+			--debug(flag29, "  check_campfire() END")
 			return
 		elseif campfire_status == "spent" then
-			debug(flag29, "    campfire is spent. not saving unload time")
+			--debug(flag29, "    campfire is spent. not saving unload time")
 		else
 			local current_time = mt_get_gametime()
 			campfire_meta:set_int("unload_time", current_time)
-			debug(flag29, "    saving unload_time: " .. current_time)
+			--debug(flag29, "    saving unload_time: " .. current_time)
 		end
 	end
 
@@ -2528,10 +2532,9 @@ local function check_timer_active_2(pos)
 	local burn_time_current_item = campfire_meta:get_int("burn_time_current_item")
 	local burn_time_extra = campfire_meta:get_int("burn_time_extra")
 	local burn_time_campfire = campfire_meta:get_int("burn_time_campfire")
-	debug(flag29, "    campfire fuel stats:")
-	debug(flag29, "      current fuel item: " .. current_fuel_item_name .. " [" .. burn_time_current_item .. "]")
-	debug(flag29, "      campfire burn time: " .. burn_time_extra .. " | " .. burn_time_campfire)
-	
+	--debug(flag29, "    campfire fuel stats:")
+	--debug(flag29, "      current fuel item: " .. current_fuel_item_name .. " [" .. burn_time_current_item .. "]")
+	--debug(flag29, "      campfire burn time: " .. burn_time_extra .. " | " .. burn_time_campfire)
 
 	debug(flag29, "  check_timer_active_2() END")
 end
@@ -2544,33 +2547,33 @@ local function check_ingredient_slots(node_meta, node_inv, pos)
 	local ingredient_slot_items = node_inv:get_list("ingredients")
 	local slot_count = node_meta:get_int("slot_count_ingredients")
 	for i = 1, slot_count do
-		debug(flag22, "    checking slot #" .. i)
+		--debug(flag22, "    checking slot #" .. i)
 		local item = ingredient_slot_items[i]
 
 		if item:is_empty() then
-			debug(flag22, "    no ingredient item exists there")
+			--debug(flag22, "    no ingredient item exists there")
 
 		else
 			local item_name = item:get_name()
-			debug(flag22, "    ingredient item found: " .. item_name)
+			--debug(flag22, "    ingredient item found: " .. item_name)
 			local item_meta = item:get_meta()
 
 			if ITEM_COOK_PATH[item_name] then
-				debug(flag22, "    ***** Item is cookable ***** ")
+				--debug(flag22, "    ***** Item is cookable ***** ")
 
 				local cooker = item_meta:get_string("cooker")
-				debug(flag22, "    cooker: " .. cooker)
+				--debug(flag22, "    cooker: " .. cooker)
 				local heat_progress = item_meta:get_float("heat_progress")
-				debug(flag22, "    heat_progress: " .. heat_progress)
+				--debug(flag22, "    heat_progress: " .. heat_progress)
 
 				if heat_progress > 0 then
-					debug(flag22, "    item currently cooking")
+					--debug(flag22, "    item currently cooking")
 					cook_ingredient(item, i, node_inv, pos, 1)
 				else
-					debug(flag22, "    item hasn't begun cooking")
+					--debug(flag22, "    item hasn't begun cooking")
 					local in_cooldown = item_meta:get_int("in_cooldown")
 					if in_cooldown == 0 then
-						debug(flag22, "    ***** STARTING COOLDOWN PHASE *****")
+						--debug(flag22, "    ***** STARTING COOLDOWN PHASE *****")
 						item_meta:set_int("in_cooldown", 1)
 						item_meta:set_int("cooldown_counter", COOK_WARM_UP_TIME)
 						node_inv:set_stack("ingredients", i, item)
@@ -2578,16 +2581,16 @@ local function check_ingredient_slots(node_meta, node_inv, pos)
 					else
 						local cooldown_counter = item_meta:get_int("cooldown_counter")
 						if cooldown_counter > 0 then
-							debug(flag22, "    currently in cooldown. counter value: " .. cooldown_counter)
+							--debug(flag22, "    currently in cooldown. counter value: " .. cooldown_counter)
 							cooldown_counter = cooldown_counter - 1
 							item_meta:set_int("cooldown_counter", cooldown_counter)
-							debug(flag22, "    new counter value: " .. cooldown_counter)
+							--debug(flag22, "    new counter value: " .. cooldown_counter)
 							node_inv:set_stack("ingredients", i, item)
 
 						else
-							debug(flag22, "    ***** COOLDOWN COMPLETE *****")
+							--debug(flag22, "    ***** COOLDOWN COMPLETE *****")
 							if FIRE_DOUSE_ITEMS[item_name] then
-								debug(flag22, "    this item will douse the flames")
+								--debug(flag22, "    this item will douse the flames")
 								node_inv:set_stack("ingredients", i, ItemStack(""))
 								stop_campfire(pos, pos_to_key(pos), node_meta)
 								continue_burn = false
@@ -2595,7 +2598,7 @@ local function check_ingredient_slots(node_meta, node_inv, pos)
 								-- remove cooldown metadata
 								item_meta:set_string("cooldown_counter", "")
 								item_meta:set_string("in_cooldown", "")
-								debug(flag22, "      metadata: " .. dump(item_meta:to_table()))
+								--debug(flag22, "      metadata: " .. dump(item_meta:to_table()))
 								node_inv:set_stack("ingredients", i, item)
 								cook_ingredient(item, i, node_inv, pos, 1)
 							end
@@ -2604,31 +2607,31 @@ local function check_ingredient_slots(node_meta, node_inv, pos)
 				end
 
 			else
-				debug(flag22, "    item not cookable")
+				--debug(flag22, "    item not cookable")
 				--debug(flag22, "    item_meta: " .. dump(item_meta:to_table()))
 
 				local cooker = item_meta:get_string("cooker")
-				debug(flag22, "    cooker: " .. cooker)
+				--debug(flag22, "    cooker: " .. cooker)
 				if cooker ~= "" then
 					item_meta:set_string("cooker", "")
 					node_inv:set_stack("ingredients", i, item)
-					debug(flag22, "    removed 'cooker' data")
+					--debug(flag22, "    removed 'cooker' data")
 				end
 
 				if item_name == "ss:ash" then
-					debug(flag22, "    item is ash. dropping to ground..")
+					--debug(flag22, "    item is ash. dropping to ground..")
 					node_inv:set_stack("ingredients", i, ItemStack(""))
 					mt_add_item(pos, item)
 
 				elseif FIRE_SMOTHER_ITEMS[item_name] then
-					debug(flag22, "    item will smother the flames")
+					--debug(flag22, "    item will smother the flames")
 					stop_campfire(pos, pos_to_key(pos), node_meta)
 					node_inv:set_stack("ingredients", i, ItemStack(""))
 					mt_add_item(pos, item)
 					continue_burn = false
 
 				else
-					debug(flag22, "    item remains unaffected")
+					--debug(flag22, "    item remains unaffected")
 				end
 			end
 		end
@@ -2647,7 +2650,7 @@ local function heat_adjacent_nodes(pos)
 		local adj_node = mt_get_node(adj_pos)
 		local node_cook_data = COOK_NODES[adj_node.name]
 		if node_cook_data then
-			debug(flag41, "    this node is cookable")
+			--debug(flag41, "    this node is cookable")
 			heat_node(adj_pos, location, 1)
 		end
 	end
@@ -2658,21 +2661,21 @@ end
 local flag43 = false
 local function check_ingredient_status(item, node_inv, index, player)
 	debug(flag43, "  check_ingredient_status()")
-	debug(flag43, "    item name: " .. item:get_name())
+	--debug(flag43, "    item name: " .. item:get_name())
 
 	local item_meta = item:get_meta()
 	local cooker = item_meta:get_string("cooker")
-	debug(flag43, "    cooker: " .. cooker)
+	--debug(flag43, "    cooker: " .. cooker)
 
 	if cooker == "" then
-		debug(flag43, "    no cooker assigned")
+		--debug(flag43, "    no cooker assigned")
 		local player_name = player:get_player_name()
 		item_meta:set_string("cooker", player_name)
-		debug(flag43, "    assigned new cooker: " .. player_name)
+		--debug(flag43, "    assigned new cooker: " .. player_name)
 		node_inv:set_stack("ingredients", index, item)
 
 	else
-		debug(flag43, "    cooker already assigned")
+		--debug(flag43, "    cooker already assigned")
 		reset_cook_data(item)
 		node_inv:set_stack("ingredients", index, item)
 	end
@@ -2687,26 +2690,26 @@ local function campfire_on_construct(pos)
 
 	local bottom_node = mt_get_node({x = pos.x, y = pos.y - 1, z = pos.z})
 	local bottom_node_name = bottom_node.name
-	debug(flag19, "  bottom_node_name: " .. bottom_node_name)
+	--debug(flag19, "  bottom_node_name: " .. bottom_node_name)
 
 	-- campfire can only be placed on top of a solid/walkable node. but some solid nodes
 	-- are not full height and have a gap above it. ensure campfire cannot be placed
 	-- above these nodes.
 	local is_bottom_supportive
 	if NODE_NAMES_SOLID_CUBE[bottom_node_name] then
-		debug(flag19, "  bottom node is solid cube. ok to place")
+		--debug(flag19, "  bottom node is solid cube. ok to place")
 		is_bottom_supportive = true
 	elseif NODE_NAMES_SOLID_VARIABLE_HEIGHT[bottom_node_name] then
-		debug(flag19, "  bottom node is variable height. inspecting further..")
+		--debug(flag19, "  bottom node is variable height. inspecting further..")
 		is_bottom_supportive = is_variable_height_node_supportive(bottom_node, bottom_node_name)
 	else
-		debug(flag19, "  node below is not a valid support")
+		--debug(flag19, "  node below is not a valid support")
 		is_bottom_supportive = false
 	end
 
 	if is_bottom_supportive then
-		debug(flag19, "  campfire node spawned")
-		debug(flag19, "  initializing node metadata")
+		--debug(flag19, "  campfire node spawned")
+		--debug(flag19, "  initializing node metadata")
 		local node_meta = mt_get_meta(pos)
 		node_meta:set_int("slot_count_ingredients", 1)
 		node_meta:set_int("slot_count_fuel", 1)
@@ -2723,11 +2726,11 @@ local function campfire_on_construct(pos)
 		node_meta:set_int("is_timer_active", 1)
 		node_meta:set_int("unload_time", 0)
 
-		debug(flag19, "  creating unique pos_key for this campfire node")
+		--debug(flag19, "  creating unique pos_key for this campfire node")
 		local pos_key = pos_to_key(pos)
-		debug(flag19, "  pos_key: " .. pos_key)
+		--debug(flag19, "  pos_key: " .. pos_key)
 
-		debug(flag19, "  initializing node inventory lists")
+		--debug(flag19, "  initializing node inventory lists")
 		local node_inv = node_meta:get_inventory()
 		node_inv:set_size("ingredients", 3)
 		node_inv:set_size("campfire_stand", 1)
@@ -2741,7 +2744,7 @@ local function campfire_on_construct(pos)
 
 	else
 
-		debug(flag19, "  removing campfire node from the world..")
+		--debug(flag19, "  removing campfire node from the world..")
 		mt_remove_node(pos)
 	end
 
@@ -2759,25 +2762,24 @@ local function campfire_after_place_node(pos, player, item, pointed_thing)
 
     local node = mt_get_node(pos)
     local node_name = node.name
-    debug(flag38, "  node_name: " .. node_name)
+    --debug(flag38, "  node_name: " .. node_name)
 
 	if node_name == "air" then
-		debug(flag38, "  campfire placement was cancelled")
-		notify(player,"Area below is not solid or stable", 3, 0.5, 0, 3)
-		debug(flag38, "campfire_after_place_node() END")
+		--debug(flag38, "  campfire placement was cancelled")
+		notify(player, "inventory", "Area below is not solid or stable", 3, 0.5, 0, 3)
+		--debug(flag38, "campfire_after_place_node() END")
 		return true
 
 	else
-		debug(flag38, "  campfire was placed successfully")
-		debug(flag38, "  reducing inventory weight..")
+		--debug(flag38, "  campfire was placed successfully")
+		--debug(flag38, "  reducing inventory weight..")
         local player_meta = player:get_meta()
         local item_name = item:get_name()
-        debug(flag38, "  item name: " .. item_name)
+        --debug(flag38, "  item name: " .. item_name)
         local weight = ITEM_WEIGHTS[item_name]
-        debug(flag38, "  weight: " .. weight)
+        --debug(flag38, "  weight: " .. weight)
 		local player_name = player:get_player_name()
-		local update_data = {"normal", "weight", -weight, 1, 1, "curr", "add", true}
-		update_stat(player, player_data[player_name], player_meta, update_data)
+		do_stat_update_action(player, player_data[player_name], player_meta, "normal", "weight", -weight, "curr", "add", true)
         update_fs_weight(player, player_meta)
 	end
 
@@ -2796,48 +2798,46 @@ local function campfire_burn_loop(pos, elapsed)
 
 	-- retrieve current fuel data
 	local current_fuel_item_name = node_meta:get_string("current_fuel_item_name")
-	debug(flag17, "  current_fuel_item_name: " .. current_fuel_item_name)
+	--debug(flag17, "  current_fuel_item_name: " .. current_fuel_item_name)
 	local inv_image = node_meta:get_string("inventory_image")
-	debug(flag17, "  inv_image: " .. inv_image)
+	--debug(flag17, "  inv_image: " .. inv_image)
 	local burn_time_current_item = node_meta:get_int("burn_time_current_item")
 	local burn_time_extra = node_meta:get_int("burn_time_extra")
 	local burn_time_campfire = node_meta:get_int("burn_time_campfire")
-	debug(flag17, "  burn time: item " .. burn_time_current_item ..
-		" / extra " .. burn_time_extra ..
-		" / campfire " .. burn_time_campfire)
+	--debug(flag17, "  burn time: item " .. burn_time_current_item ..
+	--	" / extra " .. burn_time_extra ..
+	--	" / campfire " .. burn_time_campfire)
 
 	-- burn any fuel in campfire, and repeat cycle while fuel exists
 	local continue_burn = true
 	if burn_time_extra > 0 then
-		debug(flag17, "  burning EXTRA fuel..")
-		debug(flag17, "  playing flame sound")
+		-- burning EXTRA fuel
 		play_sound("campfire_start", {pos = pos})
 
 		if burn_time_current_item > 0 then
-			debug(flag17, "  fuel remains from current item")
+			--debug(flag17, "  fuel remains from current item")
 
 		else
-			debug(flag17, "  no fuel from current item. burning next fuel item..")
+			-- no fuel from current item. burning next fuel item
 			local fuel_slots = node_inv:get_list("fuel")
 			local fuel_slot_count = node_meta:get_int("slot_count_fuel")
-			debug(flag17, "  fuel_slot_count: " .. fuel_slot_count)
+			--debug(flag17, "  fuel_slot_count: " .. fuel_slot_count)
 
 			for i = 1, fuel_slot_count do
 
-				debug(flag17, "  checking slot #" .. i)
+				--debug(flag17, "  checking slot #" .. i)
 				local fuel_itemstack = fuel_slots[i]
 				if fuel_itemstack:is_empty() then
-					debug(flag17, "    no fuel item exists there")
+					--debug(flag17, "    no fuel item exists there")
 
 				else
 					-- save fuel item name
 					local fuel_item_name = fuel_itemstack:get_name()
 					node_meta:set_string("current_fuel_item_name", fuel_item_name)
-					debug(flag17, "    fuel item found: " .. fuel_item_name)
+					--debug(flag17, "    fuel item found: " .. fuel_item_name)
 
 					local fuel_item_meta = fuel_itemstack:get_meta()
 					if fuel_item_name == "ss:item_bundle" then
-						debug(flag17, "    an item bundle")
 						local bundle_burn_time = fuel_item_meta:get_int("bundle_burn_time")
 						node_meta:set_int("current_fuel_item_bundle_burn_time", bundle_burn_time)
 					end
@@ -2846,38 +2846,34 @@ local function campfire_burn_loop(pos, elapsed)
 					-- icon in the proper custom color (for clothing/armor)
 					local fuel_item_inv_image = fuel_item_meta:get_string("inventory_image")
 					if fuel_item_inv_image == "" then
-						debug(flag17, "    using vanilla item icon filename and colorization")
+						-- using vanilla item icon filename and colorization
 						fuel_item_inv_image = CRAFTITEM_ICON[fuel_item_name]
 					end
 					node_meta:set_string("current_fuel_item_inv_image", fuel_item_inv_image)
-					debug(flag17, "    fuel_item_inv_image: " .. fuel_item_inv_image)
+					--debug(flag17, "    fuel_item_inv_image: " .. fuel_item_inv_image)
 
 					local heat_progress = fuel_item_meta:get_float("heat_progress")
-					debug(flag17, "    item_meta: " .. dump(fuel_item_meta:to_table()))
+					--debug(flag17, "    item_meta: " .. dump(fuel_item_meta:to_table()))
 
 					-- 'top up' current fuel item burn time
 					if heat_progress > 0 then
-						debug(flag17, "    this is partially heated item")
+						-- this is partially heated item
 						burn_time_current_item = node_meta:get_int("burn_time_current_item_modded")
 					else
-						debug(flag17, "   item not partially heated")
+						-- item not partially heated
 						if fuel_item_name == "ss:item_bundle" then
-							debug(flag17, "   an item bundle")
 							burn_time_current_item = fuel_item_meta:get_int("bundle_burn_time")
 						else
-							debug(flag17, "   not an item bundle")
 							burn_time_current_item = ITEM_BURN_TIMES[fuel_item_name]
 						end
 					end
-					debug(flag17, "    burn_time_current_item: " .. burn_time_current_item)
+					--debug(flag17, "    burn_time_current_item: " .. burn_time_current_item)
 
 					-- burn/remove the next fuel item
 					fuel_itemstack:set_count(fuel_itemstack:get_count() - 1)
 					node_inv:set_stack("fuel", i, fuel_itemstack)
-					debug(flag17, "    item removed from stack")
 
 					-- reduce total campfire fuel weight
-					debug(flag17, "    updating campfire fuel weight...")
 					local item_weight
 					if fuel_item_name == "ss:item_bundle" then
 						item_weight = fuel_item_meta:get_float("bundle_weight")
@@ -2886,7 +2882,7 @@ local function campfire_burn_loop(pos, elapsed)
 					end
 					local new_fuel_weight = node_meta:get_float("weight_fuel_total") - item_weight
 					node_meta:set_float("weight_fuel_total", new_fuel_weight)
-					debug(flag17, "    new_fuel_weight: " .. new_fuel_weight)
+					--debug(flag17, "    new_fuel_weight: " .. new_fuel_weight)
 
 					break
 					-- no need to call show_formspec() to refresh campfire ui for players here
@@ -2903,7 +2899,7 @@ local function campfire_burn_loop(pos, elapsed)
 		heat_adjacent_nodes(pos)
 
 	else
-		debug(flag17, "  no EXTRA fuel exists.")
+		--debug(flag17, "  no EXTRA fuel exists.")
 
 		if current_fuel_item_name ~= "" then
 			node_meta:set_string("current_fuel_item_name", "")
@@ -2911,7 +2907,7 @@ local function campfire_burn_loop(pos, elapsed)
 		end
 
 		if burn_time_campfire > 0 then
-			debug(flag17, "  burning CORE fuel..")
+			--debug(flag17, "  burning CORE fuel..")
 			play_sound("campfire_start", {pos = pos})
 			node_meta:set_int("burn_time_campfire", burn_time_campfire - 1)
 			add_wear_campfire_tools(pos, node_meta, node_inv, 1)
@@ -2919,7 +2915,7 @@ local function campfire_burn_loop(pos, elapsed)
 			heat_adjacent_nodes(pos)
 
 		else
-			debug(flag17, "  no CORE fuel exists. campfire is spent.")
+			-- no CORE fuel exists. campfire is spent.
 
 			-- this alerts any calls to refresh_formspec() that are looping to stop
 			node_meta:set_string("campfire_status", "spent")
@@ -2948,15 +2944,15 @@ local function campfire_burn_loop(pos, elapsed)
 		if #formspec_viewers[pos_key] > 0 then
 			refresh_formspec(pos, pos_to_key(pos))
 		else
-			debug(flag17, "  campfire on, but no viewers")
+			--debug(flag17, "  campfire on, but no viewers")
 			mt_after(0.9, check_timer_active_1, pos)
 			mt_after(1.7, check_timer_active_2, pos)
 		end
 	else
-		debug(flag17, "  campfire was destroyed. NO FURTHER ACTION.")
+		--debug(flag17, "  campfire was destroyed. NO FURTHER ACTION.")
 	end
 
-	debug(flag17, "campfire_burn_loop() END")
+	--debug(flag17, "campfire_burn_loop() END")
 	return continue_burn
 end
 
@@ -2969,10 +2965,10 @@ local function campfire_on_destruct(pos)
 
 	local pos_key = pos_to_key(pos)
 	if formspec_viewers[pos_key] == nil then
-		debug(flag35, "  attempting to place campfire above a non-solid node. NO FURTHER ACTION.")
+		--debug(flag35, "  attempting to place campfire above a non-solid node. NO FURTHER ACTION.")
 
 	else
-		debug(flag35, "  campfire destruct due to being dug or falling..")
+		--debug(flag35, "  campfire destruct due to being dug or falling..")
 
 		local campfire_node = mt_get_node(pos)
 		local campfire_name = campfire_node.name
@@ -3005,9 +3001,9 @@ local function campfire_on_rightclick(pos, node, clicker, itemstack, pointed_thi
 	local player_name = clicker:get_player_name()
 	local p_data = player_data[player_name]
 	local pos_key = pos_to_key(pos)
-	debug(flag6, "  pos_key: " .. pos_key)
+	--debug(flag6, "  pos_key: " .. pos_key)
 
-	debug(flag6, "  formspec_viewers: " .. dump(formspec_viewers))
+	--debug(flag6, "  formspec_viewers: " .. dump(formspec_viewers))
 	--formspec_viewers[pos_key] = formspec_viewers[pos_key] or {}
 	--debug(flag6, "  updated formspec_viewers: " .. dump(formspec_viewers))
 
@@ -3022,7 +3018,7 @@ local function campfire_on_rightclick(pos, node, clicker, itemstack, pointed_thi
 	-- add the player's name to the formspec_viewers table to signify that the player
 	-- is currently viewing/using this campfire
 	table_insert(formspec_viewers[pos_key], player_name)
-	debug(flag6, "  final formspec_viewers: " .. dump(formspec_viewers))
+	--debug(flag6, "  final formspec_viewers: " .. dump(formspec_viewers))
 
 	-- workaround to ensure LMB/RMB player control input is released so that stamina
 	-- doesn't keep draining for being in DIG/SWING state
@@ -3037,62 +3033,62 @@ end
 local flag13 = false
 local function campfire_allow_metadata_inventory_move(pos, from_list, from_index, to_list, to_index, count, player)
 	debug(flag13, "\nallow_metadata_inventory_move() CAMPFIRE")
-	debug(flag13, "  count: " .. count)
+	--debug(flag13, "  count: " .. count)
 
 	local node_meta = mt_get_meta(pos)
 	local node_inv = node_meta:get_inventory()
 	local item = node_inv:get_stack(from_list, from_index)
 	local item_name = item:get_name()
-	debug(flag13, "  item_name: " .. item_name)
+	--debug(flag13, "  item_name: " .. item_name)
 
 	local move_count = count
 
 	if from_list == "ingredients" then
 		if to_list == "ingredients" then
-			debug(flag13, "  moving item from ingred slot " .. from_index .. " to ingred slot " .. to_index)
+			--debug(flag13, "  moving item from ingred slot " .. from_index .. " to ingred slot " .. to_index)
 			local to_item = node_inv:get_stack("ingredients", to_index)
 			if to_item:is_empty() then
-				debug(flag13, "  target slot is empty")
+				--debug(flag13, "  target slot is empty")
 			else
 				local to_item_name = to_item:get_name()
-				debug(flag13, "  target slot has item: " .. to_item_name)
+				--debug(flag13, "  target slot has item: " .. to_item_name)
 				if to_item_name == item_name then
-					debug(flag13, "  item in slot and item being moved are the SAME")
-					debug(flag13, "  prevent the move action as it would increase the stack count")
+					--debug(flag13, "  item in slot and item being moved are the SAME")
+					--debug(flag13, "  prevent the move action as it would increase the stack count")
 					move_count = 0
-					notify(player, "Only 1 item can fit there", NOTIFY_DURATION, 0, 0.5, 3)
+					notify(player, "inventory", "Only 1 item can fit there", NOTIFY_DURATION, 0, 0.5, 3)
 				else
-					debug(flag13, "  item in slot and item being moved are DIFFERENT")
+					--debug(flag13, "  item in slot and item being moved are DIFFERENT")
 					move_count = 1
 				end
 			end
 
 		elseif to_list == "campfire_stand" then
-			debug(flag13, "  moving item from ingred slot " .. from_index .. " to campfire stand slot " .. to_index)
+			--debug(flag13, "  moving item from ingred slot " .. from_index .. " to campfire stand slot " .. to_index)
 
 			local campfire_status = node_meta:get_string("campfire_status")
 			if campfire_status == "on" then
-				debug(flag13, "  campfire is ON")
+				--debug(flag13, "  campfire is ON")
 				move_count = 0
-				notify(player, "Cannot place while campfire is on.", NOTIFY_DURATION, 0, 0.5, 3)
+				notify(player, "inventory", "Cannot place while campfire is on.", NOTIFY_DURATION, 0, 0.5, 3)
 			else
 				if CAMPFIRE_STAND_NAMES[item_name] then
-					debug(flag13, "  item is a campfire stand!")
+					--debug(flag13, "  item is a campfire stand!")
 
 					local to_item = node_inv:get_stack("campfire_stand", to_index)
 					if to_item:is_empty() then
-						debug(flag13, "  target slot is empty")
+						--debug(flag13, "  target slot is empty")
 						move_count = 1
 					else
 						local to_item_name = to_item:get_name()
-						debug(flag13, "  target slot has item: " .. to_item_name)
+						--debug(flag13, "  target slot has item: " .. to_item_name)
 						if to_item_name == item_name then
-							debug(flag13, "  item in slot and item being moved are the SAME")
-							debug(flag13, "  prevent the move action as it would increase the stack count")
+							--debug(flag13, "  item in slot and item being moved are the SAME")
+							--debug(flag13, "  prevent the move action as it would increase the stack count")
 							move_count = 0
-							notify(player, "Only 1 stand can fit there", NOTIFY_DURATION, 0, 0.5, 3)
+							notify(player, "inventory", "Only 1 stand can fit there", NOTIFY_DURATION, 0, 0.5, 3)
 						else
-							debug(flag13, "  item in slot and item being moved are DIFFERENT")
+							--debug(flag13, "  item in slot and item being moved are DIFFERENT")
 							move_count = 1
 						end
 					end
@@ -3100,44 +3096,44 @@ local function campfire_allow_metadata_inventory_move(pos, from_list, from_index
 				else
 					local to_item = node_inv:get_stack("campfire_stand", to_index)
 					if to_item:is_empty() then
-						debug(flag13, "  target slot is empty")
-						notify(player, "Item not a campfire stand", NOTIFY_DURATION, 0, 0.5, 3)
+						--debug(flag13, "  target slot is empty")
+						notify(player, "inventory", "Item not a campfire stand", NOTIFY_DURATION, 0, 0.5, 3)
 					else
 						local to_item_name = to_item:get_name()
-						debug(flag13, "  target slot has item: " .. to_item_name)
-						notify(player, "Cannot swap with non-stand item", 3, 0, 0.5, 3)
+						--debug(flag13, "  target slot has item: " .. to_item_name)
+						notify(player, "inventory", "Cannot swap with non-stand item", 3, 0, 0.5, 3)
 					end
 					move_count = 0
 				end
 			end
 
 		elseif to_list == "campfire_grill" then
-			debug(flag13, "  moving item from ingred slot " .. from_index .. " to campfire grill slot " .. to_index)
+			--debug(flag13, "  moving item from ingred slot " .. from_index .. " to campfire grill slot " .. to_index)
 
 			local campfire_status = node_meta:get_string("campfire_status")
 			if campfire_status == "on" then
-				debug(flag13, "  campfire is ON")
+				--debug(flag13, "  campfire is ON")
 				move_count = 0
-				notify(player, "Cannot place while campfire is on.", NOTIFY_DURATION, 0, 0.5, 3)
+				notify(player, "inventory", "Cannot place while campfire is on.", NOTIFY_DURATION, 0, 0.5, 3)
 			else
 
 				if CAMPFIRE_GRILL_NAMES[item_name] then
-					debug(flag13, "  item is a campfire grill!")
+					--debug(flag13, "  item is a campfire grill!")
 
 					local to_item = node_inv:get_stack("campfire_grill", to_index)
 					if to_item:is_empty() then
-						debug(flag13, "  target slot is empty")
+						--debug(flag13, "  target slot is empty")
 						move_count = 1
 					else
 						local to_item_name = to_item:get_name()
-						debug(flag13, "  target slot has item: " .. to_item_name)
+						--debug(flag13, "  target slot has item: " .. to_item_name)
 						if to_item_name == item_name then
-							debug(flag13, "  item in slot and item being moved are the SAME")
-							debug(flag13, "  prevent the move action as it would increase the stack count")
+							--debug(flag13, "  item in slot and item being moved are the SAME")
+							--debug(flag13, "  prevent the move action as it would increase the stack count")
 							move_count = 0
-							notify(player, "Only 1 grill can fit there", NOTIFY_DURATION, 0, 0.5, 3)
+							notify(player, "inventory", "Only 1 grill can fit there", NOTIFY_DURATION, 0, 0.5, 3)
 						else
-							debug(flag13, "  item in slot and item being moved are DIFFERENT")
+							--debug(flag13, "  item in slot and item being moved are DIFFERENT")
 							move_count = 1
 						end
 					end
@@ -3145,37 +3141,37 @@ local function campfire_allow_metadata_inventory_move(pos, from_list, from_index
 				else
 					local to_item = node_inv:get_stack("campfire_grill", to_index)
 					if to_item:is_empty() then
-						debug(flag13, "  target slot is empty")
-						notify(player, "Item not a campfire grill", NOTIFY_DURATION, 0, 0.5, 3)
+						--debug(flag13, "  target slot is empty")
+						notify(player, "inventory", "Item not a campfire grill", NOTIFY_DURATION, 0, 0.5, 3)
 					else
 						local to_item_name = to_item:get_name()
-						debug(flag13, "  target slot has item: " .. to_item_name)
-						notify(player, "Cannot swap with non-grill item", 3, 0, 0.5, 3)
+						--debug(flag13, "  target slot has item: " .. to_item_name)
+						notify(player, "inventory", "Cannot swap with non-grill item", 3, 0, 0.5, 3)
 					end
 					move_count = 0
 				end
 			end
 
 		elseif to_list == "fire_starter" then
-			debug(flag13, "  moving item from ingred slot " .. from_index .. " to fire starter slot " .. to_index)
+			--debug(flag13, "  moving item from ingred slot " .. from_index .. " to fire starter slot " .. to_index)
 			if FIRE_STARTER_NAMES[item_name] then
-				debug(flag13, "  item is a fire starter!")
+				--debug(flag13, "  item is a fire starter!")
 				move_count = 1
 			else
-				debug(flag13, "  item is not a fire starter")
+				--debug(flag13, "  item is not a fire starter")
 				move_count = 0
-				notify(player, "Item not a fire starter", NOTIFY_DURATION, 0, 0.5, 3)
+				notify(player, "inventory", "Item not a fire starter", NOTIFY_DURATION, 0, 0.5, 3)
 			end
 
 		elseif to_list == "fuel" then
-			debug(flag13, "  moving item from ingred slot " .. from_index .. " to fuel slot " .. to_index)
+			--debug(flag13, "  moving item from ingred slot " .. from_index .. " to fuel slot " .. to_index)
 			if ITEM_BURN_TIMES[item_name] > 0 then
-				debug(flag13, "  item is campfire fuel!")
+				--debug(flag13, "  item is campfire fuel!")
 				move_count = get_fuel_item_count(player, node_meta, item)
 			else
-				debug(flag13, "  item is not a campfire fuel")
+				--debug(flag13, "  item is not a campfire fuel")
 				move_count = 0
-				notify(player, "Item not burnable as fuel.", NOTIFY_DURATION, 0, 0.5, 3)
+				notify(player, "inventory", "Item not burnable as fuel.", NOTIFY_DURATION, 0, 0.5, 3)
 			end
 
 		else
@@ -3186,50 +3182,50 @@ local function campfire_allow_metadata_inventory_move(pos, from_list, from_index
 
 		local campfire_status = node_meta:get_string("campfire_status")
 		if campfire_status == "on" then
-			debug(flag13, "  campfire is ON")
+			--debug(flag13, "  campfire is ON")
 			move_count = 0
-			notify(player, "Cannot remove stand while campfire is on.", NOTIFY_DURATION, 0, 0.5, 3)
+			notify(player, "inventory", "Cannot remove stand while campfire is on.", NOTIFY_DURATION, 0, 0.5, 3)
 		else
 			if to_list == "ingredients" then
-				debug(flag13, "  moving item from campfire stand slot " .. from_index .. " to ingred slot " .. to_index)
+				--debug(flag13, "  moving item from campfire stand slot " .. from_index .. " to ingred slot " .. to_index)
 				local to_item = node_inv:get_stack("ingredients", to_index)
 				if to_item:is_empty() then
-					debug(flag13, "  target slot is empty")
+					--debug(flag13, "  target slot is empty")
 				else
 					local to_item_name = to_item:get_name()
-					debug(flag13, "  target slot has item: " .. to_item_name)
+					--debug(flag13, "  target slot has item: " .. to_item_name)
 					if to_item_name == item_name then
-						debug(flag13, "  item in slot and item being moved are the SAME")
-						debug(flag13, "  prevent the move action as it would increase the stack count")
+						--debug(flag13, "  item in slot and item being moved are the SAME")
+						--debug(flag13, "  prevent the move action as it would increase the stack count")
 						move_count = 0
-						notify(player, "Only 1 stand can fit there", NOTIFY_DURATION, 0, 0.5, 3)
+						notify(player, "inventory", "Only 1 stand can fit there", NOTIFY_DURATION, 0, 0.5, 3)
 					else
-						debug(flag13, "  item in slot and item being moved are DIFFERENT")
+						--debug(flag13, "  item in slot and item being moved are DIFFERENT")
 						move_count = 1
 					end
 				end
 
 			elseif to_list == "campfire_grill" then
-				debug(flag13, "  moving item from campfire stand slot " .. from_index .. " to campfire grill slot " .. to_index)
-				debug(flag13, "  campfire stand never allowed to campfire grill slot")
+				--debug(flag13, "  moving item from campfire stand slot " .. from_index .. " to campfire grill slot " .. to_index)
+				--debug(flag13, "  campfire stand never allowed to campfire grill slot")
 					move_count = 0
-					notify(player, "Cannot swap with campfire grill", NOTIFY_DURATION, 0, 0.5, 3)
+					notify(player, "inventory", "Cannot swap with campfire grill", NOTIFY_DURATION, 0, 0.5, 3)
 
 			elseif to_list == "fire_starter" then
-				debug(flag13, "  moving item from campfire stand slot " .. from_index .. " to fire starter slot " .. to_index)
-				debug(flag13, "  campfire stand never allowed to fire starter slot")
+				--debug(flag13, "  moving item from campfire stand slot " .. from_index .. " to fire starter slot " .. to_index)
+				--debug(flag13, "  campfire stand never allowed to fire starter slot")
 					move_count = 0
-					notify(player, "Item not a fire starter", NOTIFY_DURATION, 0, 0.5, 3)
+					notify(player, "inventory", "Item not a fire starter", NOTIFY_DURATION, 0, 0.5, 3)
 
 			elseif to_list == "fuel" then
-				debug(flag13, "  moving item from campfire stand slot " .. from_index .. " to fuel slot " .. to_index)
+				--debug(flag13, "  moving item from campfire stand slot " .. from_index .. " to fuel slot " .. to_index)
 				if ITEM_BURN_TIMES[item_name] > 0 then
-					debug(flag13, "  item is campfire fuel!")
+					--debug(flag13, "  item is campfire fuel!")
 					move_count = get_fuel_item_count(player, node_meta, item)
 				else
-					debug(flag13, "  item is not a campfire fuel")
+					--debug(flag13, "  item is not a campfire fuel")
 					move_count = 0
-					notify(player, "Item not burnable as fuel.", NOTIFY_DURATION, 0, 0.5, 3)
+					notify(player, "inventory", "Item not burnable as fuel.", NOTIFY_DURATION, 0, 0.5, 3)
 				end
 
 			else
@@ -3241,50 +3237,50 @@ local function campfire_allow_metadata_inventory_move(pos, from_list, from_index
 
 		local campfire_status = node_meta:get_string("campfire_status")
 		if campfire_status == "on" then
-			debug(flag13, "  campfire is ON")
+			--debug(flag13, "  campfire is ON")
 			move_count = 0
-			notify(player, "Cannot remove grill while campfire is on.", NOTIFY_DURATION, 0, 0.5, 3)
+			notify(player, "inventory", "Cannot remove grill while campfire is on.", NOTIFY_DURATION, 0, 0.5, 3)
 		else
 			if to_list == "ingredients" then
-				debug(flag13, "  moving item from campfire grill slot " .. from_index .. " to ingred slot " .. to_index)
+				--debug(flag13, "  moving item from campfire grill slot " .. from_index .. " to ingred slot " .. to_index)
 				local to_item = node_inv:get_stack("ingredients", to_index)
 				if to_item:is_empty() then
-					debug(flag13, "  target slot is empty")
+					--debug(flag13, "  target slot is empty")
 				else
 					local to_item_name = to_item:get_name()
-					debug(flag13, "  target slot has item: " .. to_item_name)
+					--debug(flag13, "  target slot has item: " .. to_item_name)
 					if to_item_name == item_name then
-						debug(flag13, "  item in slot and item being moved are the SAME")
-						debug(flag13, "  prevent the move action as it would increase the stack count")
+						--debug(flag13, "  item in slot and item being moved are the SAME")
+						--debug(flag13, "  prevent the move action as it would increase the stack count")
 						move_count = 0
-						notify(player, "Only 1 grill can fit there", NOTIFY_DURATION, 0, 0.5, 3)
+						notify(player, "inventory", "Only 1 grill can fit there", NOTIFY_DURATION, 0, 0.5, 3)
 					else
-						debug(flag13, "  item in slot and item being moved are DIFFERENT")
+						--debug(flag13, "  item in slot and item being moved are DIFFERENT")
 						move_count = 1
 					end
 				end
 
 			elseif to_list == "campfire_stand" then
-				debug(flag13, "  moving item from campfire grill slot " .. from_index .. " to campfire stand slot " .. to_index)
-				debug(flag13, "  campfire grill never allowed into campfire stand slot")
+				--debug(flag13, "  moving item from campfire grill slot " .. from_index .. " to campfire stand slot " .. to_index)
+				--debug(flag13, "  campfire grill never allowed into campfire stand slot")
 					move_count = 0
-					notify(player, "Cannot swap with campfire stand", NOTIFY_DURATION, 0, 0.5, 3)
+					notify(player, "inventory", "Cannot swap with campfire stand", NOTIFY_DURATION, 0, 0.5, 3)
 
 			elseif to_list == "fire_starter" then
-				debug(flag13, "  moving item from campfire grill slot " .. from_index .. " to fire starter slot " .. to_index)
-				debug(flag13, "  campfire grill never allowed to fire starter slot")
+				--debug(flag13, "  moving item from campfire grill slot " .. from_index .. " to fire starter slot " .. to_index)
+				--debug(flag13, "  campfire grill never allowed to fire starter slot")
 					move_count = 0
-					notify(player, "Item not a fire starter", NOTIFY_DURATION, 0, 0.5, 3)
+					notify(player, "inventory", "Item not a fire starter", NOTIFY_DURATION, 0, 0.5, 3)
 
 			elseif to_list == "fuel" then
-				debug(flag13, "  moving item from campfire grill slot " .. from_index .. " to fuel slot " .. to_index)
+				--debug(flag13, "  moving item from campfire grill slot " .. from_index .. " to fuel slot " .. to_index)
 				if ITEM_BURN_TIMES[item_name] > 0 then
-					debug(flag13, "  item is campfire fuel!")
+					--debug(flag13, "  item is campfire fuel!")
 					move_count = get_fuel_item_count(player, node_meta, item)
 				else
-					debug(flag13, "  item is not a campfire fuel")
+					--debug(flag13, "  item is not a campfire fuel")
 					move_count = 0
-					notify(player, "Item not burnable as fuel.", NOTIFY_DURATION, 0, 0.5, 3)
+					notify(player, "inventory", "Item not burnable as fuel.", NOTIFY_DURATION, 0, 0.5, 3)
 				end
 
 			else
@@ -3294,52 +3290,52 @@ local function campfire_allow_metadata_inventory_move(pos, from_list, from_index
 
 	elseif from_list == "fire_starter" then
 		if to_list == "ingredients" then
-			debug(flag13, "  moving item from fire starter slot " .. from_index .. " to ingred slot " .. to_index)
+			--debug(flag13, "  moving item from fire starter slot " .. from_index .. " to ingred slot " .. to_index)
 			local to_item = node_inv:get_stack("ingredients", to_index)
 			if to_item:is_empty() then
-				debug(flag13, "  target slot is empty")
+				--debug(flag13, "  target slot is empty")
 			else
 				local to_item_name = to_item:get_name()
-				debug(flag13, "  target slot has item: " .. to_item_name)
+				--debug(flag13, "  target slot has item: " .. to_item_name)
 				if to_item_name == item_name then
-					debug(flag13, "  item in slot and item being moved are the SAME")
-					debug(flag13, "  prevent the move action as it would increase the stack count")
+					--debug(flag13, "  item in slot and item being moved are the SAME")
+					--debug(flag13, "  prevent the move action as it would increase the stack count")
 					move_count = 0
-					notify(player, "Only 1 item can fit there", NOTIFY_DURATION, 0, 0.5, 3)
+					notify(player, "inventory", "Only 1 item can fit there", NOTIFY_DURATION, 0, 0.5, 3)
 				else
-					debug(flag13, "  item in slot and item being moved are DIFFERENT")
+					--debug(flag13, "  item in slot and item being moved are DIFFERENT")
 					move_count = 1
 
 					if FIRE_STARTER_NAMES[to_item_name] then
-						debug(flag13, "  item is a fire starter!")
+						--debug(flag13, "  item is a fire starter!")
 					else
-						debug(flag13, "  item is not a fire starter")
-						notify(player, "Cannot swap with non fire starter tool.", NOTIFY_DURATION, 0, 0.5, 3)
+						--debug(flag13, "  item is not a fire starter")
+						notify(player, "inventory", "Cannot swap with non fire starter tool.", NOTIFY_DURATION, 0, 0.5, 3)
 					end
 				end
 			end
 
 		elseif to_list == "campfire_stand" then
-			debug(flag13, "  moving item from fire starter slot " .. from_index .. " to campfire stand slot " .. to_index)
-			debug(flag13, "  fire starter never allowed into campfire stand slot")
+			--debug(flag13, "  moving item from fire starter slot " .. from_index .. " to campfire stand slot " .. to_index)
+			--debug(flag13, "  fire starter never allowed into campfire stand slot")
 				move_count = 0
-				notify(player, "Cannot swap with campfire stand", NOTIFY_DURATION, 0, 0.5, 3)
+				notify(player, "inventory", "Cannot swap with campfire stand", NOTIFY_DURATION, 0, 0.5, 3)
 
 		elseif to_list == "campfire_grill" then
-			debug(flag13, "  moving item from fire starter slot " .. from_index .. " to campfire grill slot " .. to_index)
-			debug(flag13, "  fire starter never allowed into campfire grill slot")
+			--debug(flag13, "  moving item from fire starter slot " .. from_index .. " to campfire grill slot " .. to_index)
+			--debug(flag13, "  fire starter never allowed into campfire grill slot")
 				move_count = 0
-				notify(player, "Cannot swap with campfire grill", NOTIFY_DURATION, 0, 0.5, 3)
+				notify(player, "inventory", "Cannot swap with campfire grill", NOTIFY_DURATION, 0, 0.5, 3)
 
 		elseif to_list == "fuel" then
-			debug(flag13, "  moving item from fire starter slot " .. from_index .. " to fuel slot " .. to_index)
+			--debug(flag13, "  moving item from fire starter slot " .. from_index .. " to fuel slot " .. to_index)
 			if ITEM_BURN_TIMES[item_name] > 0 then
-				debug(flag13, "  item is campfire fuel!")
+				--debug(flag13, "  item is campfire fuel!")
 				move_count = get_fuel_item_count(player, node_meta, item)
 			else
-				debug(flag13, "  item is not a campfire fuel")
+				--debug(flag13, "  item is not a campfire fuel")
 				move_count = 0
-				notify(player, "Item not burnable as fuel.", NOTIFY_DURATION, 0, 0.5, 3)
+				notify(player, "inventory", "Item not burnable as fuel.", NOTIFY_DURATION, 0, 0.5, 3)
 			end
 
 		end
@@ -3347,146 +3343,146 @@ local function campfire_allow_metadata_inventory_move(pos, from_list, from_index
 
 	elseif from_list == "fuel" then
 		if to_list == "ingredients" then
-			debug(flag13, "  moving item from fuel slot " .. from_index .. " to ingred slot " .. to_index)
+			--debug(flag13, "  moving item from fuel slot " .. from_index .. " to ingred slot " .. to_index)
 			local to_item = node_inv:get_stack("ingredients", to_index)
 			if item_name == "ss:item_bundle" then
-				notify(player, "Cannot cook items while bundled", NOTIFY_DURATION, 0, 0.5, 3)
+				notify(player, "inventory", "Cannot cook items while bundled", NOTIFY_DURATION, 0, 0.5, 3)
 				move_count = 0
 			elseif to_item:is_empty() then
-				debug(flag13, "  target slot is empty")
+				--debug(flag13, "  target slot is empty")
 				if count > 1 then
-					notify(player, "only 1 was added", NOTIFY_DURATION, 0.5, 0, 2)
+					notify(player, "inventory", "only 1 was added", NOTIFY_DURATION, 0.5, 0, 2)
 					move_count = 1
 				end
 			else
 				local to_item_name = to_item:get_name()
-				debug(flag13, "  target slot has item: " .. to_item_name)
+				--debug(flag13, "  target slot has item: " .. to_item_name)
 				if to_item_name == item_name then
-					debug(flag13, "  item in slot and item being moved are the SAME")
-					debug(flag13, "  prevent the move action as it would increase the stack count")
+					--debug(flag13, "  item in slot and item being moved are the SAME")
+					--debug(flag13, "  prevent the move action as it would increase the stack count")
 					move_count = 0
-					notify(player, "Only 1 item can fit there", NOTIFY_DURATION, 0, 0.5, 3)
+					notify(player, "inventory", "Only 1 item can fit there", NOTIFY_DURATION, 0, 0.5, 3)
 				else
-					debug(flag13, "  item in slot and item being moved are DIFFERENT")
+					--debug(flag13, "  item in slot and item being moved are DIFFERENT")
 					if ITEM_BURN_TIMES[to_item_name] > 0 then
-						debug(flag13, "  item is campfire fuel!")
+						--debug(flag13, "  item is campfire fuel!")
 						if count > 1 then
-							notify(player, "only 1 was added", NOTIFY_DURATION, 0.5, 0, 2)
+							notify(player, "inventory", "only 1 was added", NOTIFY_DURATION, 0.5, 0, 2)
 							move_count = 1
 						end
 					else
-						debug(flag13, "  item is not a campfire fuel")
-						notify(player, "Cannot swap with non-burnable item.", NOTIFY_DURATION, 0, 0.5, 3)
+						--debug(flag13, "  item is not a campfire fuel")
+						notify(player, "inventory", "Cannot swap with non-burnable item.", NOTIFY_DURATION, 0, 0.5, 3)
 					end
 				end
 			end
 
 		elseif to_list == "campfire_stand" then
-			debug(flag13, "  moving item from fuel slot " .. from_index .. " to campfire stand slot " .. to_index)
+			--debug(flag13, "  moving item from fuel slot " .. from_index .. " to campfire stand slot " .. to_index)
 
 			local campfire_status = node_meta:get_string("campfire_status")
 			if campfire_status == "on" then
-				debug(flag13, "  campfire is ON")
+				--debug(flag13, "  campfire is ON")
 				move_count = 0
-				notify(player, "Cannot place while campfire is on.", NOTIFY_DURATION, 0, 0.5, 3)
+				notify(player, "inventory", "Cannot place while campfire is on.", NOTIFY_DURATION, 0, 0.5, 3)
 			else
 				if CAMPFIRE_STAND_NAMES[item_name] then
-					debug(flag13, "  item is a campfire stand!")
+					--debug(flag13, "  item is a campfire stand!")
 
 					local to_item = node_inv:get_stack("campfire_stand", to_index)
 					if to_item:is_empty() then
-						debug(flag13, "  target slot is empty")
+						--debug(flag13, "  target slot is empty")
 						move_count = 1
 					else
 						local to_item_name = to_item:get_name()
-						debug(flag13, "  target slot has item: " .. to_item_name)
+						--debug(flag13, "  target slot has item: " .. to_item_name)
 						if to_item_name == item_name then
-							debug(flag13, "  item in slot and item being moved are the SAME")
-							debug(flag13, "  prevent the move action as it would increase the stack count")
+							--debug(flag13, "  item in slot and item being moved are the SAME")
+							--debug(flag13, "  prevent the move action as it would increase the stack count")
 							move_count = 0
-							notify(player, "Only 1 stand can fit there", NOTIFY_DURATION, 0, 0.5, 3)
+							notify(player, "inventory", "Only 1 stand can fit there", NOTIFY_DURATION, 0, 0.5, 3)
 						else
-							debug(flag13, "  item in slot and item being moved are DIFFERENT")
+							--debug(flag13, "  item in slot and item being moved are DIFFERENT")
 							move_count = 1
 						end
 					end
 
 				else
-					debug(flag13, "  item is not a campfire stand")
+					--debug(flag13, "  item is not a campfire stand")
 					move_count = 0
-					notify(player, "Fuel item is not a campfire stand", NOTIFY_DURATION, 0, 0.5, 3)
+					notify(player, "inventory", "Fuel item is not a campfire stand", NOTIFY_DURATION, 0, 0.5, 3)
 				end
 			end
 
 		elseif to_list == "campfire_grill" then
-			debug(flag13, "  moving item from fuel slot " .. from_index .. " to campfire grill slot " .. to_index)
+			--debug(flag13, "  moving item from fuel slot " .. from_index .. " to campfire grill slot " .. to_index)
 
 			local campfire_status = node_meta:get_string("campfire_status")
 			if campfire_status == "on" then
-				debug(flag13, "  campfire is ON")
+				--debug(flag13, "  campfire is ON")
 				move_count = 0
-				notify(player, "Cannot place while campfire is on.", NOTIFY_DURATION, 0, 0.5, 3)
+				notify(player, "inventory", "Cannot place while campfire is on.", NOTIFY_DURATION, 0, 0.5, 3)
 			else
 				if CAMPFIRE_GRILL_NAMES[item_name] then
-					debug(flag13, "  item is a campfire grill!")
+					--debug(flag13, "  item is a campfire grill!")
 
 					local to_item = node_inv:get_stack("campfire_grill", to_index)
 					if to_item:is_empty() then
-						debug(flag13, "  target slot is empty")
+						--debug(flag13, "  target slot is empty")
 						move_count = 1
 					else
 						local to_item_name = to_item:get_name()
-						debug(flag13, "  target slot has item: " .. to_item_name)
+						--debug(flag13, "  target slot has item: " .. to_item_name)
 						if to_item_name == item_name then
-							debug(flag13, "  item in slot and item being moved are the SAME")
-							debug(flag13, "  prevent the move action as it would increase the stack count")
+							--debug(flag13, "  item in slot and item being moved are the SAME")
+							--debug(flag13, "  prevent the move action as it would increase the stack count")
 							move_count = 0
-							notify(player, "Only 1 grill can fit there", NOTIFY_DURATION, 0, 0.5, 3)
+							notify(player, "inventory", "Only 1 grill can fit there", NOTIFY_DURATION, 0, 0.5, 3)
 						else
-							debug(flag13, "  item in slot and item being moved are DIFFERENT")
+							--debug(flag13, "  item in slot and item being moved are DIFFERENT")
 							move_count = 1
 						end
 					end
 
 				else
-					debug(flag13, "  item is not a campfire grill")
+					--debug(flag13, "  item is not a campfire grill")
 					move_count = 0
-					notify(player, "Fuel item is not a campfire grill", NOTIFY_DURATION, 0, 0.5, 3)
+					notify(player, "inventory", "Fuel item is not a campfire grill", NOTIFY_DURATION, 0, 0.5, 3)
 				end
 			end
 
 		elseif to_list == "fire_starter" then
-			debug(flag13, "  moving item from fuel slot " .. from_index .. " to fire starter slot " .. to_index)
+			--debug(flag13, "  moving item from fuel slot " .. from_index .. " to fire starter slot " .. to_index)
 
 			if FIRE_STARTER_NAMES[item_name] then
-				debug(flag13, "  item is a fire starter item!")
+				--debug(flag13, "  item is a fire starter item!")
 
 				local to_item = node_inv:get_stack("fire_starter", to_index)
 				if to_item:is_empty() then
-					debug(flag13, "  target slot is empty")
+					--debug(flag13, "  target slot is empty")
 					if count > 1 then
-						notify(player, "only 1 was added", NOTIFY_DURATION, 0.5, 0, 2)
+						notify(player, "inventory", "only 1 was added", NOTIFY_DURATION, 0.5, 0, 2)
 						move_count = 1
 					end
 				else
 					local to_item_name = to_item:get_name()
-					debug(flag13, "  target slot has item: " .. to_item_name)
+					--debug(flag13, "  target slot has item: " .. to_item_name)
 					if to_item_name == item_name then
-						debug(flag13, "  item in slot and item being moved are the SAME")
-						debug(flag13, "  prevent the move action as it would increase the stack count")
+						--debug(flag13, "  item in slot and item being moved are the SAME")
+						--debug(flag13, "  prevent the move action as it would increase the stack count")
 						move_count = 0
-						notify(player, "Only 1 item can fit there", NOTIFY_DURATION, 0, 0.5, 3)
+						notify(player, "inventory", "Only 1 item can fit there", NOTIFY_DURATION, 0, 0.5, 3)
 					else
-						debug(flag13, "  item in slot and item being moved are DIFFERENT")
-						notify(player, "only 1 was added", NOTIFY_DURATION, 0.5, 0, 2)
+						--debug(flag13, "  item in slot and item being moved are DIFFERENT")
+						notify(player, "inventory", "only 1 was added", NOTIFY_DURATION, 0.5, 0, 2)
 						move_count = 1
 					end
 				end
 
 			else
-				debug(flag13, "  item is not a fire starter item")
+				--debug(flag13, "  item is not a fire starter item")
 				move_count = 0
-				notify(player, "Item not a fire starter", NOTIFY_DURATION, 0, 0.5, 3)
+				notify(player, "inventory", "Item not a fire starter", NOTIFY_DURATION, 0, 0.5, 3)
 			end
 
 		elseif to_list == "fuel" then
@@ -3514,162 +3510,162 @@ local function campfire_allow_metadata_inventory_put(pos, listname, index, stack
 	local put_count = item_count
 
 	if listname == "ingredients" then
-		debug(flag9, "  PUT " .. item_name .. " into " .. listname .. " at index " .. index)
+		--debug(flag9, "  PUT " .. item_name .. " into " .. listname .. " at index " .. index)
 		local to_item = node_inv:get_stack("ingredients", index)
 		if item_name == "ss:item_bundle" then
-			debug(flag9, "  this is an item bundle. not allowed.")
-			notify(player, "Cannot cook items while bundled", NOTIFY_DURATION, 0, 0.5, 3)
+			--debug(flag9, "  this is an item bundle. not allowed.")
+			notify(player, "inventory", "Cannot cook items while bundled", NOTIFY_DURATION, 0, 0.5, 3)
 			put_count = 0
 
 		elseif to_item:is_empty() then
-			debug(flag9, "  target slot is empty")
+			--debug(flag9, "  target slot is empty")
 			if item_count > 1 then
-				notify(player, "only 1 was added", NOTIFY_DURATION, 0.5, 0, 2)
+				notify(player, "inventory", "only 1 was added", NOTIFY_DURATION, 0.5, 0, 2)
 				put_count = 1
 			end
 		else
 			local to_item_name = to_item:get_name()
-			debug(flag9, "  target slot has item: " .. to_item_name)
+			--debug(flag9, "  target slot has item: " .. to_item_name)
 			if to_item_name == item_name then
-				debug(flag9, "  item in slot and item being moved are the SAME")
-				debug(flag9, "  prevent the move action as it would increase the stack count")
+				--debug(flag9, "  item in slot and item being moved are the SAME")
+				--debug(flag9, "  prevent the move action as it would increase the stack count")
 				put_count = 0
-				notify(player, "Only 1 item can fit there", NOTIFY_DURATION, 0, 0.5, 3)
+				notify(player, "inventory", "Only 1 item can fit there", NOTIFY_DURATION, 0, 0.5, 3)
 			else
-				debug(flag9, "  item in slot and item being moved are DIFFERENT")
+				--debug(flag9, "  item in slot and item being moved are DIFFERENT")
 				if item_count > 1 then
-					notify(player, "Item count too large to swap.", NOTIFY_DURATION, 0, 0.5, 3)
+					notify(player, "inventory", "Item count too large to swap.", NOTIFY_DURATION, 0, 0.5, 3)
 					put_count = 0
 				end
-				debug(flag9, "  item_count: " .. item_count)
+				--debug(flag9, "  item_count: " .. item_count)
 			end
 		end
 
 	elseif listname == "campfire_stand" then
-		debug(flag9, "  PUT " .. item_name .. " into " .. listname .. " at index " .. index)
+		--debug(flag9, "  PUT " .. item_name .. " into " .. listname .. " at index " .. index)
 
 		local campfire_status = node_meta:get_string("campfire_status")
 		if campfire_status == "on" then
-			debug(flag9, "  campfire is ON")
+			--debug(flag9, "  campfire is ON")
 			put_count = 0
-			notify(player, "Cannot place while campfire is on.", NOTIFY_DURATION, 0, 0.5, 3)
+			notify(player, "inventory", "Cannot place while campfire is on.", NOTIFY_DURATION, 0, 0.5, 3)
 		else
 			if CAMPFIRE_STAND_NAMES[item_name] then
-				debug(flag9, "  item is a campfire stand!")
+				--debug(flag9, "  item is a campfire stand!")
 				local to_item = node_inv:get_stack("campfire_stand", index)
 				if to_item:is_empty() then
-					debug(flag9, "  target slot is empty")
+					--debug(flag9, "  target slot is empty")
 					put_count = 1
 				else
 					local to_item_name = to_item:get_name()
-					debug(flag9, "  target slot has item: " .. to_item_name)
+					--debug(flag9, "  target slot has item: " .. to_item_name)
 					if to_item_name == item_name then
-						debug(flag9, "  item in slot and item being moved are the SAME")
-						debug(flag9, "  prevent the move action as it would increase the stack count")
+						--debug(flag9, "  item in slot and item being moved are the SAME")
+						--debug(flag9, "  prevent the move action as it would increase the stack count")
 						put_count = 0
-						notify(player, "Only 1 stand will fit there", NOTIFY_DURATION, 0, 0.5, 3)
+						notify(player, "inventory", "Only 1 stand will fit there", NOTIFY_DURATION, 0, 0.5, 3)
 					else
-						debug(flag9, "  item in slot and item being moved are DIFFERENT")
+						--debug(flag9, "  item in slot and item being moved are DIFFERENT")
 						if item_count > 1 then
-							notify(player, "Item count too large to swap.", NOTIFY_DURATION, 0, 0.5, 3)
+							notify(player, "inventory", "Item count too large to swap.", NOTIFY_DURATION, 0, 0.5, 3)
 							put_count = 0
 						end
-						debug(flag9, "  item_count: " .. item_count)
+						--debug(flag9, "  item_count: " .. item_count)
 					end
 				end
 			else
-				debug(flag9, "  item is not a campfire stand")
-				notify(player, "Item is not a campfire stand", NOTIFY_DURATION, 0, 0.5, 3)
+				--debug(flag9, "  item is not a campfire stand")
+				notify(player, "inventory", "Item is not a campfire stand", NOTIFY_DURATION, 0, 0.5, 3)
 				put_count = 0
 			end
 		end
 
 	elseif listname == "campfire_grill" then
-		debug(flag9, "  PUT " .. item_name .. " into " .. listname .. " at index " .. index)
+		--debug(flag9, "  PUT " .. item_name .. " into " .. listname .. " at index " .. index)
 
 		local campfire_status = node_meta:get_string("campfire_status")
 		if campfire_status == "on" then
-			debug(flag9, "  campfire is ON")
+			--debug(flag9, "  campfire is ON")
 			put_count = 0
-			notify(player, "Cannot place while campfire is on.", NOTIFY_DURATION, 0, 0.5, 3)
+			notify(player, "inventory", "Cannot place while campfire is on.", NOTIFY_DURATION, 0, 0.5, 3)
 		else
 			if CAMPFIRE_GRILL_NAMES[item_name] then
-				debug(flag9, "  item is a campfire grill!")
+				--debug(flag9, "  item is a campfire grill!")
 				local to_item = node_inv:get_stack("campfire_grill", index)
 				if to_item:is_empty() then
-					debug(flag9, "  target slot is empty")
+					--debug(flag9, "  target slot is empty")
 					put_count = 1
 				else
 					local to_item_name = to_item:get_name()
-					debug(flag9, "  target slot has item: " .. to_item_name)
+					--debug(flag9, "  target slot has item: " .. to_item_name)
 					if to_item_name == item_name then
-						debug(flag9, "  item in slot and item being moved are the SAME")
-						debug(flag9, "  prevent the move action as it would increase the stack count")
+						--debug(flag9, "  item in slot and item being moved are the SAME")
+						--debug(flag9, "  prevent the move action as it would increase the stack count")
 						put_count = 0
-						notify(player, "Only 1 grill will fit there", NOTIFY_DURATION, 0, 0.5, 3)
+						notify(player, "inventory", "Only 1 grill will fit there", NOTIFY_DURATION, 0, 0.5, 3)
 					else
-						debug(flag9, "  item in slot and item being moved are DIFFERENT")
+						--debug(flag9, "  item in slot and item being moved are DIFFERENT")
 						if item_count > 1 then
-							notify(player, "Item count too large to swap.", NOTIFY_DURATION, 0, 0.5, 3)
+							notify(player, "inventory", "Item count too large to swap.", NOTIFY_DURATION, 0, 0.5, 3)
 							put_count = 0
 						end
-						debug(flag9, "  item_count: " .. item_count)
+						--debug(flag9, "  item_count: " .. item_count)
 					end
 				end
 			else
-				debug(flag9, "  item is not a campfire grill")
-				notify(player, "Item is not a campfire grill", NOTIFY_DURATION, 0, 0.5, 3)
+				--debug(flag9, "  item is not a campfire grill")
+				notify(player, "inventory", "Item is not a campfire grill", NOTIFY_DURATION, 0, 0.5, 3)
 				put_count = 0
 			end
 		end
 
 	elseif listname == "fire_starter" then
-		debug(flag9, "  PUT " .. item_name .. " into " .. listname .. " at index " .. index)
+		--debug(flag9, "  PUT " .. item_name .. " into " .. listname .. " at index " .. index)
 
 		if FIRE_STARTER_NAMES[item_name] then
-			debug(flag9, "  item is a fire starter!")
+			--debug(flag9, "  item is a fire starter!")
 			local to_item = node_inv:get_stack("fire_starter", index)
 			if to_item:is_empty() then
-				debug(flag9, "  target slot is empty")
+				--debug(flag9, "  target slot is empty")
 				if item_count > 1 then
-					notify(player, "only 1 was added", NOTIFY_DURATION, 0.5, 0, 2)
+					notify(player, "inventory", "only 1 was added", NOTIFY_DURATION, 0.5, 0, 2)
 					put_count = 1
 				end
 			else
 				local to_item_name = to_item:get_name()
-				debug(flag9, "  target slot has item: " .. to_item_name)
+				--debug(flag9, "  target slot has item: " .. to_item_name)
 				if to_item_name == item_name then
-					debug(flag9, "  item in slot and item being moved are the SAME")
-					debug(flag9, "  prevent the move action as it would increase the stack count")
+					--debug(flag9, "  item in slot and item being moved are the SAME")
+					--debug(flag9, "  prevent the move action as it would increase the stack count")
 					put_count = 0
-					notify(player, "Only 1 item can fit there", NOTIFY_DURATION, 0, 0.5, 3)
+					notify(player, "inventory", "Only 1 item can fit there", NOTIFY_DURATION, 0, 0.5, 3)
 				else
-					debug(flag9, "  item in slot and item being moved are DIFFERENT")
+					--debug(flag9, "  item in slot and item being moved are DIFFERENT")
 					if item_count > 1 then
-						notify(player, "Item count too large to swap.", NOTIFY_DURATION, 0, 0.5, 3)
+						notify(player, "inventory", "Item count too large to swap.", NOTIFY_DURATION, 0, 0.5, 3)
 						put_count = 0
 					end
-					debug(flag9, "  item_count: " .. item_count)
+					--debug(flag9, "  item_count: " .. item_count)
 				end
 			end
 
 		else
-			debug(flag9, "  item is not a fire starter")
-			notify(player, "Item not a fire starter", NOTIFY_DURATION, 0, 0.5, 3)
+			--debug(flag9, "  item is not a fire starter")
+			notify(player, "inventory", "Item not a fire starter", NOTIFY_DURATION, 0, 0.5, 3)
 			put_count = 0
 		end
 
 	elseif listname == "fuel" then
-		debug(flag9, "  PUT " .. item_name .. " into " .. listname .. " at index " .. index)
+		--debug(flag9, "  PUT " .. item_name .. " into " .. listname .. " at index " .. index)
 		if item_name == "ss:item_bundle" then
-			debug(flag9, "  item is a bundle")
+			--debug(flag9, "  item is a bundle")
 			put_count = get_fuel_item_count(player, node_meta, stack)
 		elseif ITEM_BURN_TIMES[item_name] > 0 then
-			debug(flag9, "  item is campfire fuel!")
+			--debug(flag9, "  item is campfire fuel!")
 			put_count = get_fuel_item_count(player, node_meta, stack)
 		else
-			debug(flag9, "  item is not a campfire fuel")
-			notify(player, "Item not burnable as fuel.", NOTIFY_DURATION, 0, 0.5, 3)
+			--debug(flag9, "  item is not a campfire fuel")
+			notify(player, "inventory", "Item not burnable as fuel.", NOTIFY_DURATION, 0, 0.5, 3)
 			put_count = 0
 		end
 
@@ -3691,25 +3687,25 @@ local function campfire_allow_metadata_inventory_take(pos, listname, index, stac
 	local item_name = stack:get_name()
 	local item_count = stack:get_count()
 	local take_count = item_count
-	debug(flag25, "  TAKE " .. item_name .. " from " .. listname .. " at index " .. index)
+	--debug(flag25, "  TAKE " .. item_name .. " from " .. listname .. " at index " .. index)
 
 	if listname == "campfire_stand" then
 		local campfire_status = node_meta:get_string("campfire_status")
 		if campfire_status == "on" then
-			debug(flag25, "  campfire is ON")
+			--debug(flag25, "  campfire is ON")
 			take_count = 0
-			notify(player, "Cannot remove stand while campfire is on.", NOTIFY_DURATION, 0, 0.5, 3)
+			notify(player, "inventory", "Cannot remove stand while campfire is on.", NOTIFY_DURATION, 0, 0.5, 3)
 		end
 	elseif listname == "campfire_grill" then
 		local campfire_status = node_meta:get_string("campfire_status")
 		if campfire_status == "on" then
-			debug(flag25, "  campfire is ON")
+			--debug(flag25, "  campfire is ON")
 			take_count = 0
-			notify(player, "Cannot remove grill while campfire is on.", NOTIFY_DURATION, 0, 0.5, 3)
+			notify(player, "inventory", "Cannot remove grill while campfire is on.", NOTIFY_DURATION, 0, 0.5, 3)
 		end
 
 	else
-		debug(flag25, "  Taking from any slot other than campfire_stand or campfire_grill ALLOWED.")
+		--debug(flag25, "  Taking from any slot other than campfire_stand or campfire_grill ALLOWED.")
 	end
 
 	debug(flag25, "allow_metadata_inventory_take() end *** " .. mt_get_gametime() .. " ***")
@@ -3724,20 +3720,20 @@ local function campfire_on_metadata_inventory_move(pos, from_list, from_index, t
 	local node_inv = node_meta:get_inventory()
 	local item = node_inv:get_stack(to_list, to_index)
 	local item_name = item:get_name()
-	debug(flag12, table_concat({ "  MOVED ", item_name, " from ", from_list, "[", from_index, "] to ", to_list, "[", to_index, "]" }) )
+	--debug(flag12, table_concat({ "  MOVED ", item_name, " from ", from_list, "[", from_index, "] to ", to_list, "[", to_index, "]" }) )
 	play_sound("item_move", {item_name = item_name, player_name = player:get_player_name()})
 
 	if from_list == "ingredients" then
 
 		-- check if item was in cooking cooldown phase and reset cooking data if so
 		if to_list ~= "ingredients" then
-			debug(flag12, "  moving item from ingred slot to another campfire slot")
+			--debug(flag12, "  moving item from ingred slot to another campfire slot")
 			reset_cook_data(item)
 			node_inv:set_stack(to_list, to_index, item)
 		end
 
 		if to_list == "ingredients" then
-			debug(flag12, "  moved item to another ingredient slot")
+			--debug(flag12, "  moved item to another ingredient slot")
 			refresh_formspec(pos, pos_to_key(pos))
 
 		elseif to_list == "campfire_stand" then
@@ -3757,29 +3753,33 @@ local function campfire_on_metadata_inventory_move(pos, from_list, from_index, t
 			refresh_formspec(pos, pos_to_key(pos))
 
 		elseif to_list == "fire_starter" then
-			debug(flag12, "  item placed in fire starter slot")
+			--debug(flag12, "  item placed in fire starter slot")
 			refresh_formspec(pos, pos_to_key(pos))
 
 		elseif to_list == "fuel" then
 			update_fuel_stats(node_meta, node_inv)
 			refresh_formspec(pos, pos_to_key(pos))
 
-		else debug(flag12, "  ERROR: Unexpected 'to_list' value: " .. to_list) end
+		else
+			debug(flag12, "  ERROR: Unexpected 'to_list' value: " .. to_list)
+		end
 
 	elseif from_list == "campfire_stand" then
 		if to_list == "ingredients" then
 			reduce_ingred_fuel_slots(player, node_meta, node_inv, pos, "ingredients")
 			local slot_count_fuel = node_meta:get_int("slot_count_fuel")
 			if slot_count_fuel == 2 then
-				debug(flag12, "  slot_count_fuel is 2")
+				--debug(flag12, "  slot_count_fuel is 2")
 				if node_inv:is_empty("campfire_grill") then
-					debug(flag12, "  campfire_grill not used. removing fuel slot..")
+					--debug(flag12, "  campfire_grill not used. removing fuel slot..")
 					--node_meta:set_float("weight_fuel_max", FUEL_WEIGHT_MAX[1])
 					reduce_ingred_fuel_slots(player, node_meta, node_inv, pos, "fuel")
 				else
-					debug(flag12, "  campfire_grill currently used. fuel slots unmodified.")
+					--debug(flag12, "  campfire_grill currently used. fuel slots unmodified.")
 				end
-			else debug(flag12, "  slot_count_fuel is not 2.") end
+			else
+				--debug(flag12, "  slot_count_fuel is not 2.")
+		 	end
 
 		elseif to_list == "fuel" then
 			reduce_ingred_fuel_slots(player, node_meta, node_inv, pos, "ingredients")
@@ -3787,32 +3787,38 @@ local function campfire_on_metadata_inventory_move(pos, from_list, from_index, t
 			refresh_formspec(pos, pos_to_key(pos))
 			local slot_count_fuel = node_meta:get_int("slot_count_fuel")
 			if slot_count_fuel == 2 then
-				debug(flag12, "  slot_count_fuel is 2")
+				--debug(flag12, "  slot_count_fuel is 2")
 				if node_inv:is_empty("campfire_grill") then
-					debug(flag12, "  campfire_grill not used. removing fuel slot..")
+					--debug(flag12, "  campfire_grill not used. removing fuel slot..")
 					--node_meta:set_float("weight_fuel_max", FUEL_WEIGHT_MAX[1])
 					reduce_ingred_fuel_slots(player, node_meta, node_inv, pos, "fuel")
 				else
-					debug(flag12, "  campfire_grill currently used. fuel slots unmodified.")
+					--debug(flag12, "  campfire_grill currently used. fuel slots unmodified.")
 				end
-			else debug(flag12, "  slot_count_fuel is not 2.") end
+			else
+				--debug(flag12, "  slot_count_fuel is not 2.")
+			end
 
-		else debug(flag12, "  ERROR: Unexpected 'to_list' value: " .. to_list) end
+		else
+			debug(flag12, "  ERROR: Unexpected 'to_list' value: " .. to_list)
+		end
 
 	elseif from_list == "campfire_grill" then
 		if to_list == "ingredients" then
 			reduce_ingred_fuel_slots(player, node_meta, node_inv, pos, "ingredients")
 			local slot_count_fuel = node_meta:get_int("slot_count_fuel")
 			if slot_count_fuel == 2 then
-				debug(flag12, "  slot_count_fuel is 2")
+				--debug(flag12, "  slot_count_fuel is 2")
 				if node_inv:is_empty("campfire_stand") then
-					debug(flag12, "  campfire_stand not used. removing fuel slot..")
+					--debug(flag12, "  campfire_stand not used. removing fuel slot..")
 					--node_meta:set_float("weight_fuel_max", FUEL_WEIGHT_MAX[1])
 					reduce_ingred_fuel_slots(player, node_meta, node_inv, pos, "fuel")
 				else
-					debug(flag12, "  campfire_stand currently used. fuel slots unmodified.")
+					--debug(flag12, "  campfire_stand currently used. fuel slots unmodified.")
 				end
-			else debug(flag12, "  slot_count_fuel is not 2.") end
+			else
+				--debug(flag12, "  slot_count_fuel is not 2.")
+			end
 
 		elseif to_list == "fuel" then
 			reduce_ingred_fuel_slots(player, node_meta, node_inv, pos, "ingredients")
@@ -3820,27 +3826,31 @@ local function campfire_on_metadata_inventory_move(pos, from_list, from_index, t
 			refresh_formspec(pos, pos_to_key(pos))
 			local slot_count_fuel = node_meta:get_int("slot_count_fuel")
 			if slot_count_fuel == 2 then
-				debug(flag12, "  slot_count_fuel is 2")
+				--debug(flag12, "  slot_count_fuel is 2")
 				if node_inv:is_empty("campfire_stand") then
-					debug(flag12, "  campfire_stand not used. removing fuel slot..")
+					--debug(flag12, "  campfire_stand not used. removing fuel slot..")
 					--node_meta:set_float("weight_fuel_max", FUEL_WEIGHT_MAX[1])
 					reduce_ingred_fuel_slots(player, node_meta, node_inv, pos, "fuel")
 				else
-					debug(flag12, "  campfire_stand currently used. fuel slots unmodified.")
+					--debug(flag12, "  campfire_stand currently used. fuel slots unmodified.")
 				end
-			else debug(flag12, "  slot_count_fuel is not 2.") end
+			else
+				--debug(flag12, "  slot_count_fuel is not 2.")
+			end
 
-		else debug(flag12, "  ERROR: Unexpected 'to_list' value: " .. to_list) end
+		else
+			debug(flag12, "  ERROR: Unexpected 'to_list' value: " .. to_list)
+		end
 
 	elseif from_list == "fuel" then
 		if to_list == "ingredients" then
 			local campfire_status = node_meta:get_string("campfire_status")
 			if campfire_status == "on" then
-				debug(flag12, "  campfire is ON")
-				debug(flag12, "  player put item in ingredient slot while campfire was on")
+				--debug(flag12, "  campfire is ON")
+				--debug(flag12, "  player put item in ingredient slot while campfire was on")
 				check_ingredient_status(item, node_inv, to_index, player)
 			else
-				debug(flag12, "  campfire is off")
+				--debug(flag12, "  campfire is off")
 			end
 			update_fuel_stats(node_meta, node_inv)
 			refresh_formspec(pos, pos_to_key(pos))
@@ -3864,7 +3874,7 @@ local function campfire_on_metadata_inventory_move(pos, from_list, from_index, t
 			refresh_formspec(pos, pos_to_key(pos))
 
 		elseif to_list == "fire_starter" then
-			debug(flag12, "  item placed in fire starter slot")
+			--debug(flag12, "  item placed in fire starter slot")
 			update_fuel_stats(node_meta, node_inv)
 			refresh_formspec(pos, pos_to_key(pos))
 
@@ -3872,17 +3882,19 @@ local function campfire_on_metadata_inventory_move(pos, from_list, from_index, t
 			update_fuel_stats(node_meta, node_inv)
 			refresh_formspec(pos, pos_to_key(pos))
 
-		else debug(flag12, "  ERROR: Unexpected 'to_list' value: " .. to_list) end
+		else
+			debug(flag12, "  ERROR: Unexpected 'to_list' value: " .. to_list)
+		end
 
 	elseif from_list == "fire_starter" then
 		if to_list == "ingredients" then
 			local campfire_status = node_meta:get_string("campfire_status")
 			if campfire_status == "on" then
-				debug(flag12, "  campfire is ON")
-				debug(flag12, "  player put item in ingredient slot while campfire was on")
+				--debug(flag12, "  campfire is ON")
+				--debug(flag12, "  player put item in ingredient slot while campfire was on")
 				check_ingredient_status(item, node_inv, to_index, player)
 			else
-				debug(flag12, "  campfire is off")
+				--debug(flag12, "  campfire is off")
 			end
 			refresh_formspec(pos, pos_to_key(pos))
 
@@ -3890,9 +3902,13 @@ local function campfire_on_metadata_inventory_move(pos, from_list, from_index, t
 			update_fuel_stats(node_meta, node_inv)
 			refresh_formspec(pos, pos_to_key(pos))
 
-		else debug(flag12, "  ERROR: Unexpected 'to_list' value: " .. to_list) end
+		else
+			debug(flag12, "  ERROR: Unexpected 'to_list' value: " .. to_list)
+		end
 
-	else debug(flag12, "  ERROR: Unexpected 'from_list' value: " .. from_list) end
+	else
+		debug(flag12, "  ERROR: Unexpected 'from_list' value: " .. from_list)
+	end
 
 	debug(flag12, "on_metadata_inventory_move() end *** " .. mt_get_gametime() .. " ***")
 end
@@ -3903,7 +3919,7 @@ local function campfire_on_metadata_inventory_put(pos, listname, index, stack, p
 	debug(flag10, "\non_metadata_inventory_put() CAMPFIRE")
 	--debug(flag10, "  pos: " .. dump(pos))
 	local item_name = stack:get_name()
-	debug(flag10, "  PUT " .. item_name .. " into " .. listname .. " at index " .. index)
+	--debug(flag10, "  PUT " .. item_name .. " into " .. listname .. " at index " .. index)
 
 	local node_meta = mt_get_meta(pos)
 	local node_inv = node_meta:get_inventory()
@@ -3912,11 +3928,11 @@ local function campfire_on_metadata_inventory_put(pos, listname, index, stack, p
 
 		local campfire_status = node_meta:get_string("campfire_status")
 		if campfire_status == "on" then
-			debug(flag10, "  campfire is ON")
-			debug(flag10, "    player put item in ingredient slot while campfire was on")
+			--debug(flag10, "  campfire is ON")
+			--debug(flag10, "    player put item in ingredient slot while campfire was on")
 			check_ingredient_status(stack, node_inv, index, player)
 		else
-			debug(flag10, "  campfire is off")
+			--debug(flag10, "  campfire is off")
 		end
 
 	elseif listname == "campfire_stand" then
@@ -3936,7 +3952,7 @@ local function campfire_on_metadata_inventory_put(pos, listname, index, stack, p
 		refresh_formspec(pos, pos_to_key(pos))
 
 	elseif listname == "fire_starter" then
-		debug(flag10, "  placed fire starter into slot")
+		--debug(flag10, "  placed fire starter into slot")
 
 	elseif listname == "fuel" then
 		update_fuel_stats(node_meta, node_inv)
@@ -3954,7 +3970,7 @@ local flag11 = false
 local function campfire_on_metadata_inventory_take(pos, listname, index, stack, player)
 	debug(flag11, "\non_metadata_inventory_take() CAMPFIRE")
 	local item_name = stack:get_name()
-	debug(flag11, "  REMOVED " .. item_name)
+	--debug(flag11, "  REMOVED " .. item_name)
 	play_sound("item_move", {item_name = item_name, player_name = player:get_player_name()})
 
 	local node_meta = mt_get_meta(pos)
@@ -3962,44 +3978,48 @@ local function campfire_on_metadata_inventory_take(pos, listname, index, stack, 
 	--debug(flag11, "    campfire lists: " .. dump(node_inv:get_lists()))
 
 	if listname == "ingredients" then
-		debug(flag11, "  removed from ingredients slot# " .. index)
+		--debug(flag11, "  removed from ingredients slot# " .. index)
 		refresh_formspec(pos, pos_to_key(pos))
 
 	elseif listname == "campfire_stand" then
-		debug(flag11, "  removed from campfire_stand slot# " .. index)
+		--debug(flag11, "  removed from campfire_stand slot# " .. index)
 		reduce_ingred_fuel_slots(player, node_meta, node_inv, pos, "ingredients")
 		local slot_count_fuel = node_meta:get_int("slot_count_fuel")
 		if slot_count_fuel == 2 then
-			debug(flag11, "  slot_count_fuel is 2")
+			--debug(flag11, "  slot_count_fuel is 2")
 			if node_inv:is_empty("campfire_grill") then
-				debug(flag11, "  campfire_grill not used. removing fuel slot..")
+				--debug(flag11, "  campfire_grill not used. removing fuel slot..")
 				--node_meta:set_float("weight_fuel_max", FUEL_WEIGHT_MAX[1])
 				reduce_ingred_fuel_slots(player, node_meta, node_inv, pos, "fuel")
 			else
-				debug(flag11, "  campfire_grill currently used. fuel slots unmodified.")
+				--debug(flag11, "  campfire_grill currently used. fuel slots unmodified.")
 			end
-		else debug(flag11, "  slot_count_fuel is not 2.") end
+		else
+			--debug(flag11, "  slot_count_fuel is not 2.")
+		end
 
 	elseif listname == "campfire_grill" then
-		debug(flag11, "  removed from campfire_grill slot# " .. index)
+		--debug(flag11, "  removed from campfire_grill slot# " .. index)
 		reduce_ingred_fuel_slots(player, node_meta, node_inv, pos, "ingredients")
 		local slot_count_fuel = node_meta:get_int("slot_count_fuel")
 		if slot_count_fuel == 2 then
-			debug(flag11, "  slot_count_fuel is 2")
+			--debug(flag11, "  slot_count_fuel is 2")
 			if node_inv:is_empty("campfire_stand") then
-				debug(flag11, "  campfire_stand not used. removing fuel slot..")
+				--debug(flag11, "  campfire_stand not used. removing fuel slot..")
 				--node_meta:set_float("weight_fuel_max", FUEL_WEIGHT_MAX[1])
 				reduce_ingred_fuel_slots(player, node_meta, node_inv, pos, "fuel")
 			else
-				debug(flag11, "  campfire_stand currently used. fuel slots unmodified.")
+				--debug(flag11, "  campfire_stand currently used. fuel slots unmodified.")
 			end
-		else debug(flag11, "  slot_count_fuel is not 2.") end
+		else
+			--debug(flag11, "  slot_count_fuel is not 2.")
+		end
 
 	elseif listname == "fire_starter" then
-		debug(flag11, "  removed fire starter from slot")
+		--debug(flag11, "  removed fire starter from slot")
 
 	elseif listname == "fuel" then
-		debug(flag11, "  removed from fuel slot# " .. index)
+		--debug(flag11, "  removed from fuel slot# " .. index)
 		update_fuel_stats(node_meta, node_inv)
 		refresh_formspec(pos, pos_to_key(pos))
 
@@ -4082,17 +4102,17 @@ core.register_on_player_receive_fields(function(player, formname, fields)
 	local player_name = player:get_player_name()
 	local p_data = player_data[player_name]
 
-	debug(flag2, "  p_data.formspec_mode: " .. p_data.formspec_mode)
+	--debug(flag2, "  p_data.formspec_mode: " .. p_data.formspec_mode)
     if p_data.formspec_mode ~= "campfire" then
-        debug(flag2, "  interaction not from campfire formspec. NO FURTHER ACTION.")
-        debug(flag2, "register_on_player_receive_fields() end " .. mt_get_gametime())
+        --debug(flag2, "  interaction not from campfire formspec. NO FURTHER ACTION.")
+        --debug(flag2, "register_on_player_receive_fields() end " .. mt_get_gametime())
         return
     else
-        debug(flag2, "  interaction from campfire formspec. inspecting fields..")
+        --debug(flag2, "  interaction from campfire formspec. inspecting fields..")
     end
 
     local fs = player_data[player_name].fs
-	debug(flag2, "  fields: " .. dump(fields))
+	--debug(flag2, "  fields: " .. dump(fields))
     local player_meta = player:get_meta()
     local player_inv = player:get_inventory()
 	local pos_key = p_data.campfire_pos_key
@@ -4100,61 +4120,61 @@ core.register_on_player_receive_fields(function(player, formname, fields)
 	local node_meta = mt_get_meta(pos)
 
 	if fields.quit then
-		debug(flag2, "  player quit from campfire formspec")
+		--debug(flag2, "  player quit from campfire formspec")
 		p_data.formspec_mode = "main_formspec"
 
-		debug(flag2, "  stopping any lopping formspec refresh jobs")
+		--debug(flag2, "  stopping any lopping formspec refresh jobs")
 		cancel_refresh_formspec_job(player_name)
 
-		debug(flag2, "  removing player name from campfire users table")
+		--debug(flag2, "  removing player name from campfire users table")
 		remove_formspec_viewer(formspec_viewers[pos_key], player_name)
-		debug(flag2, "  formspec_viewers (after): " .. dump(formspec_viewers))
+		--debug(flag2, "  formspec_viewers (after): " .. dump(formspec_viewers))
 
 	elseif fields.campfire_start then
-		debug(flag2, "  lighting campfire...")
+		--debug(flag2, "  lighting campfire...")
 
 		local node_inv = node_meta:get_inventory()
 
 		-- fire starter slot is empty
 		if node_inv:is_empty("fire_starter") then
-			debug(flag2, "    no fire starter tool found. NO FURTHER ACTION.")
+			--debug(flag2, "    no fire starter tool found. NO FURTHER ACTION.")
 			play_sound("button", {player_name = player_name})
-			notify(player, "Fire starter tool is missing.", NOTIFY_DURATION, 0, 0.5, 3)
+			notify(player, "inventory", "Fire starter tool is missing.", NOTIFY_DURATION, 0, 0.5, 3)
 
 		-- fire starter item is equipped
 		else
 			local item = node_inv:get_stack("fire_starter", 1)
 			local fire_starter_name = item:get_name()
-			debug(flag2, "    fire_starter_name: " .. fire_starter_name)
+			--debug(flag2, "    fire_starter_name: " .. fire_starter_name)
 			play_sound("item_use", {item_name = fire_starter_name, player = player})
 
 			-- increase tool wear for the fire starter item
 			local item_meta = item:get_meta()
 			local remaining_uses = item_meta:get_int("remaining_uses")
-			debug(flag2, "    current remaining_uses: " .. remaining_uses)
+			--debug(flag2, "    current remaining_uses: " .. remaining_uses)
 			remaining_uses = remaining_uses - 1
-			debug(flag2, "    updated remaining_uses: " .. remaining_uses)
+			--debug(flag2, "    updated remaining_uses: " .. remaining_uses)
 
 			if remaining_uses > 0 then
-				debug(flag2, "    fire starter tool can still be used")
+				--debug(flag2, "    fire starter tool can still be used")
 				update_meta_and_description(item_meta, fire_starter_name, {"remaining_uses"}, {remaining_uses})
 				node_inv:set_stack("fire_starter", 1, item)
 
 			else
-				debug(flag2, "    ** fire starter tool all used up **")
+				--debug(flag2, "    ** fire starter tool all used up **")
 				node_inv:set_stack("fire_starter", 1, ItemStack(""))
 				play_sound("item_break", {item_name = fire_starter_name, pos = pos})
 				local broken_items = ITEM_DESTRUCT_PATH[fire_starter_name]
 				if broken_items then
-					debug(flag2, "    resulted in broken items")
+					--debug(flag2, "    resulted in broken items")
 					for i, broken_item_name in ipairs(broken_items) do
-						debug(flag2, "      broken_item_name: " .. broken_item_name)
+						--debug(flag2, "      broken_item_name: " .. broken_item_name)
 						local broken_item = ItemStack(broken_item_name)
 						mt_add_item(player:get_pos(), broken_item)
 					end
-					notify(player, "Item broke. Scraps dropped to ground.", 3, 0.5, 0, 2)
+					notify(player, "inventory", "Item broke. Scraps dropped to ground.", 3, 0.5, 0, 2)
 				else
-					debug(flag2, "    no broken items")
+					--debug(flag2, "    no broken items")
 				end
 			end
 
@@ -4162,17 +4182,16 @@ core.register_on_player_receive_fields(function(player, formname, fields)
 			if fire_starter_name == "ss:fire_drill" then
 
 				-- using fire drill reduces lots of stamina and other stats
-				debug(flag2, "    p_data.stamina_loss_fire_drill: " .. p_data.stamina_loss_fire_drill)
-				local update_data = {"normal", "stamina", -p_data.stamina_loss_fire_drill, 1, 1, "curr", "add", true}
-				update_stat(player, p_data, player_meta, update_data)
+				--debug(flag2, "    p_data.stamina_loss_fire_drill: " .. p_data.stamina_loss_fire_drill)
+				do_stat_update_action(player, p_data, player_meta, "normal", "stamina", -p_data.stamina_loss_fire_drill, "curr", "add", true)
 
 				-- 33% of fire drill failing to light
 				local random_num = math_random()
-				debug(flag2, "    fire_drill_success_rate: " .. p_data.fire_drill_success_rate)
-				debug(flag2, "    random_num: " .. random_num)
+				--debug(flag2, "    fire_drill_success_rate: " .. p_data.fire_drill_success_rate)
+				--debug(flag2, "    random_num: " .. random_num)
 				if random_num > p_data.fire_drill_success_rate then
-					debug(flag2, "    fire drill failed to light")
-					notify(player, "Failed to ignite. Try again.", NOTIFY_DURATION, 0, 0.5, 3)
+					--debug(flag2, "    fire drill failed to light")
+					notify(player, "inventory", "Failed to ignite. Try again.", NOTIFY_DURATION, 0, 0.5, 3)
 					fire_start_success = false
 				end
 
@@ -4180,11 +4199,11 @@ core.register_on_player_receive_fields(function(player, formname, fields)
 
 				-- 10% of matches failing to light
 				local random_num = math_random()
-				debug(flag2, "    match_book_success_rate: " .. p_data.match_book_success_rate)
-				debug(flag2, "    random_num: " .. random_num)
+				--debug(flag2, "    match_book_success_rate: " .. p_data.match_book_success_rate)
+				--debug(flag2, "    random_num: " .. random_num)
 				if random_num > p_data.match_book_success_rate then
-					debug(flag2, "    match failed to light")
-					notify(player, "Failed to ignite. Try another.", NOTIFY_DURATION, 0, 0.5, 3)
+					--debug(flag2, "    match failed to light")
+					notify(player, "inventory", "Failed to ignite. Try another.", NOTIFY_DURATION, 0, 0.5, 3)
 					fire_start_success = false
 				end
 
@@ -4195,13 +4214,13 @@ core.register_on_player_receive_fields(function(player, formname, fields)
 			-- proceed to light campfire
 			if fire_start_success then
 
-				debug(flag2, "    campfire turned on successfully")
+				--debug(flag2, "    campfire turned on successfully")
 				local ingredient_slots = node_inv:get_list("ingredients")
 				for i, ingredient_item in ipairs(ingredient_slots) do
 					--debug(flag2, "    slot #" .. i)
 					if not ingredient_item:is_empty() then
 						local ingredient_item_name = ingredient_item:get_name()
-						debug(flag2, "    ingredient item found: " .. ingredient_item_name)
+						--debug(flag2, "    ingredient item found: " .. ingredient_item_name)
 						-- campfire turned on while item in ingred slot")
 						check_ingredient_status(ingredient_item, node_inv, i, player)
 					end
@@ -4231,12 +4250,12 @@ core.register_on_player_receive_fields(function(player, formname, fields)
 		end
 
 	elseif fields.campfire_stop then
-		debug(flag2, "  stopping campfire...")
+		--debug(flag2, "  stopping campfire...")
 		play_sound("button", {player_name = player_name})
 		stop_campfire(pos, pos_key, node_meta)
 
 	elseif fields.campfire_rebuild then
-		debug(flag2, "  attempting campfire rebuild...")
+		--debug(flag2, "  attempting campfire rebuild...")
 		play_sound("button", {player_name = player_name})
 
 		-- get ingredients for campfire
@@ -4250,10 +4269,10 @@ core.register_on_player_receive_fields(function(player, formname, fields)
 		for i, itemstring in ipairs(camfire_ingredients) do
 			local itemstack = ItemStack(itemstring)
 			local item_name = itemstack:get_name()
-			debug(flag2, "  looking for ingredient: " .. item_name)
+			--debug(flag2, "  looking for ingredient: " .. item_name)
 
 			local missing_count = count_missing_items(player, itemstack)
-			debug(flag2, "  missing_count: " .. missing_count)
+			--debug(flag2, "  missing_count: " .. missing_count)
 
 			if missing_count > 0 then
 				missing_ingredients = true
@@ -4264,54 +4283,49 @@ core.register_on_player_receive_fields(function(player, formname, fields)
 		end
 
 		if missing_ingredients then
-			debug(flag2, "  missing campfire ingredients")
-			notify(player, "Missing campfire ingredients.", NOTIFY_DURATION, 0, 0.5, 3)
+			--debug(flag2, "  missing campfire ingredients")
+			notify(player, "inventory", "Missing campfire ingredients.", NOTIFY_DURATION, 0, 0.5, 3)
 
 		else
-			debug(flag2, "  necessary ingredients avail. rebuilding campfire...")
+			--debug(flag2, "  necessary ingredients avail. rebuilding campfire...")
 			play_sound("item_use", {item_name = "ss:campfire_small_new", player = player})
 
 			-- remove item from inventory
 			for i, itemstring in ipairs(camfire_ingredients) do
 				local itemstack = ItemStack(itemstring)
 				local item_name = itemstack:get_name()
-				debug(flag2, "  removing ingredient: " .. item_name)
+				--debug(flag2, "  removing ingredient: " .. item_name)
 				player_inv:remove_item("main", itemstack)
 			end
 
 			-- update weight statbar hud and weight formspec to reflect removal of item
-			debug(flag2, "  reducing inv weight by: " .. campfire_ingredients_weight)
-			local update_data = {"normal", "weight", -campfire_ingredients_weight, 1, 1, "curr", "add", true}
-			update_stat(player, p_data, player_meta, update_data)
+			--debug(flag2, "  reducing inv weight by: " .. campfire_ingredients_weight)
+			do_stat_update_action(player, p_data, player_meta, "normal", "weight", -campfire_ingredients_weight, "curr", "add", true)
 			fs.center.weight = get_fs_weight(player)
 
-			debug(flag2, "  refresh crafting pane and ingred box to reflect consumed items..")
+			--debug(flag2, "  refresh crafting pane and ingred box to reflect consumed items..")
 			update_crafting_ingred_and_grid(player_name, player_inv, p_data, fs)
 
 			-- give exp to player for rebuilding
-			debug(flag2, "  updating experience hudbar...")
+			--debug(flag2, "  updating experience hudbar...")
             local ingredient_count = #camfire_ingredients
-            debug(flag2, "  ingredient_count: " .. ingredient_count)
-            local experience_gain_crafting = p_data.experience_gain_crafting
-            debug(flag2, "  experience_gain_crafting: " .. experience_gain_crafting)
-            local experience_gained = ingredient_count * experience_gain_crafting
-            debug(flag2, "  experience_gained: " .. experience_gained)
-			update_data = {"normal", "experience", experience_gained, 1, 1, "curr", "add", true}
-			update_stat(player, p_data, player_meta, update_data)
+            local experience_gained = ingredient_count * p_data.experience_gain_crafting * p_data.experience_rec_mod_fast_learner
+            --debug(flag2, "  experience_gained: " .. experience_gained)
+			do_stat_update_action(player, p_data, player_meta, "normal", "experience", experience_gained, "curr", "add", true)
 
-			debug(flag2, "    restore campfire fuel value")
+			--debug(flag2, "    restore campfire fuel value")
 			node_meta:set_int("burn_time_campfire", CAMPFIRE_CORE_BURNTIME)
 
-			debug(flag2, "    set campfire status back to off")
+			--debug(flag2, "    set campfire status back to off")
 			node_meta:set_string("campfire_status", "off")
 
-			debug(flag2, "    replace campfire node to ss:campfire_small_new")
+			--debug(flag2, "    replace campfire node to ss:campfire_small_new")
 			mt_swap_node(pos, {name = "ss:campfire_small_new"})
 
-			debug(flag2, "    dropping item-drops to ground relating to spent campfire")
+			--debug(flag2, "    dropping item-drops to ground relating to spent campfire")
 			drop_campfire_drops(pos, "ss:campfire_small_spent")
 
-			debug(flag2, "  refreshing formspec..")
+			--debug(flag2, "  refreshing formspec..")
 			player_meta:set_string("fs", mt_serialize(fs))
 			local formspec = build_fs(fs)
 			player:set_inventory_formspec(formspec)
@@ -4331,8 +4345,8 @@ core.register_allow_player_inventory_action(function(player, action, inventory, 
 	local p_data = player_data[player_name]
 
 	if p_data.formspec_mode ~= "campfire" then
-		debug(flag8, "  not using campfire. skip.")
-		debug(flag8, "  register_allow_player_inventory_action() end *** " .. mt_get_gametime() .. " ***")
+		--debug(flag8, "  not using campfire. skip.")
+		--debug(flag8, "  register_allow_player_inventory_action() end *** " .. mt_get_gametime() .. " ***")
 		return
 	end
 
@@ -4341,7 +4355,7 @@ core.register_allow_player_inventory_action(function(player, action, inventory, 
     --local fs = p_data.fs
     local block_action = false
 
-	debug(flag8, "  action: " .. action)
+	--debug(flag8, "  action: " .. action)
     if action == "move" then
 
 		local to_list = inventory_info.to_list
@@ -4351,65 +4365,65 @@ core.register_allow_player_inventory_action(function(player, action, inventory, 
         local item = inventory:get_stack(from_list, from_index)
         local item_name = item:get_name()
 
-        debug(flag8, "  item_name: " .. item_name)
-        debug(flag8, "  to_list: " .. to_list)
+        --debug(flag8, "  item_name: " .. item_name)
+        --debug(flag8, "  to_list: " .. to_list)
 
 		if to_list == "main" then
-			debug(flag8, "  Moved any item to another slot within main inventory: Allowed")
+			--debug(flag8, "  Moved any item to another slot within main inventory: Allowed")
 			if SPILLABLE_ITEM_NAMES[item_name] then
-                debug(flag2, "  this is a filled cup!")
+                --debug(flag2, "  this is a filled cup!")
                 if to_index > 8 then
-                    debug(flag2, "  cannot be placed in main inventory")
-                    notify(player, NOTIFICATIONS.pickup_liquid_fail, NOTIFY_DURATION, 0, 0.5, 3)
+                    --debug(flag2, "  cannot be placed in main inventory")
+                    notify(player, "inventory", NOTIFICATIONS.pickup_liquid_fail, NOTIFY_DURATION, 0, 0.5, 3)
                     block_action = true
                 end
             end
 
 		else
-			notify(player, "Unexpected target: " .. to_list, NOTIFY_DURATION, 0, 0.5, 3)
+			notify(player, "error", "ERROR - Unexpected 'to_list' value: " .. to_list, NOTIFY_DURATION, 0, 0.5, 3)
 			block_action = true
 		end
 
 
 	elseif action == "take" then
-        debug(flag8, "  Action TAKE not yet implemented.")
+        --debug(flag8, "  Action TAKE not yet implemented.")
 
 	elseif action == "put" then
 		local listname = inventory_info.listname
         local item = inventory_info.stack
         local to_index = inventory_info.index
         local item_name = item:get_name()
-        debug(flag8, "  PUT " .. item_name .. " into " .. listname .. " at index " .. to_index)
+        --debug(flag8, "  PUT " .. item_name .. " into " .. listname .. " at index " .. to_index)
 
 		local to_item = inventory:get_stack(listname, to_index)
 		if not to_item:is_empty() then
-			notify(player, "Cannot swap - find empty slot", NOTIFY_DURATION, 0, 0.5, 3)
+			notify(player, "inventory", "Cannot swap - find empty slot", NOTIFY_DURATION, 0, 0.5, 3)
 			block_action = true
 
 		elseif SPILLABLE_ITEM_NAMES[item_name] then
-			debug(flag8, "  this is a filled cup!")
+			--debug(flag8, "  this is a filled cup!")
 			if to_index > 8 then
-				debug(flag8, "  cannot be placed in main inventory")
-				notify(player, NOTIFICATIONS.pickup_liquid_fail, NOTIFY_DURATION, 0, 0.5, 3)
+				--debug(flag8, "  cannot be placed in main inventory")
+				notify(player, "inventory", NOTIFICATIONS.pickup_liquid_fail, NOTIFY_DURATION, 0, 0.5, 3)
 				block_action = true
 			else
-				debug(flag8, "  placing into hotbar")
+				--debug(flag8, "  placing into hotbar")
 				if exceeds_inv_weight_max(item, player_meta) then
-					notify(player, NOTIFICATIONS.inv_weight_max, NOTIFY_DURATION, 0, 0.5, 3)
+					notify(player, "inventory", NOTIFICATIONS.inv_weight_max, NOTIFY_DURATION, 0, 0.5, 3)
 					block_action = true
 				end
 			end
 
 		else
-			debug(flag8, "  not a filled cup")
+			--debug(flag8, "  not a filled cup")
 			if exceeds_inv_weight_max(item, player_meta) then
-				notify(player, NOTIFICATIONS.inv_weight_max, NOTIFY_DURATION, 0, 0.5, 3)
+				notify(player, "inventory", NOTIFICATIONS.inv_weight_max, NOTIFY_DURATION, 0, 0.5, 3)
 				block_action = true
 			end
 		end
 
 	else
-		debug(flag8, "  UNEXPECTED ACTION: " .. action)
+		--debug(flag8, "  UNEXPECTED ACTION: " .. action)
 	end
 
     debug(flag8, "register_allow_player_inventory_action() end *** " .. mt_get_gametime() .. " ***")
@@ -4425,8 +4439,8 @@ core.register_on_player_inventory_action(function(player, action, inventory, inv
     local p_data = player_data[player_name]
 
 	if p_data.formspec_mode ~= "campfire" then
-		debug(flag7, "  not using campfire. skip.")
-		debug(flag7, "register_allow_player_inventory_action() end *** " .. mt_get_gametime() .. " ***")
+		--debug(flag7, "  not using campfire. skip.")
+		--debug(flag7, "register_allow_player_inventory_action() end *** " .. mt_get_gametime() .. " ***")
 		return
 	end
 
@@ -4445,8 +4459,8 @@ core.register_on_player_inventory_action(function(player, action, inventory, inv
         local item = inventory_info.stack
         local from_index = inventory_info.index
         local item_name = item:get_name()
-        debug(flag7, "  listname: " .. listname)
-        debug(flag7, table_concat({ "  >> * REMOVED * ", item_name, " from player inventory. Took from ", listname, "[", from_index, "]" }) )
+        --debug(flag7, "  listname: " .. listname)
+        --debug(flag7, table_concat({ "  >> * REMOVED * ", item_name, " from player inventory. Took from ", listname, "[", from_index, "]" }) )
 		play_sound("item_move", {item_name = item_name, player_name = player_name})
 
 		local weight = get_itemstack_weight(item)
@@ -4457,7 +4471,7 @@ core.register_on_player_inventory_action(function(player, action, inventory, inv
 
 	elseif action == "put" then
 
-		debug(flag7, "  Moved item from campfire to player inventory")
+		--debug(flag7, "  Moved item from campfire to player inventory")
 		local item = inventory_info.stack
 		reset_cook_data(item)
 		inventory:set_stack("main", inventory_info.index, item)
@@ -4469,11 +4483,57 @@ core.register_on_player_inventory_action(function(player, action, inventory, inv
 		player:set_inventory_formspec(build_fs(fs))
 
 	else
-        debug(flag7, "  UNEXPECTED ACTION: " .. action)
+        --debug(flag7, "  UNEXPECTED ACTION: " .. action)
     end
 
     debug(flag7, "register_on_player_inventory_action() end *** " .. mt_get_gametime() .. " ***")
 end)
+
+
+
+local flag47 = false
+core.register_on_joinplayer(function(player)
+	debug(flag47, "\nregister_on_joinplayer() COOKING STATIONS")
+	local player_meta = player:get_meta()
+    local p_data = player_data[player:get_player_name()]
+	local metadata
+
+	-- the success rate to start a flame using a the fire starter tool. for example,
+    -- the value of 0.5 = 50% success rate, 1 = 100% success rate.
+	metadata = player_meta:get_float("fire_drill_success_rate")
+	p_data.fire_drill_success_rate = (metadata ~= 0 and metadata) or 0.5
+	metadata = player_meta:get_float("match_book_success_rate")
+	p_data.match_book_success_rate = (metadata ~= 0 and metadata) or 0.8
+
+	-- how much xp gained for crafting an item. this value is multiplied by the
+	-- number of outputs if the crafting recipe results in multiple items.
+	metadata = player_meta:get_float("experience_gain_cooking")
+	p_data.experience_gain_cooking = (metadata ~= 0 and metadata) or 0.5
+
+	debug(flag47, "\nregister_on_joinplayer() end")
+end)
+
+
+
+local flag50 = false
+core.register_on_respawnplayer(function(player)
+    debug(flag50, "\nregister_on_respawnplayer() COOKING STATIONS")
+	local player_meta = player:get_meta()
+	local p_data = player_data[player:get_player_name()]
+
+	-- reset fire starter tools success rates
+	p_data.fire_drill_success_rate = 0.50
+	player_meta:set_float("fire_drill_success_rate", p_data.fire_drill_success_rate)
+	p_data.match_book_success_rate = 0.80
+	player_meta:set_float("match_book_success_rate", p_data.match_book_success_rate)
+
+	-- reset crafting and cooking xp gain rates
+    p_data.experience_gain_cooking = 0.5
+	player_meta:set_float("experience_gain_cooking", p_data.experience_gain_cooking)
+
+	debug(flag50, "register_on_respawnplayer() end")
+end)
+
 
 
 
@@ -4501,13 +4561,13 @@ core.register_lbm({
 		local node_id = mt_hash_node_position(pos)
 		local particle_id = particle_ids[node_id]
 		if particle_id then
-			debug(flag27, "  smoke particles already activated. no action.")
+			--debug(flag27, "  smoke particles already activated. no action.")
 		else
-			debug(flag27, "  adding smoke effect above campfire")
+			--debug(flag27, "  adding smoke effect above campfire")
 			start_smoke_particles(pos)
 		end
 
-		-- re-add pos to global wind_conditions table
+		-- re-add pos to global radiant_sources table
 		radiant_sources[pos_to_key(pos)] = RADIANT_SOURCES_DATA["ss:campfire_small_burning"]
 
 		debug(flag27, "register_lbm() END")
@@ -4533,12 +4593,12 @@ core.register_lbm({
 		local pos_key = pos_to_key(pos)
 		local viewers = formspec_viewers[pos_key]
 		if viewers then
-			debug(flag34, "  campfire pos " .. pos_key .. " already exists in formspec_viewers" )
+			--debug(flag34, "  campfire pos " .. pos_key .. " already exists in formspec_viewers" )
 		else
 			formspec_viewers[pos_key] = {}
-			debug(flag34, "  campfire pos " .. pos_key .. " added to formspec_viewers" )
+			--debug(flag34, "  campfire pos " .. pos_key .. " added to formspec_viewers" )
 		end
-		debug(flag34, "  formspec_viewers: " .. dump(formspec_viewers))
+		--debug(flag34, "  formspec_viewers: " .. dump(formspec_viewers))
 		debug(flag34, "register_lbm() END")
     end,
 })

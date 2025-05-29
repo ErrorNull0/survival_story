@@ -1,12 +1,14 @@
 print("- loading tool_overrides.lua")
 -- cache global functions and variables for faster access
+local table_copy = table.copy
+local table_remove = table.remove
 local mt_get_meta = core.get_meta
 local mt_add_item = core.add_item
 local debug = ss.debug
 local round = ss.round
 local get_itemstack_weight = ss.get_itemstack_weight
 local play_sound = ss.play_sound
-local update_stat = ss.update_stat
+local do_stat_update_action = ss.do_stat_update_action
 local update_fs_weight = ss.update_fs_weight
 local notify = ss.notify
 local pickup_item = ss.pickup_item
@@ -71,8 +73,8 @@ local after_use_tool = function(itemstack, user, node, digparams)
 				debug(flag3, "    resulted in scrap items")
 
 				-- replace wielded tool with main scrap item
-				local broken_items_copy = table.copy(broken_items)
-				local wield_item_name = table.remove(broken_items_copy, 1)
+				local broken_items_copy = table_copy(broken_items)
+				local wield_item_name = table_remove(broken_items_copy, 1)
 				debug(flag3, "    scrap wield_item_name: " .. wield_item_name)
 				itemstack = ItemStack(wield_item_name)
 
@@ -85,9 +87,9 @@ local after_use_tool = function(itemstack, user, node, digparams)
 				end
 
 				if extra_broken_item_count > 0 then
-					notify(user, "Tool broke. Scraps dropped to ground.", 3, 0.5, 0, 2)
+					notify(user, "inventory", "Tool broke. Scraps dropped to ground.", 3, 0.5, 0, 2)
 				else
-					notify(user, "Tool broke", 2, 0.5, 0, 2)
+					notify(user, "inventory", "Tool broke", 2, 0.5, 0, 2)
 				end
 
 				-- reduce inventory weight. assuming the original tool being wielded
@@ -103,7 +105,7 @@ local after_use_tool = function(itemstack, user, node, digparams)
 			else
 				debug(flag3, "    no scrap items")
 				itemstack = ItemStack("")
-				notify(user, "Tool broke", 2, 0.5, 0, 2)
+				notify(user, "inventory", "Tool broke", 2, 0.5, 0, 2)
 
 				-- assuming the original tool being wielded never has itemstack
 				-- quantity greater than 1
@@ -111,8 +113,8 @@ local after_use_tool = function(itemstack, user, node, digparams)
 			end
 
 			local p_data = ss.player_data[user:get_player_name()]
-			local update_data = {"normal", "weight", -weight_change, 1, 1, "curr", "add", true}
-			update_stat(user, p_data, player_meta, update_data)
+			do_stat_update_action(user, p_data, player_meta, "normal", "weight", -weight_change, "curr", "add", true)
+
 			update_fs_weight(user, player_meta)
 
 		end
@@ -183,7 +185,7 @@ core.override_item("ss:hammer_wood", {
 			local heat_ratio = round(heat_progress / COOK_THRESHOLD * 100, 1)
 			local text = "heated  " .. core.get_color_escape_sequence("yellow") .. heat_ratio .. "%"
 
-			notify(user, text, 2, 0.5, 0, 2)
+			notify(user, "hammer", text, 2, 0.5, 0, 2)
 		else
 			pickup_item(user, pointed_thing)
 		end

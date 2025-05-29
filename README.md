@@ -15,38 +15,49 @@ Survival Story is very early in development and is planned to be a multi-year pr
 ## Manual Install From .zip File
 Upon extracting the zip file, the resulting `survival_story` folder should be placed in the `games` folder of the main Luanti folder, like so:
 
-`Luanti-5.10.0` > `games` > `survival_story`
+`Luanti-5.11.0` > `games` > `survival_story`
 
-## Changelog for v0.0.3
-- Added stat bars for Hygiene, Comfort, Sanity, and Happiness
-- Added ability to show or hide any stat bar (do so from Settings tab)
-- Added core functionality for Status Effects
-- Added core functionality for Biome Climate
-- Added Radiative temperature sources
-- Added basic water temperature mechanics
-- Status effects can be triggered by low stats
-- Status effects can be triggered by climate conditions
-- Added Status tab stat values, status effects, and thermal status
-- added Weather wand and Debug wand admin tools
-- added cook result description on all cookable items
-- added text colorization to some text notifications and tooltips
-- updated Help tab relating to latest features
-- updated code to reference 'Luanti' instead of Minetest
-- improved code that modifies player stats when items are used/consumed
-- improved code organization and interaction across lua files
-- fixed crafting recipe grid not updating when items dropped while viewing campfire or storage bag
-- fixed some item interaction while using the Bundle tab
-- fixed sound effects voiced by player avatar stacking/overlapping
-- fixed entity object used as player's wield item not removing when player dies
+## Changelog for v0.0.4
+- reduced resource requirements for string and a few other recipes
+- added ability from Settings tab to disable pop-up notifications by group type
+- added 'baseline value' mechanism
+- added visual marker on most stat bars to show the baseline value
+- thermal status section in Status tab now displays all factors that impact 'feels like' temperature
+- added ability for clothing and armor to offset 'feels like' temperature when on dry land or in water
+- added 'water temperature' equipment buff that offsets water temperature based on equipped clothing/armor
+- added 'sun protection' equipment buff that offsets solar radiation based on equipped clothing/armor
+- added 'electrical' equipment buff that offsets electrical damage based on equipped clothing/armor
+- added 'gas' equipment buff that offsets toxic gas damage based on equipped clothing/armor
+- added illness mechanism that triggers status effects with 'cold', 'flu', and 'pneumonia' severities
+- added sneezing and coughing effects that are occasionally triggered when ill
+- trigger illness from external factors like cold weather and lack of sleep (low alertness)
+- added poison mechanism that triggers status effects with 'stomach ache', 'nausea', and 'dysentery' severities
+- added vomiting effects that are occasionally triggered when poisoned
+- trigger poisoning from consuming raw or bad food or drinking unclean water
+- added leg condition mechanism that triggers status effects with 'sprained', and 'broken' severities
+- trigger leg injuries from running and jumping from high places
+- added hand condition mechanism that triggers status effects with 'sore', 'sprained', and 'broken'
+- trigger hand injuries from swinging heavy tools and punching hard objects with bare hands
+- added ability to splint or cast leg injuries for faster recovery
+- added ability to 'crawl' up 1 meter blocks if jumping is severely hindered due to injury, exhaustion, or carrying weight
+- ensured that wearing hand or foot protection like socks, shoes, and gloves**,** reduces those injuries
+- added wetness (skin moisture) mechanism that is activated by standing or submersion in water
+- alertness is increased when standing or submerged in water
+- added tooltips that describe negative impacts from status effects when hovering over their names in the Status tab
+- added Skills tab allowing use of earned skill points to improve player abilities including stat maximums, stat restore rates, stat drain rates, resistance to injury and illness, walking, running, and jumping
+- added more info display to debug wand
+- updated stats wand to modify the new stats like legs, hands, illness, poison, and wetness
+- more code refactoring and better code organization
+- lots of updates to Help tab
 
 ## Current State of Gameplay
-There is currently not much "game" to the gameplay yet. This release is primarily to allow testing of the features currently implemented. **View the "Help" tab within the main inventory window to give you ideas on what features to try out.**
+There is currently not much "game" to the gameplay yet. This release is primarily to test newly implemented features. **View the "Help" tab within the main inventory window to get ideas on what features to try out.**
 
 Here are a few tips and things to keep in mind:
 
-Create a new map with `mapgen v7` with seed `666` or `777` which results in a good play area to test with.
+Create a new map with `mapgen v7` with seed `666` or `777`, which results in a good play area to test with.
 
-This game was designed for screen resolution of at least `1600` **pixel width** and `1080` **pixel height**. This is to accommodate the custom inventory window.
+This game was designed for a screen resolution of at least `1600` **pixels width** and `1080` **pixels height**. This is to accommodate the custom inventory window.
 
 Upon spawning into the world, the Player Setup window pops up. Customize your avatar and press Done when complete.
 
@@ -54,11 +65,11 @@ For keyboard input control, it is recommended to set **Aux1** to `Left SHIFT`, *
 
 For testing purposes, you start with four admin tools in your inventory: the `stats wand`, `item spawner`, `weather wand`, and `teleporter`. While wielding an admin tool, hold down the Aux1 key and press the primary action button to activate it. 
 
-The `stats wand` allows you to manually manipulate any of your player stats - health, thirst, hunger, alertness, hygiene, comfort, immunity, sanity, happiness, breath, stamina, experience, and weight.
+The `stats wand` allows you to manually manipulate any of your player stats including: health, thirst, hunger, alertness, hygiene, comfort, immunity, sanity, happiness, hands, legs, breath, stamina, experience, weight, illness, and poison. TIP: Use the stats wand to give yourself experience to quickly gain skill points to test the Skills upgrading feature.
 
 The `item spawner` allows you to spawn at your feet any of the custom made items in the game, as well as a few of the default items for testing.
 
-The `weather spawner` allows you temporarily modify the value ranges for air temperature, humidity, and wind of the current biome you are in. The biome's current air temperature and humidity will respond to your changes right away. In contrast, the current wind speed is updated every 10 - 60 seconds. Any changes are lost after game restart.
+The `weather wand` allows you to temporarily modify the value ranges for air temperature, humidity, and wind of the current biome you are in. The biome's current air temperature and humidity will respond to your changes right away. In contrast, the current wind speed is updated every 10 - 60 seconds. Any changes are lost after a game restart.
 
 The `teleporter` allows you to quickly teleport 100 meters ahead of you or toward either side.
 
@@ -67,4 +78,4 @@ Thanks to everyone on the Luanti forum and Discord server for continued answers,
 
 Thanks to all modders in the community for their creations, which provide inspiration and insight for some of the features in Survival Story.
 
-And of course, big thanks to Celeron55 for founding the amazing Luanti engine, and the work by the core developers in continually refining and updating Luanti for years to come.
+And of course, big thanks to Celeron55 for founding the amazing Luanti engine, and to the core developers for their work in continually refining and updating Luanti for years to come.

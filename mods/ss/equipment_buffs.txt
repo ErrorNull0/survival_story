@@ -1,35 +1,97 @@
-### <item name>,<damage buff>,<cold buff>, <heat buff>, <wetness buff>, <disease buff>, <radiation buff>, <noise level>, <item weight> ###
-### 'item weight' property is pulled from 'item_weights.txt' during runtime ###
+### this file contains protection buff values for each piece of clothing and armor
+### 'cold', 'heat', and 'water' represent temperature values in fahrenheit that is
+###   added to the player's current 'feels like' temperature. positive values make
+###   the player warmer, negative values cooler.
+### 'noise' is in dB.
+### all other values (for now) are in percentages of the total effect
 
-### CLOTHING,damage,cold,heat,wetness,disease,radiation,noise ###
-ss:clothes_glasses,0,0,0,0,1,0,0,
-ss:clothes_sunglasses,0,0,2,0,1,0,0
-ss:clothes_scarf,1,5,2,2,1,0,1
-ss:clothes_necklace,0,0,0,0,0,0,0
-ss:clothes_shirt_fiber,4,3,1,3,1,0,8
-ss:clothes_tshirt,3,3,2,2,1,0,1
-ss:clothes_gloves_fiber,2,1,1,1,1,0,5
-ss:clothes_gloves_fingerless,2,2,1,1,1,0,2
-ss:clothes_gloves_leather,3,3,1,3,2,0,2
-ss:clothes_pants_fiber,3,3,1,3,1,0,8
-ss:clothes_pants,3,3,1,3,1,0,2
-ss:clothes_shorts,1,1,3,1,1,0,1
-ss:clothes_socks,2,2,1,2,1,0,1
+### CLOTHING
 
-### ARMOR,damage,cold,heat,wetness,disease,radiation,noise ###
-ss:armor_feet_fiber_1,1,1,3,1,1,0,5
-ss:armor_feet_fiber_2,2,2,1,2,1,0,6
-ss:armor_head_cloth_2,3,3,3,4,1,0,1
-ss:armor_face_cloth_1,1,3,1,3,5,0,1
-ss:armor_face_cloth_2,1,1,1,2,8,0,1
-ss:armor_feet_cloth_2,3,3,1,2,1,0,2
-ss:armor_head_wood_1,6,1,1,3,2,0,4
-ss:armor_chest_wood_1,10,1,2,3,2,0,7
-ss:armor_arms_wood_1,8,1,1,2,2,0,7
-ss:armor_legs_wood_1,8,1,1,2,2,0,8
-ss:armor_head_leather_1,4,4,2,5,2,0,2
-ss:armor_head_leather_2,4,4,4,7,2,0,2
-ss:armor_chest_leather_1,8,4,2,6,2,0,3
-ss:armor_arms_leather_1,6,3,1,4,2,0,3
-ss:armor_legs_leather_1,6,3,1,5,2,0,3
-ss:armor_feet_leather_1,3,3,1,4,2,0,3
+ss:clothes_glasses 
+damage:0, cold:0, heat:0, sun:0, water:0, wetness:0, disease:1, electrical:0, radiation:0, gas:1, noise:0
+
+ss:clothes_sunglasses 
+damage:0, cold:0, heat:-1, sun:2, water:0, wetness:0, disease:1, electrical:0, radiation:0, gas:1, noise:0
+
+ss:clothes_necklace 
+damage:0, cold:0, heat:0, sun:0, water:0, wetness:0, disease:0, electrical:0, radiation:0, gas:0, noise:0
+
+ss:clothes_scarf 
+damage:1, cold:3, heat:2, sun:3, water:0.2, wetness:2, disease:1, electrical:2, radiation:0, gas:0, noise:1
+
+ss:clothes_shirt_fiber 
+damage:4, cold:2, heat:-2, sun:5, water:0.1, wetness:3, disease:1, electrical:1, radiation:0, gas:0, noise:8
+
+ss:clothes_tshirt 
+damage:3, cold:5, heat:0, sun:5, water:0.3, wetness:2, disease:1, electrical:2, radiation:0, gas:0, noise:1
+
+ss:clothes_gloves_fiber 
+damage:2, cold:1, heat:-1, sun:1, water:0.1, wetness:1, disease:1, electrical:1, radiation:0, gas:0, noise:5
+
+ss:clothes_gloves_fingerless 
+damage:2, cold:1, heat:0, sun:1, water:0.1, wetness:1, disease:1, electrical:1, radiation:0, gas:0, noise:2
+
+ss:clothes_gloves_leather 
+damage:3, cold:2, heat:1, sun:2, water:0.1, wetness:3, disease:2, electrical:2, radiation:0, gas:0, noise:2
+
+ss:clothes_pants_fiber 
+damage:3, cold:2, heat:-2, sun:5, water:0.1, wetness:3, disease:1, electrical:2, radiation:0, gas:0, noise:8
+
+ss:clothes_pants 
+damage:3, cold:5, heat:3, sun:5, water:0.4, wetness:3, disease:1, electrical:3, radiation:0, gas:0, noise:2
+
+ss:clothes_shorts 
+damage:1, cold:3, heat:0, sun:3, water:0.1, wetness:1, disease:1, electrical:2, radiation:0, gas:0, noise:1
+
+ss:clothes_socks 
+damage:2, cold:1, heat:1, sun:1, water:0.1, wetness:2, disease:1, electrical:1, radiation:0, gas:0, noise:1
+
+### ARMOR
+
+ss:armor_feet_fiber_1    
+damage:1, cold:1, heat:-1, sun:0, water:0.1, wetness:1, disease:1, electrical:1, radiation:0, gas:0, noise:5
+
+ss:armor_feet_fiber_2    
+damage:2, cold:2, heat:-2, sun:2, water:0.1, wetness:2, disease:1, electrical:2, radiation:0, gas:0, noise:6
+
+ss:armor_head_cloth_2    
+damage:3, cold:3, heat:-2, sun:3, water:0.1, wetness:4, disease:1, electrical:1, radiation:0, gas:0, noise:1
+
+ss:armor_face_cloth_1    
+damage:1, cold:3, heat:2, sun:3, water:0.1, wetness:3, disease:10, electrical:1, radiation:0, gas:10, noise:1
+
+ss:armor_face_cloth_2    
+damage:1, cold:1, heat:0, sun:1, water:0.1, wetness:2, disease:30, electrical:1, radiation:0, gas:30, noise:1
+
+ss:armor_feet_cloth_2    
+damage:3, cold:3, heat:0, sun:3, water:0.1, wetness:2, disease:1, electrical:4, radiation:0, gas:0, noise:2
+
+ss:armor_head_wood_1     
+damage:6, cold:1, heat:-1, sun:1, water:0.0, wetness:3, disease:2, electrical:3, radiation:0, gas:0, noise:4
+
+ss:armor_chest_wood_1    
+damage:10, cold:1, heat:-1, sun:1, water:0.1, wetness:3, disease:2, electrical:6, radiation:0, gas:0, noise:7
+
+ss:armor_arms_wood_1     
+damage:8, cold:1, heat:-1, sun:1, water:0.1, wetness:2, disease:2, electrical:4, radiation:0, gas:0, noise:7
+
+ss:armor_legs_wood_1     
+damage:8, cold:1, heat:-1, sun:1, water:0.1, wetness:2, disease:2, electrical:4, radiation:0, gas:0, noise:8
+
+ss:armor_head_leather_1  
+damage:4, cold:2, heat:1, sun:2, water:0.1, wetness:5, disease:2, electrical:1, radiation:0, gas:0, noise:2
+
+ss:armor_head_leather_2  
+damage:4, cold:3, heat:-2, sun:3, water:0.1, wetness:7, disease:2, electrical:2, radiation:0, gas:0, noise:2
+
+ss:armor_chest_leather_1 
+damage:8, cold:4, heat:2, sun:4, water:0.3, wetness:6, disease:2, electrical:5, radiation:0, gas:0, noise:3
+
+ss:armor_arms_leather_1 
+damage:6, cold:2, heat:1, sun:2, water:0.2, wetness:4, disease:2, electrical:3, radiation:0, gas:0, noise:3
+
+ss:armor_legs_leather_1  
+damage:6, cold:4, heat:2, sun:4, water:0.2, wetness:5, disease:2, electrical:3, radiation:0, gas:0, noise:3
+
+ss:armor_feet_leather_1  
+damage:3, cold:2, heat:1, sun:2, water:0.1, wetness:4, disease:2, electrical:2, radiation:0, gas:0, noise:3

@@ -1,7 +1,15 @@
 print("- loading survival_tips.lua")
 
--- cache global variables for faster access
-local SURVIVAL_TIPS = ss.SURVIVAL_TIPS
+--[[ table that holds all survival tips that are displayed in the game, from the
+player inventory UI formspec. Example:
+{
+    {"Drink Water", "Drink water or you will die."},
+    {"Eat Food", "Eat food or you will die."},
+    {"Craft Tools", "Craft tools to make it easter to survive."}
+}
+--]]
+local SURVIVAL_TIPS = {}
+
 
 local fullpath_tips = core.get_modpath("ss") .. "/survival_tips.txt"
 local file_tips = io.open(fullpath_tips, "r")

@@ -24,7 +24,7 @@ local get_fs_weight = ss.get_fs_weight
 local update_crafting_ingred_and_grid = ss.update_crafting_ingred_and_grid
 local build_fs = ss.build_fs
 local exceeds_inv_weight_max = ss.exceeds_inv_weight_max
-local update_stat = ss.update_stat
+local do_stat_update_action = ss.do_stat_update_action
 local drop_all_items = ss.drop_all_items
 local remove_formspec_viewer = ss.remove_formspec_viewer
 local remove_formspec_all_viewers = ss.remove_formspec_all_viewers
@@ -196,8 +196,7 @@ local function update_weight_dislay(player, player_meta, p_data, fs, weight_chan
 	debug(flag13, "    weight_change: " .. weight_change)
 
 	-- update HUD vertical stat bars
-	local update_data = {"normal", "weight", weight_change, 1, 1, "curr", "add", true}
-	update_stat(player, p_data, player_meta, update_data)
+	do_stat_update_action(player, p_data, player_meta, "normal", "weight", weight_change, "curr", "add", true)
 
 	-- update formspec weight values
 	fs.center.weight = get_fs_weight(player)
@@ -332,7 +331,7 @@ local function storage_after_place_node(pos, player, item, pointed_thing)
 
 	if node_name == "air" then
 		debug(flag3, "  storage bag placement was cancelled")
-		notify(player,"Area below is not solid or stable", 3, 0.5, 0, 3)
+		notify(player, "inventory", "Area below is not solid or stable", 3, 0.5, 0, 3)
 		debug(flag3, "storage_after_place_node() END")
 		return true
 
@@ -356,8 +355,8 @@ local function storage_after_place_node(pos, player, item, pointed_thing)
         local weight = ITEM_WEIGHTS[item_name]
         debug(flag3, "  weight: " .. weight)
 		local p_data = ss.player_data[player:get_player_name()]
-		local update_data = {"normal", "weight", -weight, 1, 1, "curr", "add", true}
-		update_stat(player, p_data, player_meta, update_data)
+		do_stat_update_action(player, p_data, player_meta, "normal", "weight", -weight, "curr", "add", true)
+
         update_fs_weight(player, player_meta)
 	end
 
@@ -412,7 +411,7 @@ local function storage_allow_metadata_inventory_put(pos, listname, index, stack,
 	debug(flag10, "  RECEIVED " .. item_name .. " into " .. listname .. "[" .. index .. "]")
 
 	if SPILLABLE_ITEM_NAMES[item_name] then
-		notify(player, NOTIFICATIONS.pickup_liquid_fail, NOTIFY_DURATION, 0, 0.5, 3)
+		notify(player, "inventory", NOTIFICATIONS.pickup_liquid_fail, NOTIFY_DURATION, 0, 0.5, 3)
 		quantity_allowed = 0
 
 	else
@@ -437,14 +436,14 @@ local function storage_allow_metadata_inventory_put(pos, listname, index, stack,
 				quantity_allowed = item_count - quantity_overage
 				debug(flag10, "  quantity_allowed: " .. quantity_allowed)
 				if quantity_allowed > 0 then
-					notify(player, "Weight exceeded - only " .. quantity_allowed .. " could be moved", NOTIFY_DURATION, 0.5, 0, 3)
+					notify(player, "inventory", "Weight exceeded - only " .. quantity_allowed .. " could be moved", NOTIFY_DURATION, 0.5, 0, 3)
 				else
-					notify(player, "Exceeded storage weight", NOTIFY_DURATION, 0, 0.5, 2)
+					notify(player, "inventory", "Exceeded storage weight", NOTIFY_DURATION, 0, 0.5, 2)
 				end
 
 			else
 				debug(flag10, "  new item exceeds storage weight")
-				notify(player, "Exceeded storage weight", NOTIFY_DURATION, 0, 0.5, 2)
+				notify(player, "inventory", "Exceeded storage weight", NOTIFY_DURATION, 0, 0.5, 2)
 				quantity_allowed = 0
 			end
 		end
@@ -546,7 +545,7 @@ core.register_allow_player_inventory_action(function(player, action, inventory, 
                 debug(flag2, "  this is a filled cup!")
                 if to_index > 8 then
                     debug(flag2, "  cannot be placed in main inventory")
-                    notify(player,NOTIFICATIONS.pickup_liquid_fail, NOTIFY_DURATION, 0, 0.5, 3)
+                    notify(player, "inventory", NOTIFICATIONS.pickup_liquid_fail, NOTIFY_DURATION, 0, 0.5, 3)
                     block_action = true
                 end
             end
@@ -576,19 +575,19 @@ core.register_allow_player_inventory_action(function(player, action, inventory, 
 				debug(flag7, "  this is a filled cup!")
 				if to_index > 8 then
 					debug(flag7, "  cannot be placed in main inventory")
-					notify(player, NOTIFICATIONS.pickup_liquid_fail, NOTIFY_DURATION, 0, 0.5, 3)
+					notify(player, "inventory", NOTIFICATIONS.pickup_liquid_fail, NOTIFY_DURATION, 0, 0.5, 3)
 					block_action = true
 				else
 					debug(flag7, "  placing into hotbar")
 					if exceeds_inv_weight_max(item, player_meta) then
-						notify(player, NOTIFICATIONS.inv_weight_max, NOTIFY_DURATION, 0, 0.5, 3)
+						notify(player, "inventory", NOTIFICATIONS.inv_weight_max, NOTIFY_DURATION, 0, 0.5, 3)
 						block_action = true
 					end
 				end
 			else
 				debug(flag7, "  not a filled cup")
 				if exceeds_inv_weight_max(item, player_meta) then
-					notify(player, NOTIFICATIONS.inv_weight_max, NOTIFY_DURATION, 0, 0.5, 3)
+					notify(player, "inventory", NOTIFICATIONS.inv_weight_max, NOTIFY_DURATION, 0, 0.5, 3)
 					block_action = true
 				end
 			end

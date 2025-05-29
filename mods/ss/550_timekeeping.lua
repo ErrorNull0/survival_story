@@ -5,9 +5,9 @@ local math_floor = math.floor
 local string_format = string.format
 local mt_get_timeofday = core.get_timeofday
 local mt_get_day_count = core.get_day_count
-local mt_get_connected_players = core.get_connected_players
 local debug = ss.debug
 local mt_after = core.after
+local after_player_check = ss.after_player_check
 
 local TIME_SPEED = ss.TIME_SPEED
 
@@ -23,9 +23,7 @@ end
 
 -- refreshes the day and time HUD for all player at a regular interval
 local function monitor_time(player, player_name)
-    if not player:is_player() then
-        return
-    end
+    after_player_check(player)
 
     local game_time = mt_get_timeofday() * 24000
     local hours, minutes = game_time_to_hours_minutes(game_time)

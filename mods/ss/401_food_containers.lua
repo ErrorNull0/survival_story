@@ -19,10 +19,6 @@ local pickup_item = ss.pickup_item
 
 -- cache global variables for faster access
 local ITEM_WEIGHTS = ss.ITEM_WEIGHTS
-local CONTAINER_WEAR_RATES = ss.CONTAINER_WEAR_RATES
-local EMPTY_CONTAINERS = ss.EMPTY_CONTAINERS
-local ITEM_USAGE_PATH = ss.ITEM_USAGE_PATH
-local COVERED_CONTAINERS = ss.COVERED_CONTAINERS
 local ITEM_MAX_USES = ss.ITEM_MAX_USES
 local CONSUMABLE_ITEMS = ss.CONSUMABLE_ITEMS
 local NODE_NAMES_WATER = ss.NODE_NAMES_WATER
@@ -30,6 +26,50 @@ local COOLDOWN_TEXT = ss.COOLDOWN_TEXT
 local is_cooldown_active = ss.is_cooldown_active
 
 
+-- lists all food containers that can sustain wear each time as their contents are
+-- heated. the values represent how much wear is applied each time the container's
+-- contents heat into its next form. the divisor number can be seen as how many times
+-- that container can fully heat up its contents before wearing out completely.
+ss.CONTAINER_WEAR_RATES = {
+	["ss:cup_wood"] = ss.WEAR_VALUE_MAX / 6,
+    ["ss:cup_wood_water_murky"] = ss.WEAR_VALUE_MAX / 6,
+    ["ss:cup_wood_water_boiled"] = ss.WEAR_VALUE_MAX / 6,
+
+    ["ss:bowl_wood"] = ss.WEAR_VALUE_MAX / 10,
+    ["ss:bowl_wood_water_murky"] = ss.WEAR_VALUE_MAX / 10,
+    ["ss:bowl_wood_water_boiled"] = ss.WEAR_VALUE_MAX / 10,
+
+    ["ss:jar_glass"] = ss.WEAR_VALUE_MAX / 20,
+    ["ss:jar_glass_water_murky"] = ss.WEAR_VALUE_MAX / 20,
+    ["ss:jar_glass_water_boiled"] = ss.WEAR_VALUE_MAX / 20,
+
+    ["ss:jar_glass_lidless"] = ss.WEAR_VALUE_MAX / 20,
+    ["ss:jar_glass_lidless_water_murky"] = ss.WEAR_VALUE_MAX / 20,
+    ["ss:jar_glass_lidless_water_boiled"] = ss.WEAR_VALUE_MAX / 20,
+
+    ["ss:pot_iron"] = ss.WEAR_VALUE_MAX / 150,
+    ["ss:pot_iron_water_murky"] = ss.WEAR_VALUE_MAX / 150,
+    ["ss:pot_iron_water_boiled"] = ss.WEAR_VALUE_MAX / 150,
+}
+local CONTAINER_WEAR_RATES = ss.CONTAINER_WEAR_RATES
+
+
+local COVERED_CONTAINERS = {
+    ["ss:jar_glass"] = true,
+    ["ss:jar_glass_water_murky"] = true,
+    ["ss:jar_glass_water_boiled"] = true
+}
+
+local EMPTY_CONTAINERS = {
+    ["ss:cup_wood"] = true,
+    ["ss:bowl_wood"] = true,
+    ["ss:jar_glass"] = true,
+    ["ss:jar_glass_lidless"] = true,
+    ["ss:pot_iron"] = true,
+}
+
+-- determines what the container items turns into when it is filled or when the
+-- container's contents are gone
 local CONSUMPTION_RESULT_ITEMS = {
     ["ss:cup_wood"] = ItemStack("ss:cup_wood_water_murky"),
     ["ss:cup_wood_water_murky"] = ItemStack("ss:cup_wood"),
@@ -47,8 +87,6 @@ local CONSUMPTION_RESULT_ITEMS = {
     ["ss:pot_iron_water_murky"] = ItemStack("ss:pot_iron"),
     ["ss:pot_iron_water_boiled"] = ItemStack("ss:pot_iron")
 }
-
-
 
 
 -- returns the node player is looking at within 2 meters distance to help determine
@@ -77,49 +115,49 @@ local flag2 = false
 local function custom_on_use(itemstack, user, item_name, stat_update_data, pointed_thing)
     local food_container_name = itemstack:get_name()
     debug(flag2, "\n** Using food container: " .. food_container_name .. " **")
-    debug(flag2, " pointed_thing: " .. dump(pointed_thing))
+    --debug(flag2, " pointed_thing: " .. dump(pointed_thing))
 
     -- press aux1 key to prevent using the item and instead pickup any nearby items
     local controls = user:get_player_control()
     if controls.aux1 then
-        debug(flag2, "  pressing aux1. activating item use..")
+        --debug(flag2, "  pressing aux1. activating item use..")
 
         if EMPTY_CONTAINERS[food_container_name] then
-            debug(flag2, "  this is an empty container")
+            --debug(flag2, "  this is an empty container")
             local node = get_look_at_node(user)
             if node then
                 local node_name = node.name
-                debug(flag2, "  clicked on node: " .. node_name)
+                --debug(flag2, "  clicked on node: " .. node_name)
                 if NODE_NAMES_WATER[node_name] then
-                    debug(flag2, "  filling container with murky water")
+                    --debug(flag2, "  filling container with murky water")
 
                     local cooldown_data = stat_update_data[#stat_update_data]
-                    debug(flag2, "  cooldown_data: " .. dump(cooldown_data))
+                    --debug(flag2, "  cooldown_data: " .. dump(cooldown_data))
                     local cooldown_type = cooldown_data.cooldown
-                    debug(flag2, "  cooldown_type: " .. cooldown_type)
+                    --debug(flag2, "  cooldown_type: " .. cooldown_type)
                     local cooldown_time = cooldown_data.duration
-                    debug(flag2, "  cooldown_time: " .. cooldown_time)
+                    --debug(flag2, "  cooldown_time: " .. cooldown_time)
                     local cooldown_active = false
 
                     local player_name = user:get_player_name()
                     if is_cooldown_active[player_name][cooldown_type] then
-                        debug(flag2, "  cooldown found in 'player_cooldowns' ")
+                        --debug(flag2, "  cooldown found in 'player_cooldowns' ")
                         cooldown_active = true
                     end
 
                     if cooldown_active then
-                        debug(flag2, "  ** still in cooldown **")
-                        notify(user, COOLDOWN_TEXT[cooldown_type], 2, 0.5, 0, 2)
+                        --debug(flag2, "  ** still in cooldown **")
+                        notify(user, "cooldown", COOLDOWN_TEXT[cooldown_type], 2, 0.5, 0, 2)
 
                     else
-                        debug(flag2, "  not in cooldown")
+                        --debug(flag2, "  not in cooldown")
 
                         -- return any unused containers to the player inventory
                         local empty_container_count = itemstack:get_count()
-                        debug(flag2, "  empty_container_count: " .. empty_container_count)
+                        --debug(flag2, "  empty_container_count: " .. empty_container_count)
                         if empty_container_count > 1 then
                             local player_inv = user:get_inventory()
-                            debug(flag2, "  reducing empty container count by 1")
+                            --debug(flag2, "  reducing empty container count by 1")
                             local empty_containers = ItemStack({
                                 name = food_container_name,
                                 count = empty_container_count - 1
@@ -131,18 +169,18 @@ local function custom_on_use(itemstack, user, item_name, stat_update_data, point
                             -- just merge with the remaining empty containers, and the stack
                             -- will become the filled container item.
                             mt_after(0, function()
-                                debug(flag2, "\ncore.after()")
+                                --debug(flag2, "\ncore.after()")
                                 if not user or user:get_player_name() == "" then
-                                    debug(flag2, "  player no longer exists. function skipped.")
+                                    --debug(flag2, "  player no longer exists. function skipped.")
                                     return
                                 end
-                                debug(flag2, "  adding remaining empty containers to player inventory..")
+                                --debug(flag2, "  adding remaining empty containers to player inventory..")
                                 local leftover_items = player_inv:add_item("main", empty_containers)
                                 if leftover_items:get_count() > 0 then
-                                    debug(flag2, "  no inventory space for empty containers. dropping to the ground.")
+                                    --debug(flag2, "  no inventory space for empty containers. dropping to the ground.")
                                     drop_items_from_inventory(user, leftover_items)
                                 else
-                                    debug(flag2, "  " .. empty_containers:get_count() .. " empty containers placed into inventory")
+                                    --debug(flag2, "  " .. empty_containers:get_count() .. " empty containers placed into inventory")
                                 end
                                 debug(flag2, "\ncore.after() END")
                             end)
@@ -150,18 +188,18 @@ local function custom_on_use(itemstack, user, item_name, stat_update_data, point
 
                         -- increase inventory weight due to food filled into container
                         local empty_container_weight = ITEM_WEIGHTS[food_container_name]
-                        debug(flag2, "  empty_container_weight: " .. empty_container_weight)
+                        --debug(flag2, "  empty_container_weight: " .. empty_container_weight)
 
                         local filled_container = CONSUMPTION_RESULT_ITEMS[food_container_name]
                         local filled_container_name = filled_container:get_name()
-                        debug(flag2, "  filled_container_name: " .. filled_container_name)
+                        --debug(flag2, "  filled_container_name: " .. filled_container_name)
                         local filled_container_weight = ITEM_WEIGHTS[filled_container_name]
-                        debug(flag2, "  filled_container_weight: " .. filled_container_weight)
+                        --debug(flag2, "  filled_container_weight: " .. filled_container_weight)
 
                         local food_weight = filled_container_weight - empty_container_weight
-                        debug(flag2, "  food_weight: " .. food_weight)
+                        --debug(flag2, "  food_weight: " .. food_weight)
                         update_inventory_weight(user, food_weight)
-                        debug(flag2, "  increased inventory weight by: " .. food_weight)
+                        --debug(flag2, "  increased inventory weight by: " .. food_weight)
 
                         -- initialize remaining_uses for this newly filled container
                         local filled_container_meta = filled_container:get_meta()
@@ -170,7 +208,7 @@ local function custom_on_use(itemstack, user, item_name, stat_update_data, point
                         -- transfer condition of empty container to filled container
                         local item_meta = itemstack:get_meta()
                         local condition = item_meta:get_float("condition")
-                        debug(flag2, "  condition: " .. condition)
+                        --debug(flag2, "  condition: " .. condition)
 
                         -- update both remaining_uses and condition metadata
                         if condition > 0 then
@@ -197,42 +235,42 @@ local function custom_on_use(itemstack, user, item_name, stat_update_data, point
                         itemstack = filled_container
                     end
                 else
-                    debug(flag2, "  cannot place that into food container. no action.")
+                    --debug(flag2, "  cannot place that into food container. no action.")
                     play_sound("swing_container", {item_name = item_name, player = user})
                     pickup_item(user, pointed_thing)
                 end
             else
-                debug(flag2, "  no node within 2 meters was clicked")
+                --debug(flag2, "  no node within 2 meters was clicked")
                 pickup_item(user, pointed_thing)
             end
 
         else
-            debug(flag2, "  this is filled container")
+            --debug(flag2, "  this is filled container")
 
             local table_size = #stat_update_data
             local cooldown_data = stat_update_data[table_size]
-            debug(flag2, "  cooldown_data: " .. dump(cooldown_data))
+            --debug(flag2, "  cooldown_data: " .. dump(cooldown_data))
 
             local stat_update_data_copy = table_copy(stat_update_data)
             stat_update_data_copy[table_size] = nil
-            debug(flag2, "  stat_update_data_copy: " .. dump(stat_update_data_copy))
+            --debug(flag2, "  stat_update_data_copy: " .. dump(stat_update_data_copy))
 
             local cooldown_type = cooldown_data.cooldown
             local cooldown_time = cooldown_data.duration
-            debug(flag2, "  cooldown_type: " .. cooldown_type)
+            --debug(flag2, "  cooldown_type: " .. cooldown_type)
             local cooldown_active = false
 
             if is_cooldown_active[user:get_player_name()][cooldown_type] then
-                debug(flag2, "  cooldown found in 'player_cooldowns' ")
+                --debug(flag2, "  cooldown found in 'player_cooldowns' ")
                 cooldown_active = true
             end
 
             if cooldown_active then
-                debug(flag2, "  ** still in cooldown **")
-                notify(user, COOLDOWN_TEXT[cooldown_type], 2, 0.5, 0, 2)
+                --debug(flag2, "  ** still in cooldown **")
+                notify(user, "cooldown", COOLDOWN_TEXT[cooldown_type], 2, 0.5, 0, 2)
 
             else
-                debug(flag2, "  not in cooldown")
+                --debug(flag2, "  not in cooldown")
                 local player_meta = user:get_meta()
                 local is_success = apply_stat_updates(
                     user,
@@ -248,23 +286,23 @@ local function custom_on_use(itemstack, user, item_name, stat_update_data, point
                     local unused_items
                     local quantity = itemstack:get_count()
                     if quantity > 1 then
-                        debug(flag2, "  separating one container from the rest of the stack..")
+                        --debug(flag2, "  separating one container from the rest of the stack..")
                         unused_items = ItemStack(itemstack:to_string())
                         unused_items:take_item()
                         itemstack:set_count(1)
-                        debug(flag2, "  unused_items count: " .. unused_items:get_count())
+                        --debug(flag2, "  unused_items count: " .. unused_items:get_count())
                     end
 
                     -- reduce 'remaining_uses' of the container
-                    debug(flag2, "  reducing item's remaining_uses..")
+                    --debug(flag2, "  reducing item's remaining_uses..")
                     local container_meta = itemstack:get_meta()
                     local remaining_uses = container_meta:get_int("remaining_uses")
-                    debug(flag2, "  remaining_uses: " .. remaining_uses)
+                    --debug(flag2, "  remaining_uses: " .. remaining_uses)
                     remaining_uses = remaining_uses - 1
-                    debug(flag2, "  updated remaining_uses: " .. remaining_uses)
+                    --debug(flag2, "  updated remaining_uses: " .. remaining_uses)
 
                     if remaining_uses > 0 then
-                        debug(flag2, "  food container still has contents")
+                        --debug(flag2, "  food container still has contents")
                         update_meta_and_description(
                             container_meta,
                             food_container_name,
@@ -273,18 +311,18 @@ local function custom_on_use(itemstack, user, item_name, stat_update_data, point
                         )
 
                     else
-                        debug(flag2, "  food container now empty")
-                        local empty_container = ITEM_USAGE_PATH[food_container_name]
+                        --debug(flag2, "  food container now empty")
+                        local empty_container = CONSUMPTION_RESULT_ITEMS[food_container_name]
                         local empty_container_name = empty_container:get_name()
-                        debug(flag2, "  empty_container_name: " .. empty_container_name)
+                        --debug(flag2, "  empty_container_name: " .. empty_container_name)
                         local empty_container_meta = empty_container:get_meta()
 
                         -- transfer condition of filled container to empty container
                         local condition = container_meta:get_float("condition")
-                        debug(flag2, "  condition: " .. condition)
+                        --debug(flag2, "  condition: " .. condition)
 
                         if condition > 0 then
-                            debug(flag2, "  transferring condition to empty container..")
+                            --debug(flag2, "  transferring condition to empty container..")
                             update_meta_and_description(
                                 empty_container_meta,
                                 empty_container_name,
@@ -295,13 +333,13 @@ local function custom_on_use(itemstack, user, item_name, stat_update_data, point
 
                         -- reduce inventory weight due to container being emptied
                         local filled_container_weight = ITEM_WEIGHTS[food_container_name]
-                        debug(flag2, "  filled_container_weight: " .. filled_container_weight)
+                        --debug(flag2, "  filled_container_weight: " .. filled_container_weight)
                         local empty_container_weight = ITEM_WEIGHTS[empty_container_name]
-                        debug(flag2, "  empty_container_weight: " .. empty_container_weight)
+                        --debug(flag2, "  empty_container_weight: " .. empty_container_weight)
                         local food_weight = filled_container_weight - empty_container_weight
-                        debug(flag2, "  food_weight: " .. food_weight)
+                        --debug(flag2, "  food_weight: " .. food_weight)
                         update_inventory_weight(user, -food_weight)
-                        debug(flag2, "  decreased inventory weight by: " .. food_weight)
+                        --debug(flag2, "  decreased inventory weight by: " .. food_weight)
 
                         --itemstack = empty_container
 
@@ -310,7 +348,7 @@ local function custom_on_use(itemstack, user, item_name, stat_update_data, point
                         -- still filled and does not play the swing swoosh sound
                         mt_after(0.2, function()
                             if not user or user:get_player_name() == "" then
-                                debug(flag2, "  player no longer exists. function skipped.")
+                                --debug(flag2, "  player no longer exists. function skipped.")
                                 return
                             end
                             user:set_wielded_item(empty_container)
@@ -320,11 +358,11 @@ local function custom_on_use(itemstack, user, item_name, stat_update_data, point
                     -- if multi-quantity container stack was consumed, there will be unused_items
                     -- that should be placed back into the player's inventory
                     if unused_items then
-                        debug(flag2, "  unused containers from the wielded stack remain")
+                        --debug(flag2, "  unused containers from the wielded stack remain")
                         local player_inv = user:get_inventory()
 
                         if COVERED_CONTAINERS[unused_items:get_name()] then
-                            debug(flag2, "  these are covered containers and can go anywhere in player inventory")
+                            --debug(flag2, "  these are covered containers and can go anywhere in player inventory")
 
                             -- delay via core.after() ensures return statment executes first
                             -- so that wielded item gets modified before the unused items are
@@ -332,49 +370,49 @@ local function custom_on_use(itemstack, user, item_name, stat_update_data, point
                             -- merge with the unused items.
                             mt_after(0, function()
                                 if not user or user:get_player_name() == "" then
-                                    debug(flag2, "  player no longer exists. function skipped.")
+                                    --debug(flag2, "  player no longer exists. function skipped.")
                                     return
                                 end
                                 local leftover_items = player_inv:add_item("main", unused_items)
                                 if leftover_items:is_empty() then
-                                    debug(flag2, "  all unused containers placed into inventory")
+                                    --debug(flag2, "  all unused containers placed into inventory")
                                 else
-                                    debug(flag2, "  inventory ran out of space")
+                                    --debug(flag2, "  inventory ran out of space")
                                     drop_items_from_inventory(user, leftover_items)
-                                    debug(flag2, "  dropped to ground leftover_items: "
-                                        .. leftover_items:get_name() .. " " .. leftover_items:get_count())
+                                    --debug(flag2, "  dropped to ground leftover_items: "
+                                    --    .. leftover_items:get_name() .. " " .. leftover_items:get_count())
                                 end
                             end)
                         else
 
-                            debug(flag2, "  these are uncovered containers and can only reside in hotbar")
+                            --debug(flag2, "  these are uncovered containers and can only reside in hotbar")
                             local empty_slot_index
                             local wield_index = user:get_wield_index()
-                            debug(flag2, "  wield_index: " .. wield_index)
+                            --debug(flag2, "  wield_index: " .. wield_index)
 
                             for slot_index = 1, 8 do
                                 if slot_index == wield_index then
-                                    debug(flag2, "  slot #" .. slot_index .. ": this is wield item slot. skipped.")
+                                    --debug(flag2, "  slot #" .. slot_index .. ": this is wield item slot. skipped.")
 
                                 else
                                     local slot_item = player_inv:get_stack("main", slot_index)
                                     if slot_item:is_empty() then
-                                        debug(flag2, "  slot #" .. slot_index .. " empty slot")
+                                        --debug(flag2, "  slot #" .. slot_index .. " empty slot")
                                         if empty_slot_index == nil then
                                             empty_slot_index = slot_index
                                         end
 
                                     else
-                                        debug(flag2, "  slot #" .. slot_index .. " has items")
+                                        --debug(flag2, "  slot #" .. slot_index .. " has items")
                                         local sample_slot_item = ItemStack(slot_item:to_string())
                                         sample_slot_item:set_count(1)
-                                        debug(flag2, "    sample_slot_item: " .. sample_slot_item:get_name() .. " " .. sample_slot_item:get_count())
+                                        --debug(flag2, "    sample_slot_item: " .. sample_slot_item:get_name() .. " " .. sample_slot_item:get_count())
                                         local sample_unused_item = ItemStack(unused_items:to_string())
                                         sample_unused_item:set_count(1)
-                                        debug(flag2, "    sample_unused_item: " .. sample_unused_item:get_name() .. " " .. sample_unused_item:get_count())
+                                        --debug(flag2, "    sample_unused_item: " .. sample_unused_item:get_name() .. " " .. sample_unused_item:get_count())
 
                                         if sample_slot_item:equals(sample_unused_item) then
-                                            debug(flag2, "    ** items are identical ** attempting to merge stack..")
+                                            --debug(flag2, "    ** items are identical ** attempting to merge stack..")
                                             local slot_free_space = slot_item:get_free_space()
 
                                             if slot_free_space > 0 then
@@ -383,42 +421,42 @@ local function custom_on_use(itemstack, user, item_name, stat_update_data, point
                                                     local leftover_count = unused_items_count - slot_free_space
                                                     slot_item:set_count(slot_item:get_stack_max())
                                                     player_inv:set_stack("main", slot_index, slot_item)
-                                                    debug(flag2, "    ** ITEMS MERGED - but not entirely **")
-                                                    debug(flag2, "    leftover_count: " .. leftover_count)
+                                                    --debug(flag2, "    ** ITEMS MERGED - but not entirely **")
+                                                    --debug(flag2, "    leftover_count: " .. leftover_count)
                                                     unused_items:set_count(leftover_count)
 
                                                 else
                                                     slot_item:set_count(slot_item:get_count() + unused_items_count)
                                                     player_inv:set_stack("main", slot_index, slot_item)
-                                                    debug(flag2, "    ** ITEMS MERGED entirely **")
+                                                    --debug(flag2, "    ** ITEMS MERGED entirely **")
                                                     unused_items:set_count(0)
                                                     break
                                                 end
                                             else
-                                                debug(flag2, "    itemstack already at max count. skipping slot")
+                                                --debug(flag2, "    itemstack already at max count. skipping slot")
                                             end
                                         else
-                                            debug(flag2, "    items are different. skipping slot.")
+                                            --debug(flag2, "    items are different. skipping slot.")
                                         end
                                     end
                                 end
                             end
 
                             local unused_count = unused_items:get_count()
-                            debug(flag2, "  all non-empty hotbar slots acted upon")
+                            --debug(flag2, "  all non-empty hotbar slots acted upon")
                             if unused_count > 0 then
-                                debug(flag2, "  unused containers remain")
-                                debug(flag2, "  remaining unused_items: " .. unused_items:get_name() .. " " .. unused_count)
+                                --debug(flag2, "  unused containers remain")
+                                --debug(flag2, "  remaining unused_items: " .. unused_items:get_name() .. " " .. unused_count)
                                 if empty_slot_index then
-                                    debug(flag2, "  empty slot at index " .. empty_slot_index .. " is avail")
+                                    --debug(flag2, "  empty slot at index " .. empty_slot_index .. " is avail")
                                     player_inv:set_stack("main", empty_slot_index, unused_items)
-                                    debug(flag2, "  unused containers placed into empty slot")
+                                    --debug(flag2, "  unused containers placed into empty slot")
                                 else
-                                    debug(flag2, "  no empty slots available either. dropping leftovers to the ground..")
+                                    --debug(flag2, "  no empty slots available either. dropping leftovers to the ground..")
                                     drop_items_from_inventory(user, unused_items)
                                 end
                             else
-                                debug(flag2, "  any/all unused containers accounted for")
+                                --debug(flag2, "  any/all unused containers accounted for")
                             end
                         end
                     end
@@ -430,7 +468,7 @@ local function custom_on_use(itemstack, user, item_name, stat_update_data, point
         end
 
     else
-        debug(flag2, "  swinging item as a generic craftitem..")
+        --debug(flag2, "  swinging item as a generic craftitem..")
         pickup_item(user, pointed_thing)
         debug(flag2, "custom_on_use() END")
     end

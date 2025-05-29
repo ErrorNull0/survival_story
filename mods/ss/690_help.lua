@@ -1,12 +1,17 @@
 print("- loading help.lua")
 
 -- cache global functions for faster access
+local string_sub = string.sub
 local table_concat = table.concat
 local mt_get_modpath = core.get_modpath
 local mt_show_formspec = core.show_formspec
 local mt_get_gametime = core.get_gametime
 local debug = ss.debug
 local play_sound = ss.play_sound
+
+-- cache global variables for faster access
+local player_data = ss.player_data
+
 
 local TOPICS = {}
 local TOPIC_TEXTS = {}
@@ -96,7 +101,7 @@ local function get_fs_help(p_data)
         "formspec_version[7]",
         "size[22.2,10.5,true]",
         "position[0.5,0.4]",
-        "tabheader[0,0;inv_tabs;Main,Status,Skills,Bundle,Settings,?,*;6;true;true]",
+        "tabheader[0,0;inv_tabs;Main,Equipment,Status,Skills,Bundle,Settings,?,*;7;true;true]",
         "hypertext[0.2,0.2;4,1.5;help_title;",
         "<style color=#AAAAAA size=16><b>TOPICS</b></style>]",
         "box[8.9,0.0;13.3,10.5;#222222]",
@@ -113,14 +118,14 @@ local function get_fs_help(p_data)
     for i, topic in ipairs(TOPICS) do
         local button_element
         if topic == help_topic then
-            button_element = table.concat({ fs_part_2,
+            button_element = table_concat({ fs_part_2,
                 "style[topic_", topic, ";textcolor=#ffaa00;bgcolor=#000000]",
                 "button[",
                     0.5 + (x_offset * 2.7), ",", (y_pos * 0.8),
                     ";2.6,0.57;topic_", topic, ";", topic, "]"
             })
         else
-            button_element = table.concat({ fs_part_2,
+            button_element = table_concat({ fs_part_2,
                 "button[",
                     0.5 + (x_offset * 2.7), ",", (y_pos * 0.8),
                     ";2.6,0.57;topic_", topic, ";", topic, "]"
@@ -138,7 +143,7 @@ local function get_fs_help(p_data)
 
     if help_topic == "" then
         debug(flag2, "  no existing topic selected")
-        fs_part_3 = table.concat({
+        fs_part_3 = table_concat({
             "hypertext[12.5,4.5;10,2.0;no_topic;",
             "<style color=#666666 size=20><b><big>\u{21FD}</big> Choose a topic to learn more</b></style>]"
         })
@@ -148,7 +153,7 @@ local function get_fs_help(p_data)
         local subtopics = SUBTOPICS[help_topic]
         debug(flag2, "  subtopics: " .. dump(subtopics))
 
-        fs_part_3 = table.concat({
+        fs_part_3 = table_concat({
             "hypertext[9.1,0.2;4,1.5;help_topic;",
             "<style color=#AAAAAA size=16><b>", help_topic, "</b></style>]",
         })
@@ -158,7 +163,7 @@ local function get_fs_help(p_data)
         for i, subtopic in ipairs(subtopics) do
             local button_element
             if subtopic == help_subtopic then
-                button_element = table.concat({ fs_part_3,
+                button_element = table_concat({ fs_part_3,
                     "style[subtopic_", subtopic, ";textcolor=#ffaa00]",
                     "style[subtopic_", subtopic, ";bgcolor=#000000]",
                     "button[",
@@ -167,7 +172,7 @@ local function get_fs_help(p_data)
                     "]"
                 })
             else
-                button_element = table.concat({ fs_part_3,
+                button_element = table_concat({ fs_part_3,
                     "button[",
                         9.4 + (x_offset2 * 2.7), ",", (y_pos2 * 0.8),
                         ";2.6,0.57;subtopic_", subtopic, ";", subtopic,
@@ -186,7 +191,7 @@ local function get_fs_help(p_data)
         -- the text info for the main topic
         if help_subtopic == "" then
             debug(flag2, "  no existing subtopic selected")
-            fs_part_4 = table.concat({
+            fs_part_4 = table_concat({
                 "hypertext[12.25,0.8;9.3,9;topic_text;",
                 "<style color=#AAAAAA size=16>", TOPIC_TEXTS[help_topic], "</style>]"
             })
@@ -196,7 +201,7 @@ local function get_fs_help(p_data)
             local text = SUBTOPIC_TEXTS[help_topic .. " " .. help_subtopic]
             --debug(flag2, "  text: " .. text)
 
-            fs_part_4 = table.concat({
+            fs_part_4 = table_concat({
                 "hypertext[12.25,0.2;4,1.5;help_text;",
                 "<style color=#777777 size=16><b>subtopic: </b></style>",
                 "<style color=#AAAAAA size=16><b>", help_subtopic, "</b></style>]",
@@ -227,7 +232,7 @@ core.register_on_player_receive_fields(function(player, formname, fields)
     debug(flag1, "  active_tab: " .. p_data.active_tab)
 
 
-    if fields.inv_tabs == "6" then
+    if fields.inv_tabs == "7" then
         debug(flag1, "  clicked on 'HELP' tab!")
         play_sound("button", {player_name = player_name})
         p_data.active_tab = "help"
@@ -249,7 +254,8 @@ core.register_on_player_receive_fields(function(player, formname, fields)
             or fields.inv_tabs == "3"
             or fields.inv_tabs == "4"
             or fields.inv_tabs == "5"
-            or fields.inv_tabs == "7" then
+            or fields.inv_tabs == "6"
+            or fields.inv_tabs == "8" then
             debug(flag1, "  clicked on a tab other than HELP. NO FURTHER ACTION.")
             debug(flag1, "register_on_player_receive_fields() END " .. mt_get_gametime())
             return
@@ -274,14 +280,14 @@ core.register_on_player_receive_fields(function(player, formname, fields)
         debug(flag1, "  button_type: " .. button_type)
 
         --if button_type == "topic" then
-        if string.sub(button_type, 1, 5) == "topic" then
+        if string_sub(button_type, 1, 5) == "topic" then
             play_sound("button", {player_name = player_name})
             p_data.help_topic = button_value
             p_data.help_subtopic = ""
             debug(flag1, "  topic changed to: " .. button_value)
 
         --elseif button_type == "subtopic" then
-        elseif string.sub(button_type, 1, 8) == "subtopic" then
+        elseif string_sub(button_type, 1, 8) == "subtopic" then
             play_sound("button", {player_name = player_name})
             p_data.help_subtopic = button_value
             debug(flag1, "  subtopic changed to: " .. button_value)
@@ -296,4 +302,33 @@ core.register_on_player_receive_fields(function(player, formname, fields)
     end
 
     debug(flag1, "register_on_player_receive_fields() end "  .. mt_get_gametime())
+end)
+
+
+local flag4 = false
+core.register_on_joinplayer(function(player)
+	debug(flag4, "\nregister_on_joinplayer() HELP")
+    local player_name = player:get_player_name()
+	local player_meta = player:get_meta()
+    local p_data = player_data[player_name]
+
+    -- the last selected topic and subtopic from the '?' help tab
+    p_data.help_topic = player_meta:get_string("help_topic")
+    p_data.help_subtopic = player_meta:get_string("help_subtopic")
+
+	debug(flag4, "\nregister_on_joinplayer() end")
+end)
+
+
+
+local flag5 = false
+core.register_on_respawnplayer(function(player)
+    debug(flag5, "\nregister_on_respawnplayer() HELP")
+    local player_name = player:get_player_name()
+
+    -- ### not resetting Help tab selected topic and subtopic
+    --p_data.help_topic = ""
+    --p_data.help_subtopic = ""
+
+	debug(flag5, "register_on_respawnplayer() end")
 end)

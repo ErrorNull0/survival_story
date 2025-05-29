@@ -27,6 +27,7 @@ local get_fs_equipment_buffs = ss.get_fs_equipment_buffs
 local get_fs_player_stats = ss.get_fs_player_stats
 local update_meta_and_description = ss.update_meta_and_description
 local update_stat = ss.update_stat
+local do_stat_update_action = ss.do_stat_update_action
 local update_clothes = ss.update_clothes
 local update_armor = ss.update_armor
 
@@ -34,6 +35,7 @@ local update_armor = ss.update_armor
 local INV_SIZE_START = ss.INV_SIZE_START
 local INV_SIZE_MAX = ss.INV_SIZE_MAX
 local INV_SIZE_MIN = ss.INV_SIZE_MIN
+local SLOT_WEIGHT_MAX = ss.SLOT_WEIGHT_MAX
 local X_OFFSET_RIGHT = ss.X_OFFSET_RIGHT
 local SLOT_COLOR_BG = ss.SLOT_COLOR_BG
 local SLOT_COLOR_HOVER = ss.SLOT_COLOR_HOVER
@@ -47,11 +49,9 @@ local GROUP_ITEMS = ss.GROUP_ITEMS
 local RECIPES = ss.RECIPES
 local RECIPE_INGREDIENTS = ss.RECIPE_INGREDIENTS
 local COOK_THRESHOLD = ss.COOK_THRESHOLD
-local SPILLABLE_ITEM_NAMES = ss.SPILLABLE_ITEM_NAMES
 local ITEM_MAX_USES = ss.ITEM_MAX_USES
 local WEAR_VALUE_MAX = ss.WEAR_VALUE_MAX
 local BAG_NODE_NAMES_ALL = ss.BAG_NODE_NAMES_ALL
-local BAG_SLOT_BONUS = ss.BAG_SLOT_BONUS
 local ITEM_WEIGHTS = ss.ITEM_WEIGHTS
 local ITEM_VALUES = ss.ITEM_VALUES
 local ITEM_BURN_TIMES = ss.ITEM_BURN_TIMES
@@ -59,20 +59,19 @@ local ITEM_HIT_DAMAGES = ss.ITEM_HIT_DAMAGES
 local ITEM_HIT_TYPES = ss.ITEM_HIT_TYPES
 local ITEM_HIT_COOLDOWNS = ss.ITEM_HIT_COOLDOWNS
 local ITEM_POINTING_RANGES = ss.ITEM_POINTING_RANGES
-local CLOTHING_TYPES = ss.CLOTHING_TYPES
+local CLOTHING_NAMES = ss.CLOTHING_NAMES
 local CLOTHING_COLORS = ss.CLOTHING_COLORS
 local CLOTHING_CONTRASTS = ss.CLOTHING_CONTRASTS
-local CLOTHING_BUFFS = ss.CLOTHING_BUFFS
 local CLOTHING_EYES = ss.CLOTHING_EYES
 local CLOTHING_NECK = ss.CLOTHING_NECK
 local CLOTHING_CHEST = ss.CLOTHING_CHEST
 local CLOTHING_HANDS = ss.CLOTHING_HANDS
 local CLOTHING_LEGS = ss.CLOTHING_LEGS
 local CLOTHING_FEET = ss.CLOTHING_FEET
-local ARMOOR_TYPES = ss.ARMOOR_TYPES
+local ARMOR_NAMES = ss.ARMOR_NAMES
 local ARMOR_COLORS = ss.ARMOR_COLORS
 local ARMOR_CONTRASTS = ss.ARMOR_CONTRASTS
-local ARMOR_BUFFS = ss.ARMOR_BUFFS
+local EQUIPMENT_BUFFS = ss.EQUIPMENT_BUFFS
 local ARMOR_HEAD = ss.ARMOR_HEAD
 local ARMOR_FACE = ss.ARMOR_FACE
 local ARMOR_CHEST = ss.ARMOR_CHEST
@@ -80,6 +79,31 @@ local ARMOR_ARMS = ss.ARMOR_ARMS
 local ARMOR_LEGS = ss.ARMOR_LEGS
 local ARMOR_FEET = ss.ARMOR_FEET
 local player_data = ss.player_data
+
+
+-- Represents items that would spill its contents if placed into the the player
+-- inventory or external storage, like cups of water, bowls of soup, plates of food,
+ss.SPILLABLE_ITEM_NAMES = {
+    ["ss:cup_wood_water_murky"] = true,
+    ["ss:cup_wood_water_boiled"] = true,
+    ["ss:bowl_wood_water_murky"] = true,
+    ["ss:bowl_wood_water_boiled"] = true,
+    ["ss:jar_glass_lidless_water_murky"] = true,
+    ["ss:jar_glass_lidless_water_boiled"] = true,
+    ["ss:pot_iron_water_murky"] = true,
+    ["ss:pot_iron_water_boiled"] = true
+}
+local SPILLABLE_ITEM_NAMES = ss.SPILLABLE_ITEM_NAMES
+
+-- specifies how many extra inventory slots the bag item provides when equipped.
+local BAG_SLOT_BONUS = {
+    ["ss:bag_fiber_small"] = 1,
+    ["ss:bag_fiber_medium"] = 2,
+    ["ss:bag_fiber_large"] = 3,
+    ["ss:bag_cloth_small"] = 2,
+    ["ss:bag_cloth_medium"] = 3,
+    ["ss:bag_cloth_large"] = 4
+}
 
 
 --- @return table
@@ -110,7 +134,7 @@ end
 -- Returns a table of all elements relating to the left tab section of 'fs' table.
 -- Curently includes only tabheader[] which define the Main and Tasks tabs.
 function ss.get_fs_tabs_left()
-    return { "tabheader[0,0;inv_tabs;Main,Status,Skills,Bundle,Settings,?,*;1;true;true]" }
+    return { "tabheader[0,0;inv_tabs;Main,Equipment,Status,Skills,Bundle,Settings,?,*;1;true;true]" }
 end
 local get_fs_tabs_left = ss.get_fs_tabs_left
 
@@ -345,8 +369,8 @@ function ss.get_fs_item_info(player, item)
 
         -- retrieve DAMAGE PROTECTION attribute data
         local equip_buff_data, item_damage_protection
-        if CLOTHING_BUFFS[item_name] then
-            local buffs_data = CLOTHING_BUFFS[item_name]
+        if EQUIPMENT_BUFFS[item_name] then
+            local buffs_data = EQUIPMENT_BUFFS[item_name]
             item_damage_protection = buffs_data.damage
             equip_buff_data = table_concat({ "Protection\n",
                 "\nphysical: ", item_damage_protection,
@@ -357,9 +381,9 @@ function ss.get_fs_item_info(player, item)
                 "\nradiation: ", buffs_data.radiation,
                 "\nnoise: ", buffs_data.noise
             })
-        elseif ARMOR_BUFFS[item_name] then
-            local buffs_data = ARMOR_BUFFS[item_name]
-            item_damage_protection = ARMOR_BUFFS[item_name].damage
+        elseif EQUIPMENT_BUFFS[item_name] then
+            local buffs_data = EQUIPMENT_BUFFS[item_name]
+            item_damage_protection = EQUIPMENT_BUFFS[item_name].damage
             equip_buff_data = table_concat({ "Protection\n",
                 "\nphysical: ", item_damage_protection,
                 "\ncold: ", buffs_data.cold,
@@ -522,8 +546,8 @@ local get_fs_bag_slots = ss.get_fs_bag_slots
 --- and "microwave".
 function ss.get_fs_craft_title(mode, category)
     local fs_output = {
-        table_concat({"hypertext[15.3,0.0;7,0.6;craft_method;",
-        "<b><style color=#777777 size=18>", mode:gsub("^%l", string_upper), " Crafting <big>\u{21FE}</big> </style>",
+        table_concat({"hypertext[15.3,0.2;7,0.6;craft_method;",
+        "<b><style color=#777777 size=18>", mode:gsub("^%l", string_upper), " Crafting \u{21FE} </style>",
         "<style color=#CCCCCC size=18>", string_upper(category), "</style></b>]"})
     }
     return fs_output
@@ -580,11 +604,8 @@ local get_fs_craft_categories = ss.get_fs_craft_categories
 --- displayed on the recipe item being crafted on the crafting pane.
 function ss.get_fs_craft_item_icon(item_name)
     local x_pos = X_OFFSET_RIGHT - 0.9
-    local y_pos = 1.6
-    local x_size = 1.3
-    local y_size = 1.3
     local fs_output = {
-        table_concat({"item_image[", x_pos, ",", y_pos, ";", x_size, ",", y_size, ";", item_name, "]"})
+        table_concat({"item_image[", x_pos, ",1.6;1.3,1.3;", item_name, "]"})
     }
     return fs_output
 end
@@ -828,7 +849,7 @@ function ss.get_fs_ingred_box(player_name, item, player_inv, recipe_id)
         end
         local new_data = {
             table_concat({
-                "hypertext[", 15.3, ",", y_pos + 0.2, ";8,1;ingredients_box_header;",
+                "hypertext[", 15.3, ",", y_pos + 0.2, ";8,0.5;ingredients_box_header;",
                     "<style color=#999999 size=18><b>", recipe.name, " </b></style>",
                     subname_element,
                 "]"
@@ -1212,11 +1233,11 @@ local function set_inventory_size(player, p_data, amount)
                             leftover_items_weight_total = leftover_items_weight_total + leftover_item_weight
                         end
                     end
-                else debug(flag10, "  Unexpected Error: item_name is NIL") end
+                else debug(flag10, "  ERROR - Unexpected 'item_name' value: NIL") end
                 inv_size = player_inv:get_size("main")
             end
             if items_were_dropped then
-                notify(player, "Items dropped due to reduced inventory space.", NOTIFY_DURATION, 0.5, 0, 2)
+                notify(player, "inventory", "Items dropped due to reduced inventory space.", NOTIFY_DURATION, 0.5, 0, 2)
                 debug(flag10, "    Items dropped. total weight: " .. leftover_items_weight_total)
             end
 
@@ -1401,6 +1422,34 @@ core.register_on_joinplayer(function(player)
 	local player_meta = player:get_meta()
     local p_data = player_data[player_name]
     local player_status = p_data.player_status
+    local metadata
+
+    metadata = player_meta:get_int("weight_max_per_slot")
+    p_data.weight_max_per_slot = (metadata ~= 0 and metadata) or SLOT_WEIGHT_MAX
+
+    -- stores the latest category tab that was clicked on the crafting pane
+    metadata = player_meta:get_string("recipe_category")
+    p_data.recipe_category = (metadata ~= "" and metadata) or "tools"
+
+    -- stores an item_name or recipe_id of the item that was last shown in the item
+    -- info slot. used to prevent unneeeded item info panel refresh if the item to
+    -- be shown is the same as the previously shown item.
+    p_data.prev_iteminfo_item = player_meta:get_string("prev_iteminfo_item")
+
+    -- stores the recipe_id of the latest recipe item that was clicked on from the
+    -- crafting grid.
+    p_data.prev_recipe_id = player_meta:get_string("prev_recipe_id")
+
+    -- stores how many inv slots beyond the slot max the player is credited due
+    -- to equipped bags. needed for proper restore of inv slots as bags are added
+    -- or removed from the bag slots. used in function get_slot_count_to_remove()
+    p_data.slot_bonus_credit = player_meta:get_int("slot_bonus_credit")
+
+    -- how much xp gained for crafting an item. this value is multiplied by the
+    -- number of outputs if the crafting recipe results in multiple items.
+    metadata = player_meta:get_float("experience_gain_crafting")
+    p_data.experience_gain_crafting = (metadata ~= 0 and metadata) or 0.5
+
 
 	if player_status == 0 then
 		debug(flag1, "  new player")
@@ -1553,7 +1602,7 @@ core.register_allow_player_inventory_action(function(player, action, inventory, 
             if CLOTHING_EYES[item_name] then
                 quantity_allowed = 1
             else
-                notify(player, "Not an eye accessory", NOTIFY_DURATION, 0, 0.5, 3)
+                notify(player, "inventory", "Not an eye accessory", NOTIFY_DURATION, 0, 0.5, 3)
                 quantity_allowed = 0
             end
 
@@ -1562,7 +1611,7 @@ core.register_allow_player_inventory_action(function(player, action, inventory, 
             if CLOTHING_NECK[item_name] then
                 quantity_allowed = 1
             else
-                notify(player, "Not a neck accessory", NOTIFY_DURATION, 0, 0.5, 3)
+                notify(player, "inventory", "Not a neck accessory", NOTIFY_DURATION, 0, 0.5, 3)
                 quantity_allowed = 0
             end
 
@@ -1571,7 +1620,7 @@ core.register_allow_player_inventory_action(function(player, action, inventory, 
             if CLOTHING_CHEST[item_name] then
                 quantity_allowed = 1
             else
-                notify(player, "Not clothing for upper body", NOTIFY_DURATION, 0, 0.5, 3)
+                notify(player, "inventory", "Not clothing for upper body", NOTIFY_DURATION, 0, 0.5, 3)
                 quantity_allowed = 0
             end
 
@@ -1580,7 +1629,7 @@ core.register_allow_player_inventory_action(function(player, action, inventory, 
             if CLOTHING_HANDS[item_name] then
                 quantity_allowed = 1
             else
-                notify(player, "Not wearable on hands", NOTIFY_DURATION, 0, 0.5, 3)
+                notify(player, "inventory", "Not wearable on hands", NOTIFY_DURATION, 0, 0.5, 3)
                 quantity_allowed = 0
             end
 
@@ -1589,7 +1638,7 @@ core.register_allow_player_inventory_action(function(player, action, inventory, 
             if CLOTHING_LEGS[item_name] then
                 quantity_allowed = 1
             else
-                notify(player, "Not clothing for lower body", NOTIFY_DURATION, 0, 0.5, 3)
+                notify(player, "inventory", "Not clothing for lower body", NOTIFY_DURATION, 0, 0.5, 3)
                 quantity_allowed = 0
             end
 
@@ -1598,7 +1647,7 @@ core.register_allow_player_inventory_action(function(player, action, inventory, 
             if CLOTHING_FEET[item_name] then
                 quantity_allowed = 1
             else
-                notify(player, "Not proper foot support", NOTIFY_DURATION, 0, 0.5, 3)
+                notify(player, "inventory", "Not proper foot support", NOTIFY_DURATION, 0, 0.5, 3)
                 quantity_allowed = 0
             end
 
@@ -1609,7 +1658,7 @@ core.register_allow_player_inventory_action(function(player, action, inventory, 
             if ARMOR_HEAD[item_name] then
                 quantity_allowed = 1
             else
-                notify(player, "Not head armor", NOTIFY_DURATION, 0, 0.5, 3)
+                notify(player, "inventory", "Not head armor", NOTIFY_DURATION, 0, 0.5, 3)
                 quantity_allowed = 0
             end
 
@@ -1618,7 +1667,7 @@ core.register_allow_player_inventory_action(function(player, action, inventory, 
             if ARMOR_FACE[item_name] then
                 quantity_allowed = 1
             else
-                notify(player, "Not face protection", NOTIFY_DURATION, 0, 0.5, 3)
+                notify(player, "inventory", "Not face protection", NOTIFY_DURATION, 0, 0.5, 3)
                 quantity_allowed = 0
             end
 
@@ -1627,7 +1676,7 @@ core.register_allow_player_inventory_action(function(player, action, inventory, 
             if ARMOR_CHEST[item_name] then
                 quantity_allowed = 1
             else
-                notify(player, "Not chest armor", NOTIFY_DURATION, 0, 0.5, 3)
+                notify(player, "inventory", "Not chest armor", NOTIFY_DURATION, 0, 0.5, 3)
                 quantity_allowed = 0
             end
 
@@ -1636,7 +1685,7 @@ core.register_allow_player_inventory_action(function(player, action, inventory, 
             if ARMOR_ARMS[item_name] then
                 quantity_allowed = 1
             else
-                notify(player, "Not arm protection", NOTIFY_DURATION, 0, 0.5, 3)
+                notify(player, "inventory", "Not arm protection", NOTIFY_DURATION, 0, 0.5, 3)
                 quantity_allowed = 0
             end
 
@@ -1645,7 +1694,7 @@ core.register_allow_player_inventory_action(function(player, action, inventory, 
             if ARMOR_LEGS[item_name] then
                 quantity_allowed = 1
             else
-                notify(player, "Not leg protection", NOTIFY_DURATION, 0, 0.5, 3)
+                notify(player, "inventory", "Not leg protection", NOTIFY_DURATION, 0, 0.5, 3)
                 quantity_allowed = 0
             end
 
@@ -1654,7 +1703,7 @@ core.register_allow_player_inventory_action(function(player, action, inventory, 
             if ARMOR_FEET[item_name] then
                 quantity_allowed = 1
             else
-                notify(player, "Not feet protection", NOTIFY_DURATION, 0, 0.5, 3)
+                notify(player, "inventory", "Not feet protection", NOTIFY_DURATION, 0, 0.5, 3)
                 quantity_allowed = 0
             end
 
@@ -1669,19 +1718,19 @@ core.register_allow_player_inventory_action(function(player, action, inventory, 
 
                     if item_count > 1 then
                         debug(flag2, "  only 1 quantity allowed")
-                        notify(player, "only 1 bag per slot allowed", NOTIFY_DURATION, 0.5, 0, 2)
+                        notify(player, "inventory", "only 1 bag per slot allowed", NOTIFY_DURATION, 0.5, 0, 2)
                         quantity_allowed = 1
                     end
 
                 else
                     debug(flag2, "  target slot has a bag")
-                    notify(player, "only 1 bag per slot allowed", NOTIFY_DURATION, 0.5, 0, 2)
+                    notify(player, "inventory", "only 1 bag per slot allowed", NOTIFY_DURATION, 0.5, 0, 2)
                     quantity_allowed = 0
                 end
 
             else
                 debug(flag2, "  item is not a bag. move disallowed.")
-                notify(player, "Only bags can be equipped", NOTIFY_DURATION, 0, 0.5, 3)
+                notify(player, "inventory", "Only bags can be equipped", NOTIFY_DURATION, 0, 0.5, 3)
                 quantity_allowed = 0
             end
 
@@ -1691,14 +1740,14 @@ core.register_allow_player_inventory_action(function(player, action, inventory, 
                 debug(flag2, "  this is a filled cup!")
                 if to_index > 8 then
                     debug(flag2, "  cannot be placed in main inventory")
-                    notify(player, NOTIFICATIONS.pickup_liquid_fail, NOTIFY_DURATION, 0, 0.5, 3)
+                    notify(player, "inventory", NOTIFICATIONS.pickup_liquid_fail, NOTIFY_DURATION, 0, 0.5, 3)
                     quantity_allowed = 0
                 end
             end
 
         else
             debug(flag2, "ERROR - Unexpected 'to_list' value: " .. to_list)
-            notify(player, "Item cannot be used there", NOTIFY_DURATION, 0.5, 0, 2)
+            notify(player, "inventory", "Item cannot be used there", NOTIFY_DURATION, 0.5, 0, 2)
             quantity_allowed = 0
         end
 
@@ -2038,8 +2087,8 @@ core.register_on_player_inventory_action(function(player, action, inventory, inv
         play_sound("item_move", {item_name = item_name, player_name = player_name})
 
         -- update weight statbar hud and weight formspec to reflect removal of item
-        local update_data = {"normal", "weight", -weight, 1, 1, "curr", "add", true}
-        update_stat(player, p_data, player_meta, update_data)
+        do_stat_update_action(player, p_data, player_meta, "normal", "weight", -weight, "curr", "add", true)
+
         fs.center.weight = get_fs_weight(player)
         debug(flag8, "  ** UI Refreshed! ** by register_player_inventory_action()")
         player_meta:set_string("fs", mt_serialize(fs))
@@ -2094,7 +2143,8 @@ core.register_on_player_receive_fields(function(player, formname, fields)
             or fields.inv_tabs == "4"
             or fields.inv_tabs == "5"
             or fields.inv_tabs == "6"
-            or fields.inv_tabs == "7" then
+            or fields.inv_tabs == "7"
+            or fields.inv_tabs == "8" then
             debug(flag3, "  clicked on a tab that was not MAIN. NO FURTHER ACTION.")
             debug(flag3, "register_allow_player_inventory_action() END " .. core.get_gametime())
             return
@@ -2273,10 +2323,10 @@ core.register_on_player_receive_fields(function(player, formname, fields)
                 update_meta_and_description(item_meta, item_name, {"remaining_uses"}, {remaining_uses})
                 debug(flag3, "  remaining_uses set to: " .. remaining_uses)
 
-            elseif CLOTHING_BUFFS[item_name] then
+            elseif CLOTHING_NAMES[item_name] then
                 debug(flag3, "  this is a clothing item")
                 local item_meta = item:get_meta()
-                local clothes_type = CLOTHING_TYPES[item_name]
+                local clothes_type = CLOTHING_NAMES[item_name]
                 local clothing_color = CLOTHING_COLORS[clothes_type][1]
                 local clothing_contrast = CLOTHING_CONTRASTS[clothes_type][1]
                 local clothing_image = table_concat({
@@ -2289,10 +2339,10 @@ core.register_on_player_receive_fields(function(player, formname, fields)
                 item_meta:set_string("contrast", clothing_contrast)
                 item_meta:set_string("inventory_image", clothing_image)
 
-            elseif ARMOR_BUFFS[item_name] then
-                debug(flag3, "  this is aa armor item")
+            elseif ARMOR_NAMES[item_name] then
+                debug(flag3, "  this is an armor item")
                 local item_meta = item:get_meta()
-                local armor_type = ARMOOR_TYPES[item_name]
+                local armor_type = ARMOR_NAMES[item_name]
                 local armor_color = ARMOR_COLORS[armor_type][1]
                 local armor_contrast = ARMOR_CONTRASTS[armor_type][1]
                 local armor_image = table_concat({
@@ -2340,9 +2390,9 @@ core.register_on_player_receive_fields(function(player, formname, fields)
         end
 
         if inv_too_heavy then
-            notify(player, "ERROR: Crafted item too heavy for inventory - dropped to ground.", 5, 0.5, 0, 3)
+            notify(player, "inventory", "crafted item dropped - too heavy", NOTIFY_DURATION, 0.5, 0, 3)
         elseif inv_space_full then
-            notify(player, "Crafted item dropped - no inventory space", NOTIFY_DURATION, 0.5, 0, 3)
+            notify(player, "inventory", "Crafted item dropped - no inventory space", NOTIFY_DURATION, 0.5, 0, 3)
         end
 
         debug(flag3, "  updating weight formspec to: " .. inventory_weight)
@@ -2356,12 +2406,12 @@ core.register_on_player_receive_fields(function(player, formname, fields)
         local ingredient_count = #ingredients
         debug(flag3, "  Ingredients count: " .. ingredient_count)
 
-        local experience_gain_crafting = p_data.experience_gain_crafting
+        local experience_gain_crafting = p_data.experience_gain_crafting * p_data.experience_rec_mod_fast_learner
         debug(flag3, "  experience_gain_crafting: " .. experience_gain_crafting)
         local experience_gained = ingredient_count * experience_gain_crafting
         debug(flag3, "  Experience gained: " .. experience_gained)
-        local update_data = {"normal", "experience", experience_gained, 1, 1, "curr", "add", true}
-        update_stat(player, p_data, player_meta, update_data)
+        do_stat_update_action(player, p_data, player_meta, "normal", "experience", experience_gained, "curr", "add", true)
+
 
         -- cycle through the recipe ingredients to see if player inv contains enough
         -- items to craft the same recipe item again.
@@ -2489,6 +2539,24 @@ core.register_on_respawnplayer(function(player)
     local player_inv = player:get_inventory()
     local player_name = player:get_player_name()
     local p_data = ss.player_data[player_name]
+
+    p_data.weight_max_per_slot = SLOT_WEIGHT_MAX
+    player_meta:set_int("weight_max_per_slot", p_data.weight_max_per_slot)
+
+    p_data.recipe_category = "tools"
+    player_meta:set_string("recipe_category", p_data.recipe_category)
+
+    p_data.prev_iteminfo_item = ""
+    player_meta:set_string("prev_iteminfo_item", p_data.prev_iteminfo_item)
+
+    p_data.prev_recipe_id = ""
+    player_meta:set_string("prev_recipe_id", p_data.prev_recipe_id)
+
+    p_data.slot_bonus_credit = 0
+    player_meta:set_int("slot_bonus_credit", p_data.slot_bonus_credit)
+
+    p_data.experience_gain_crafting = 0.5
+	player_meta:set_float("experience_gain_crafting", p_data.experience_gain_crafting)
 
     debug(flag7, "  reset inventory slot count, size, and weight max..")
     player_inv:set_size("main", INV_SIZE_START)

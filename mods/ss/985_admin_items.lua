@@ -3,6 +3,8 @@ print("- loading admin_items.lua")
 -- cache global functions and tables for faster access
 local math_sin = math.sin
 local math_cos = math.cos
+local math_min = math.min
+local string_format = string.format
 local table_concat = table.concat
 local table_insert = table.insert
 local mt_show_formspec = core.show_formspec
@@ -18,6 +20,7 @@ local mt_after = core.after
 local debug = ss.debug
 local round = ss.round
 local player_control_fix = ss.player_control_fix
+local after_player_check = ss.after_player_check
 local play_sound = ss.play_sound
 local update_fs_weight = ss.update_fs_weight
 local update_meta_and_description = ss.update_meta_and_description
@@ -26,11 +29,9 @@ local pos_to_key = ss.pos_to_key
 local key_to_pos = ss.key_to_pos
 local pickup_item = ss.pickup_item
 local update_stat = ss.update_stat
-local convert_to_celcius = ss.convert_to_celcius
+local do_stat_update_action = ss.do_stat_update_action
 
 local math_pi = math.pi
-local DEFAULT_STAT_MAX = ss.DEFAULT_STAT_MAX
-local DEFAULT_STAT_START = ss.DEFAULT_STAT_START
 local ITEM_WEIGHTS = ss.ITEM_WEIGHTS
 local ITEM_MAX_USES = ss.ITEM_MAX_USES
 local CLOTHING_NAMES = ss.CLOTHING_NAMES
@@ -49,9 +50,9 @@ local mt_registered_nodes = core.registered_nodes
 local player_hud_ids = ss.player_hud_ids
 local job_handles = ss.job_handles
 
-local wind_conditions = ss.wind_conditions
-if wind_conditions == nil then
-    print("### ERROR - ss.wind_conditions is NIL")
+local current_climates = ss.current_climates
+if current_climates == nil then
+    print("### ERROR - ss.current_climates is NIL")
 end
 
 
@@ -210,6 +211,7 @@ local SS_ITEMS = {
     "ss:health_shot",
     "ss:first_aid_kit",
     "ss:splint",
+    "ss:cast",
     "ss:stats_wand",
     "ss:item_spawner",
     "ss:debug_wand",
@@ -256,8 +258,8 @@ local function set_stat_current(player, p_data, fields, stat, direction)
             if direction == "down"then
                 amount = -amount
             end
-            update_data = {"normal", stat, amount, 1, 1, "curr", "add", true}
-            update_stat(player, p_data, player:get_meta(), update_data)
+            do_stat_update_action(player, p_data, player:get_meta(), "normal", stat, amount, "curr", "add", true)
+
         else
             local iterations = amount
             if direction == "down"then
@@ -267,7 +269,7 @@ local function set_stat_current(player, p_data, fields, stat, direction)
             update_stat(player, p_data, player:get_meta(), update_data)
         end
     else
-        debug(flag10, "    ERROR in set_stat_current() - unexpected 'stat' value: " .. stat)
+        debug(flag10, "    ERROR - unexpected 'stat' value is NIL")
     end
     debug(flag10, "  set_stat_current() END")
 end
@@ -279,19 +281,13 @@ local function set_stat_max(player, p_data, fields, stat, direction)
     debug(flag9, "    stat: " .. stat)
     debug(flag9, "    direction: " .. direction)
 
-	local player_meta = player:get_meta()
-    local stat_current = player_meta:get_float(stat .. "_current")
-    local stat_max = player_meta:get_float(stat .. "_max")
     local change_value = tonumber(fields["change_value_" .. stat]) or 0
-    debug(flag9, "    stat_current: " .. stat_current)
-    debug(flag9, "    stat_max: " .. stat_max)
     debug(flag9, "    change_value: " .. change_value)
 
 	if direction == "down" then
         change_value = -change_value
 	end
-    local update_data = {"normal", stat, change_value, 1, 1, "max", "add", true}
-    update_stat(player, p_data, player_meta, update_data)
+    do_stat_update_action(player, p_data, player:get_meta(), "normal", stat, change_value, "max", "add", true)
     debug(flag9, "  set_stat_max() END")
 end
 
@@ -349,13 +345,15 @@ core.override_item("ss:stats_wand", {
             p_data.formspec_mode = "stats_wand"
             p_data.active_tab = "stats_wand"
 
-            local formspec = "formspec_version[7]size[9.0,10.5]position[0.5,0.45]label[3.2,0.5;Modify Player Stats]"
-            local stats = {"health", "thirst", "hunger", "alertness", "hygiene", "comfort",
-                "immunity", "sanity", "happiness", "breath", "stamina", "experience"}
+            local formspec = "formspec_version[7]size[9.0,14.0]position[0.5,0.45]label[3.2,0.5;Modify Player Stats]"
+            local stats = {"health", "thirst", "hunger", "alertness", "hygiene",
+                "comfort", "immunity", "sanity", "happiness", "breath", "legs", "hands",
+                "stamina", "experience", "illness", "poison", "wetness"}
             local ypos = 1.2  -- Y position for the first stat
             for _, stat in ipairs(stats) do
-                local statbar_icon_element = table.concat({"image[1.9,", ypos, ";0.5,0.5;ss_statbar_icon_", stat, ".png;]"})
-                if stat == "stamina" or stat == "experience" then
+                local statbar_icon_element = table_concat({"image[1.9,", ypos, ";0.5,0.5;ss_statbar_icon_", stat, ".png;]"})
+                if stat == "stamina" or stat == "experience" or stat == "illness"
+                    or stat == "poison" or stat == "wetness" then
                     statbar_icon_element = ""
                 end
                 formspec = table_concat({ formspec,
@@ -379,6 +377,7 @@ core.override_item("ss:stats_wand", {
                 })
                 ypos = ypos + 0.7  -- Increase ypos for the next stat
             end
+
             formspec = table_concat({ formspec,
                 "label[0.3,", ypos + 0.2, ";weight]",
                 "dropdown[2.8,", ypos, ";1.25,0.5;change_type_weight;curr,max;1]",
@@ -412,18 +411,30 @@ core.override_item("ss:stats_wand", {
         mt_set_timeofday(0.25)
 
         local stat_names = {"health", "thirst", "hunger", "immunity", "alertness",
-            "sanity", "hygiene", "comfort", "happiness", "breath", "stamina"}
+            "sanity", "hygiene", "comfort", "happiness", "breath", "legs", "hands", "stamina"}
         local p_data = player_data[user:get_player_name()]
-        local update_data
+        local player_meta = user:get_meta()
         for i, stat in ipairs(stat_names) do
-            local player_meta = user:get_meta()
-            local max_value = DEFAULT_STAT_MAX[stat]
-            local current_value = DEFAULT_STAT_START[stat]
-            update_data = {"normal", stat, max_value, 1, 1, "max", "set", false}
-            update_stat(user, p_data, player_meta, update_data)
-            update_data = {"normal", stat, current_value, 1, 1, "curr", "set", true}
-            update_stat(user, p_data, player_meta, update_data)
+            update_stat(
+                user, p_data, player_meta,
+                {"normal", stat, 999, 1, 1, "curr", "add", true}
+            )
         end
+
+        update_stat(
+            user, p_data, player_meta,
+            {"normal", "poison", -999, 1, 1, "curr", "add", true}
+        )
+
+        update_stat(
+            user, p_data, player_meta,
+            {"normal", "illness", -999, 1, 1, "curr", "add", true}
+        )
+
+        update_stat(
+            user, p_data, player_meta,
+            {"normal", "wetness", -999, 1, 1, "curr", "add", true}
+        )
 
     end
 })
@@ -441,9 +452,9 @@ core.override_item("ss:stats_wand", {
 local function generate_item_spawner_formspec(page)
     local items_per_page = 150
     local start_index = (page - 1) * items_per_page + 1
-    local end_index = math.min(start_index + items_per_page - 1, #SS_ITEMS)
+    local end_index = math_min(start_index + items_per_page - 1, #SS_ITEMS)
 
-    local formspec = table.concat({
+    local formspec = table_concat({
         "formspec_version[7]",
         "size[16,12]",
         "label[0.5,0.75;Quantity:]",
@@ -459,7 +470,7 @@ local function generate_item_spawner_formspec(page)
 
     for i = start_index, end_index do
         local item_name = SS_ITEMS[i]
-        formspec = formspec .. string.format(
+        formspec = formspec .. string_format(
             "item_image_button[%f,%f;1,1;%s;%s;]",
             column, row + 1, item_name, item_name
         )
@@ -520,30 +531,16 @@ core.override_item("ss:item_spawner", {
         debug(flag5, "  p_data.player_status: " .. p_data.player_status)
         debug(flag5, "  world seed: " .. mt_get_mapgen_setting("seed"))
 
-        debug(flag5, "  stamina_mod_thirst: " .. p_data.stamina_mod_thirst)
-        debug(flag5, "  stamina_mod_hunger: " .. p_data.stamina_mod_hunger)
-        debug(flag5, "  stamina_mod_alertness: " .. p_data.stamina_mod_alertness)
-        debug(flag5, "  stamina_mod_weight: " .. p_data.stamina_mod_weight .. "\n")
+        debug(flag5, "  stamina_drain_mod_thirst: " .. p_data.stamina_drain_mod_thirst)
+        debug(flag5, "  stamina_drain_mod_hunger: " .. p_data.stamina_drain_mod_hunger)
+        debug(flag5, "  stamina_drain_mod_alertness: " .. p_data.stamina_drain_mod_alertness)
+        debug(flag5, "  stamina_drain_mod_weight: " .. p_data.stamina_drain_mod_weight .. "\n")
 
         debug(flag5, "  physics.speed: " .. physics.speed)
         debug(flag5, "  physics.jump: " .. physics.jump .. "\n")
 
         debug(flag5, "  status effects: " .. dump(p_data.status_effects) .. "\n")
         debug(flag5, "  stat updates: " .. dump(p_data.stat_updates) .. "\n")
-
-        debug(flag5, "  ie_counter_cold: " .. p_data.ie_counter_cold)
-        debug(flag5, "  ie_counter_nausea: " .. p_data.ie_counter_nausea)
-        debug(flag5, "  ie_counter_diarrhea: " .. p_data.ie_counter_diarrhea)
-        debug(flag5, "  ie_counter_fungal_infection: " .. p_data.ie_counter_fungal_infection)
-        debug(flag5, "  ie_counter_parasitic_infection: " .. p_data.ie_counter_parasitic_infection)
-        debug(flag5, "  ie_counter_bacterial_infection: " .. p_data.ie_counter_bacterial_infection)
-        debug(flag5, "  ie_counter_viral_infection: " .. p_data.ie_counter_viral_infection)
-        debug(flag5, "  ie_counter_prion_infection: " .. p_data.ie_counter_prion_infection)
-
-        debug(flag5, "  health_loss_thirst: " .. p_data.health_loss_thirst)
-        debug(flag5, "  health_loss_hunger: " .. p_data.health_loss_hunger)
-        debug(flag5, "  health_loss_breath: " .. p_data.health_loss_breath)
-        debug(flag5, "  health_loss_weight: " .. p_data.health_loss_weight)
 
         --[[
         local hud_definition = {
@@ -921,7 +918,6 @@ core.override_item("ss:weather_wand", {
 -- ########## TELEPORTER ###########
 -- #################################
 
-
 local flag4 = false
 local function get_teleport_data(player)
     debug(flag4, "  get_teleport_data() admin_items.lua")
@@ -983,7 +979,7 @@ local function get_teleport_data(player)
     local biome_data = mt_get_biome_data(pos)
     local current_biome_id = biome_data.biome
     local current_biome_name = mt_get_biome_name(current_biome_id)
-    table.insert(teleport_data, {biome_name = current_biome_name})
+    table_insert(teleport_data, {biome_name = current_biome_name})
     debug(flag4, "    teleport_data: " .. dump(teleport_data))
 
     debug(flag4, "  get_teleport_data() END")
@@ -991,7 +987,7 @@ local function get_teleport_data(player)
 end
 
 local function get_fs_teleporter(teleport_data)
-    local formspec = table.concat({
+    local formspec = table_concat({
         "formspec_version[7]",
         "size[13.0,3.5]",
         "position[0.5,1]",
@@ -1005,7 +1001,6 @@ local function get_fs_teleporter(teleport_data)
     })
     return formspec
 end
-
 
 local flag3 = false
 core.override_item("ss:teleporter", {
@@ -1030,8 +1025,118 @@ core.override_item("ss:teleporter", {
         end
 
     end,
-
+    on_secondary_use = function(itemstack, user, pointed_thing)
+        debug(flag3, "\non_secondary_use()")
+        debug(flag3, "\non_secondary_use()")
+    end
 })
+
+
+
+
+local function get_all_sounds()
+    local sounds_set = {}
+    for _, modname in ipairs(core.get_modnames()) do
+        local modpath = core.get_modpath(modname)
+        if modpath then
+            local sounds_dir = modpath.."/sounds"
+            local files = core.get_dir_list(sounds_dir, false)
+            for _, filename in ipairs(files or {}) do
+                -- Only match .ogg, and strip .<number> if present
+                local base = filename:match("^(.-)%.[0-9]+%.ogg$") or
+                             filename:gsub("%.ogg$", "")
+                sounds_set[base] = true
+            end
+        end
+    end
+    local sounds = {}
+    for base, _ in pairs(sounds_set) do
+        table.insert(sounds, base)
+    end
+    table.sort(sounds)
+    return sounds
+end
+
+
+local all_sounds = get_all_sounds()
+
+local function get_fs_sound_wand()
+    local formspec = table_concat({
+        "formspec_version[7]size[9.0,14.0]position[0.5,0.45]",
+        "label[3.2,0.5;Test Sounds]",
+
+        "label[0.6,2.0;sound]",
+        "dropdown[2.5,1.5;5;selected_sound;" .. table.concat(all_sounds, ",") .. ";1]",
+
+        "label[0.6,3.5;gain]",
+        "dropdown[2.5,3.0;5;selected_gain;0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1;10]",
+
+        "label[0.6,5.0;pitch]",
+        "dropdown[2.5,4.5;5;selected_pitch;0.25,0.5,0.75,1,1.25,1.5,1.75,2,2.25,2.5;4]",
+
+        "label[0.6,6.5;fade]",
+        "dropdown[2.5,6.0;5;selected_fade;0,0.01,0.05,0.1,0.2,0.33,0.5;1]",
+
+        "label[0.6,8.0;loop]",
+        "dropdown[2.5,7.5;5;selected_loop;false,true;1]",
+
+        "button[0.5,9;3,1;play_sound;Play Sound]",
+        "button[4.0,9;3,1;stop_sound;Stop Sound]",
+    })
+    return formspec
+end
+
+local sound_data = {}
+
+local flag14 = false
+local function stop_current_sound(player_name)
+    debug(flag14, "  stop_current_sound()")
+    local data = sound_data[player_name]
+    if data then
+        debug(flag14, "    existing sound playing: " .. data[1])
+        core.sound_stop(data[2])
+        sound_data[player_name] = nil
+        debug(flag14, "    sound stopped")
+    else
+        debug(flag14, "    no existing sound playing")
+    end
+    debug(flag14, "  stop_current_sound() END")
+end
+
+
+
+local flag6 = false
+core.override_item("ss:sound_wand", {
+    on_use = function(itemstack, user, pointed_thing)
+        debug(flag6, "\non_use() ADMIN_ITEMS")
+
+        local controls = user:get_player_control()
+        if controls.aux1 then
+            local player_name = user:get_player_name()
+            local p_data = ss.player_data[player_name]
+            p_data.formspec_mode = "sound_wand"
+            p_data.active_tab = "sound_wand"
+
+            local formspec = get_fs_sound_wand()
+            mt_show_formspec(player_name, "ss:ui_sound_wand", formspec)
+            player_control_fix(user)
+            debug(flag6, "on_use() END")
+        else
+            debug(flag6, "  swinging item as a generic craftitem..")
+            pickup_item(user, pointed_thing)
+        end
+
+    end,
+    on_secondary_use = function(itemstack, user, pointed_thing)
+        debug(flag6, "\non_secondary_use()")
+        debug(flag6, "\non_secondary_use()")
+    end
+})
+
+
+
+
+
 
 
 -- #################################
@@ -1039,322 +1144,604 @@ core.override_item("ss:teleporter", {
 -- #################################
 
 local function initialize_debug_huds(player, player_name)
-    player_hud_ids[player_name].debug_display_bg = player:hud_add({
+    player_hud_ids[player_name].debug_display_0 = player:hud_add({
         type = "image",
-        position = {x = 1, y = 1},
+        position = {x = 0, y = 0},
+        alignment = {x = 1, y = 1},
+        scale = {x = -100, y = -100},
+        text = "[fill:1x1:0,0:#00000080",
+    })
+
+    -- player stat names
+    player_hud_ids[player_name].debug_display_1 = player:hud_add({
+        type = "text",
+        position = {x = 0, y = 0},
+        alignment = {x = 1, y = 1},
         offset = {x = 0, y = 0},
-        text = "[fill:1x1:0,0:#000000",
-        scale = {x = 655, y = 315},
-        alignment = {x = -1, y = -1}
-    })
-
-    -- main player stat values
-    player_hud_ids[player_name].debug_display_stats = player:hud_add({
-        type = "text",
-        position = {x = 1, y = 1},
-        alignment = {x = 1, y = 0},
-        offset = {x = -650, y = -300},
         text = "",
         number = "0xffffff",
         style = 1
     })
 
-    -- list active stat updates with amount and interation values
-    player_hud_ids[player_name].debug_display_su = player:hud_add({
+    -- player stat current values
+    player_hud_ids[player_name].debug_display_2 = player:hud_add({
         type = "text",
-        position = {x = 1, y = 1},
+        position = {x = 0, y = 0},
         alignment = {x = 1, y = 1},
-        offset = {x = -650, y = -280},
+        offset = {x = 100, y = 0},
         text = "",
         number = "0xffffff",
         style = 1
     })
 
-    -- list active status effects
-    player_hud_ids[player_name].debug_display_se = player:hud_add({
+    -- player stat current ratios
+    player_hud_ids[player_name].debug_display_3 = player:hud_add({
         type = "text",
-        position = {x = 1, y = 1},
+        position = {x = 0, y = 0},
         alignment = {x = 1, y = 1},
-        offset = {x = -510, y = -280},
+        offset = {x = 160, y = 0},
+        text = "",
+        number = "0xffffff",
+        style = 1
+    })
+
+    -- player stat baseline values
+    player_hud_ids[player_name].debug_display_4 = player:hud_add({
+        type = "text",
+        position = {x = 0, y = 0},
+        alignment = {x = 1, y = 1},
+        offset = {x = 240, y = 0},
+        text = "",
+        number = "0xffffff",
+        style = 1
+    })
+
+    -- player stat baseline change rates
+    player_hud_ids[player_name].debug_display_5 = player:hud_add({
+        type = "text",
+        position = {x = 0, y = 0},
+        alignment = {x = 1, y = 1},
+        offset = {x = 285, y = 0},
+        text = "",
+        number = "0xffffff",
+        style = 1
+    })
+
+    -- player stat max values
+    player_hud_ids[player_name].debug_display_6 = player:hud_add({
+        type = "text",
+        position = {x = 0, y = 0},
+        alignment = {x = 1, y = 1},
+        offset = {x = 425, y = 0},
+        text = "",
+        number = "0xffffff",
+        style = 1
+    })
+
+    -- baseline modifiers for health stat
+    player_hud_ids[player_name].debug_display_7 = player:hud_add({
+        type = "text",
+        position = {x = 0, y = 0},
+        alignment = {x = 1, y = 1},
+        offset = {x = 480, y = 0},
+        text = "",
+        number = "0xffffff",
+        style = 1
+    })
+
+    -- baseline modifiers for comfort stat
+    player_hud_ids[player_name].debug_display_8 = player:hud_add({
+        type = "text",
+        position = {x = 0, y = 0},
+        alignment = {x = 1, y = 1},
+        offset = {x = 700, y = 0},
+        text = "",
+        number = "0xffffff",
+        style = 1
+    })
+
+    -- baseline modifiers for immunity stat
+    player_hud_ids[player_name].debug_display_9 = player:hud_add({
+        type = "text",
+        position = {x = 0, y = 0},
+        alignment = {x = 1, y = 1},
+        offset = {x = 900, y = 0},
+        text = "",
+        number = "0xffffff",
+        style = 1
+    })
+
+    -- baseline modifiers for sanity stat
+    player_hud_ids[player_name].debug_display_10 = player:hud_add({
+        type = "text",
+        position = {x = 0, y = 0},
+        alignment = {x = 1, y = 1},
+        offset = {x = 900, y = 150},
+        text = "",
+        number = "0xffffff",
+        style = 1
+    })
+
+    -- baseline modifiers for happiness stat
+    player_hud_ids[player_name].debug_display_11 = player:hud_add({
+        type = "text",
+        position = {x = 0, y = 0},
+        alignment = {x = 1, y = 1},
+        offset = {x = 480, y = 225},
+        text = "",
+        number = "0xffffff",
+        style = 1
+    })
+
+    -- health recovery trackers
+    player_hud_ids[player_name].debug_display_12 = player:hud_add({
+        type = "text",
+        position = {x = 0, y = 0},
+        alignment = {x = 1, y = 1},
+        offset = {x = 1100, y = 0},
+        text = "",
+        number = "0xffffff",
+        style = 1
+    })
+
+    -- sneeze, cough, and vomit timers
+    player_hud_ids[player_name].debug_display_13 = player:hud_add({
+        type = "text",
+        position = {x = 0, y = 0},
+        alignment = {x = 1, y = 1},
+        offset = {x = 1100, y = 150},
+        text = "",
+        number = "0xffffff",
+        style = 1
+    })
+
+    -- legs damage total
+    player_hud_ids[player_name].debug_display_14 = player:hud_add({
+        type = "text",
+        position = {x = 0, y = 0},
+        alignment = {x = 1, y = 1},
+        offset = {x = 0, y = 320},
         text = "",
         number = "0xffffff",
         style = 1
     })
 
     -- show player physics properties: speed and jump
-    player_hud_ids[player_name].debug_display_physics = player:hud_add({
+    player_hud_ids[player_name].debug_display_15 = player:hud_add({
         type = "text",
-        position = {x = 1, y = 1},
+        position = {x = 0, y = 0},
         alignment = {x = 1, y = 1},
-        offset = {x = -390, y = -280},
+        offset = {x = 900, y = 240},
         text = "",
         number = "0xffffff",
         style = 1
     })
 
-    -- show stamina drain modifiers
-    player_hud_ids[player_name].debug_display_stats_2 = player:hud_add({
+    -- hands injury mods
+    player_hud_ids[player_name].debug_display_16 = player:hud_add({
         type = "text",
-        position = {x = 1, y = 1},
+        position = {x = 0, y = 0},
         alignment = {x = 1, y = 1},
-        offset = {x = -290, y = -285},
+        offset = {x = 220, y = 320},
         text = "",
         number = "0xffffff",
         style = 1
     })
 
-    -- show health loss trackers for stats that can trigger health loss
-    player_hud_ids[player_name].debug_display_hp_loss = player:hud_add({
+    -- legs injury mods
+    player_hud_ids[player_name].debug_display_17 = player:hud_add({
         type = "text",
-        position = {x = 1, y = 1},
+        position = {x = 0, y = 0},
         alignment = {x = 1, y = 1},
-        offset = {x = -130, y = -285},
+        offset = {x = 460, y = 320},
         text = "",
         number = "0xffffff",
         style = 1
     })
 
-    -- show comfort loss trackers for stats that can trigger health loss
-    player_hud_ids[player_name].debug_display_comfort_loss = player:hud_add({
+    -- modifier values triggered by subskills
+    player_hud_ids[player_name].debug_display_18 = player:hud_add({
         type = "text",
-        position = {x = 1, y = 1},
+        position = {x = 0, y = 0},
         alignment = {x = 1, y = 1},
-        offset = {x = -149, y = -170},
+        offset = {x = 1280, y = 0},
         text = "",
         number = "0xffffff",
         style = 1
     })
 
-    -- show formspec info
-    player_hud_ids[player_name].debug_display_fs_info = player:hud_add({
+    -- speed and speed buffs
+    player_hud_ids[player_name].debug_display_19 = player:hud_add({
         type = "text",
-        position = {x = 1, y = 1},
+        position = {x = 0, y = 0},
         alignment = {x = 1, y = 1},
-        offset = {x = -650, y = -40},
+        offset = {x = 1100, y = 220},
         text = "",
         number = "0xffffff",
         style = 1
     })
 
-    -- show weather info
-    player_hud_ids[player_name].debug_display_weather = player:hud_add({
+    -- current animation state
+    player_hud_ids[player_name].debug_display_20 = player:hud_add({
         type = "text",
-        position = {x = 1, y = 1},
+        position = {x = 0, y = 0},
         alignment = {x = 1, y = 1},
-        offset = {x = -410, y = -235},
+        offset = {x = 1550, y = 0},
         text = "",
         number = "0xffffff",
         style = 1
     })
 
-    -- list active stat updates triggered from status effects
-    player_hud_ids[player_name].debug_display_se_su = player:hud_add({
+    -- unused
+    player_hud_ids[player_name].debug_display_21 = player:hud_add({
         type = "text",
-        position = {x = 1, y = 1},
+        position = {x = 0, y = 0},
         alignment = {x = 1, y = 1},
-        offset = {x = -650, y = -150},
+        offset = {x = 1550, y = 90},
         text = "",
         number = "0xffffff",
         style = 1
     })
-
-    -- list all immunity effect trackers
-    player_hud_ids[player_name].debug_display_ie_counters = player:hud_add({
-        type = "text",
-        position = {x = 1, y = 1},
-        alignment = {x = 1, y = 1},
-        offset = {x = -255, y = -150},
-        text = "",
-        number = "0xffffff",
-        style = 1
-    })
-
-    -- show game time as a test
-    --[[
-    player_hud_ids[player_name].debug_display_time = player:hud_add({
-        type = "text",
-        position = {x = 1, y = 1},
-        alignment = {x = 1, y = 1},
-        offset = {x = -650, y = -20},
-        text = "",
-        number = "0x888888",
-        style = 1
-    })
-    --]]
 
 end
 
 
 
 local function refresh_debug_display(player, player_name, p_data, player_meta)
-    if not player:is_player() then
-        return
-    end
+    after_player_check(player)
 
     local hud_id, debug_info
+    local physics = player:get_physics_override()
 
-    -- main player stat values
-    debug_info = table.concat({
-        "hp ", round(p_data.health_ratio * 100, 2) ,
-        " | thr ", round(p_data.thirst_ratio * 100, 2) ,
-        " | hng ", round(p_data.hunger_ratio * 100, 2) ,
-        " | hyg ", round(p_data.hygiene_ratio * 100, 2) ,
-        " | cmf ", round(p_data.comfort_ratio * 100, 2) ,
-        " | brt ", round(p_data.breath_ratio * 100, 2) ,
-        " | sta ", round(p_data.stamina_ratio * 100, 2) ,
-        " | wgt ", round(p_data.weight_ratio * 100, 2) , " ]"
+    -- player stat names
+    debug_info = table_concat({
+        "health:\n",
+        "thirst:\n",
+        "hunger:\n",
+        "alertness:\n",
+        "hygiene:\n",
+        "comfort:\n",
+        "immunity:\n",
+        "sanity:\n",
+        "happiness:\n",
+        "breath:\n",
+        "stamina:\n",
+        "weight:\n",
+        "legs:\n",
+        "hands:\n",
+        "illness:\n",
+        "poison:\n",
+        "wetness:\n",
     })
-    hud_id = player_hud_ids[player_name].debug_display_stats
+    hud_id = player_hud_ids[player_name].debug_display_1
     player:hud_change(hud_id, "text", debug_info)
 
-    -- list active stat updates with amount and interation values
-    local stat_update_info = ""
-    for _, update_data in pairs(p_data.stat_updates) do
-        stat_update_info = stat_update_info .. table.concat({update_data[2], " ",
-            round(update_data[3],3), " ", update_data[4], "\n"})
-    end
-    hud_id = player_hud_ids[player_name].debug_display_su
-    player:hud_change(hud_id, "text", stat_update_info)
-
-    -- list active status effects
-    local stat_effect_info = ""
-    for effect_name in pairs(p_data.status_effects) do
-        stat_effect_info = stat_effect_info ..  effect_name .. "\n"
-    end
-    hud_id = player_hud_ids[player_name].debug_display_se
-    player:hud_change(hud_id, "text", stat_effect_info)
-
-    -- show player physics properties: speed and jump
-    debug_info = table.concat({
-        "speed: ", round(player:get_physics_override().speed, 2), "\n",
-        "jump: ", round(player:get_physics_override().jump, 2)
+    -- player stat current values
+    debug_info = table_concat({
+        round(player_meta:get_float("health_current"), 2), "\n",
+        round(player_meta:get_float("thirst_current"), 2), "\n",
+        round(player_meta:get_float("hunger_current"), 2), "\n",
+        round(player_meta:get_float("alertness_current"), 2), "\n",
+        round(player_meta:get_float("hygiene_current"), 2), "\n",
+        round(player_meta:get_float("comfort_current"), 2), "\n",
+        round(player_meta:get_float("immunity_current"), 2), "\n",
+        round(player_meta:get_float("sanity_current"), 2), "\n",
+        round(player_meta:get_float("happiness_current"), 2), "\n",
+        round(player_meta:get_float("breath_current"), 2), "\n",
+        round(player_meta:get_float("stamina_current"), 2), "\n",
+        round(player_meta:get_float("weight_current"), 2), "\n",
+        round(player_meta:get_float("legs_current"), 2), "\n",
+        round(player_meta:get_float("hands_current"), 2), "\n",
+        round(player_meta:get_float("illness_current"), 2), "\n",
+        round(player_meta:get_float("poison_current"), 2), "\n",
+        round(player_meta:get_float("wetness_current"), 2), "\n",
     })
-    hud_id = player_hud_ids[player_name].debug_display_physics
+    hud_id = player_hud_ids[player_name].debug_display_2
     player:hud_change(hud_id, "text", debug_info)
 
-    -- show stamina drain modifiers
-    debug_info = table.concat({
-        "stam mod thir: ", p_data.stamina_mod_thirst, "\n",
-        "stam mod hung: ", p_data.stamina_mod_hunger, "\n",
-        "stam mod aler: ", p_data.stamina_mod_alertness, "\n",
-        "stam mod wght: ", p_data.stamina_mod_weight, "\n",
-        "stam mod hot: ", p_data.stamina_mod_hot, "\n",
-        "stam mod cold: ", p_data.stamina_mod_cold
+    -- player stat current ratios
+    debug_info = table_concat({
+        round(p_data.health_ratio * 100, 2), "%\n",
+        round(p_data.thirst_ratio * 100, 2), "%\n",
+        round(p_data.hunger_ratio * 100, 2), "%\n",
+        round(p_data.alertness_ratio * 100, 2), "%\n",
+        round(p_data.hygiene_ratio * 100, 2), "%\n",
+        round(p_data.comfort_ratio * 100, 2), "%\n",
+        round(p_data.immunity_ratio * 100, 2), "%\n",
+        round(p_data.sanity_ratio * 100, 2), "%\n",
+        round(p_data.happiness_ratio * 100, 2), "%\n",
+        round(p_data.breath_ratio * 100, 2), "%\n",
+        round(p_data.stamina_ratio * 100, 2), "%\n",
+        round(p_data.weight_ratio * 100, 2), "%\n",
+        round(p_data.legs_ratio * 100, 2), "%\n",
+        round(p_data.hands_ratio * 100, 2), "%\n",
+        round(p_data.illness_ratio * 100, 2), "%\n",
+        round(p_data.poison_ratio * 100, 2), "%\n",
+        round(p_data.wetness_ratio * 100, 2), "%\n",
+
     })
-    hud_id = player_hud_ids[player_name].debug_display_stats_2
+    hud_id = player_hud_ids[player_name].debug_display_3
     player:hud_change(hud_id, "text", debug_info)
 
-    -- show health loss trackers for stats that can trigger health loss
-    debug_info = table.concat({
-        "hp loss thr: ", p_data.health_loss_thirst, "\n",
-        "hp loss hng: ", p_data.health_loss_hunger, "\n",
-        "hp loss brt: ", p_data.health_loss_breath, "\n",
-        "hp loss wgt: ", p_data.health_loss_weight, "\n",
-        "hp loss hot: ", p_data.health_loss_hot, "\n",
-        "hp loss cold: ", p_data.health_loss_cold
+    -- player stat baseline values
+    debug_info = table_concat({
+        round(p_data.base_value_health, 2), "\n",
+        round(p_data.base_value_thirst, 2), "\n",
+        round(p_data.base_value_hunger, 2), "\n",
+        round(p_data.base_value_alertness, 2), "\n",
+        round(p_data.base_value_hygiene, 2), "\n",
+        round(p_data.base_value_comfort, 2), "\n",
+        round(p_data.base_value_immunity, 2), "\n",
+        round(p_data.base_value_sanity, 2), "\n",
+        round(p_data.base_value_happiness, 2), "\n",
+        "--\n",
+        "--\n",
+        "--\n",
+        round(p_data.base_value_legs, 2), "\n",
+        round(p_data.base_value_hands, 2), "\n",
+        round(p_data.base_value_illness, 2), "\n",
+        round(p_data.base_value_poison, 2), "\n",
+        "--\n",
     })
-    hud_id = player_hud_ids[player_name].debug_display_hp_loss
+    hud_id = player_hud_ids[player_name].debug_display_4
     player:hud_change(hud_id, "text", debug_info)
 
-    -- show comfort loss trackers for stats that can trigger health loss
-    debug_info = table.concat({
-        "comf loss hp: ", p_data.comfort_loss_health, "\n",
-        "comf loss thr: ", p_data.comfort_loss_thirst, "\n",
-        "comf loss hng: ", p_data.comfort_loss_hunger, "\n",
-        "comf loss hyg: ", p_data.comfort_loss_hygiene, "\n",
-        "comf loss brt: ", p_data.comfort_loss_breath, "\n",
-        "comf loss sta: ", p_data.comfort_loss_stamina, "\n",
-        "comf loss wgt: ", p_data.comfort_loss_weight, "\n",
-        "comf loss hot: ", p_data.comfort_loss_hot, "\n",
-        "comf loss cold: ", p_data.comfort_loss_cold
+    -- player stat baseline change rates
+    debug_info = table_concat({
+        "+", round(p_data.recovery_speed_health, 4), " -", round(p_data.drain_speed_health, 4), "\n",
+        "+", round(p_data.recovery_speed_thirst, 4), " -", round(p_data.drain_speed_thirst, 4), "\n",
+        "+", round(p_data.recovery_speed_hunger, 4), " -", round(p_data.drain_speed_hunger, 4), "\n",
+        "+", round(p_data.recovery_speed_alertness, 4), " -", round(p_data.drain_speed_alertness, 4), "\n",
+        "+", round(p_data.recovery_speed_hygiene, 4), " -", round(p_data.drain_speed_hygiene, 4), "\n",
+        "+", round(p_data.recovery_speed_comfort, 4), " -", round(p_data.drain_speed_comfort, 4), "\n",
+        "+", round(p_data.recovery_speed_immunity, 4), " -", round(p_data.drain_speed_immunity, 4), "\n",
+        "+", round(p_data.recovery_speed_sanity, 4), " -", round(p_data.drain_speed_sanity, 4), "\n",
+        "+", round(p_data.recovery_speed_happiness, 4), " -", round(p_data.drain_speed_happiness, 4), "\n",
+        "--\n",
+        "--\n",
+        "--\n",
+        "+", round(p_data.recovery_speed_legs, 4), " -", round(p_data.drain_speed_legs, 4), "\n",
+        "+", round(p_data.recovery_speed_hands, 4), " -", round(p_data.drain_speed_hands, 4), "\n",
+        "+", round(p_data.recovery_speed_illness, 4), " -", round(p_data.drain_speed_illness, 4), "\n",
+        "+", round(p_data.recovery_speed_poison, 4), " -", round(p_data.drain_speed_poison, 4), "\n",
+        "--\n",
     })
-    hud_id = player_hud_ids[player_name].debug_display_comfort_loss
+    hud_id = player_hud_ids[player_name].debug_display_5
     player:hud_change(hud_id, "text", debug_info)
 
-    -- show formspec info
-    debug_info = table.concat({
-        "fs mode: ", p_data.formspec_mode, "\n",
-        "active tab: ", p_data.active_tab
+    -- player stat max values
+    debug_info = table_concat({
+        round(player_meta:get_float("health_max"), 2), "\n",
+        round(player_meta:get_float("thirst_max"), 2), "\n",
+        round(player_meta:get_float("hunger_max"), 2), "\n",
+        round(player_meta:get_float("alertness_max"), 2), "\n",
+        round(player_meta:get_float("hygiene_max"), 2), "\n",
+        round(player_meta:get_float("comfort_max"), 2), "\n",
+        round(player_meta:get_float("immunity_max"), 2), "\n",
+        round(player_meta:get_float("sanity_max"), 2), "\n",
+        round(player_meta:get_float("happiness_max"), 2), "\n",
+        round(player_meta:get_float("breath_max"), 2), "\n",
+        round(player_meta:get_float("stamina_max"), 2), "\n",
+        round(player_meta:get_float("weight_max"), 2), "\n",
+        round(player_meta:get_float("legs_max"), 2), "\n",
+        round(player_meta:get_float("hands_max"), 2), "\n",
+        round(player_meta:get_float("illness_max"), 2), "\n",
+        round(player_meta:get_float("poison_max"), 2), "\n",
+        round(player_meta:get_float("wetness_max"), 2), "\n",
     })
-    hud_id = player_hud_ids[player_name].debug_display_fs_info
+    hud_id = player_hud_ids[player_name].debug_display_6
     player:hud_change(hud_id, "text", debug_info)
 
-    -- show weather / thermal info
-    local air_temp, radiant_temp, water_temp, feels_like_temp
-    if p_data.thermal_units == 1 then
-        air_temp = round(p_data.thermal_air_temp, 1)
-        feels_like_temp = round(p_data.thermal_feels_like, 1)
-        if p_data.underwater and p_data.thermal_water_temp then
-            water_temp = round(p_data.thermal_water_temp, 1)
-        else
-            water_temp = "--"
-        end
-        radiant_temp = round(p_data.thermal_radiant_temp, 1)
-
-    else
-        air_temp = convert_to_celcius(p_data.thermal_air_temp)
-        feels_like_temp = convert_to_celcius(p_data.thermal_feels_like)
-        if p_data.underwater and p_data.thermal_water_temp then
-            water_temp = convert_to_celcius(p_data.thermal_water_temp)
-        else
-            water_temp = "--"
-        end
-        radiant_temp = convert_to_celcius(p_data.thermal_radiant_temp)
-
-    end
-
-    -- for testing purposes
-    if wind_conditions == nil then
-        print("### wind_conditions was nil. checking ss.wind_conditions: " .. dump(ss.wind_conditions))
-    end
-
-    -- for testing purposes
-    if p_data.biome_name == nil then
-        print("### p_data.biome_name was nil")
-    end
-
-    debug_info = table.concat({
-        "air temp: ", air_temp, "\n",
-        "humidity: ", round(p_data.thermal_humidity, 1), "\n",
-        "wind speed: ", wind_conditions[p_data.biome_name].wind_speed, "\n",
-        "elev mod: ", round(-p_data.thermal_factor_elevation, 1), "\n",
-        "humid mod: ", round(p_data.thermal_factor_humidity, 1), "\n",
-        "wind mod: ", round(-p_data.thermal_factor_wind, 1), "\n",
-        "sun mod: ", round(p_data.thermal_factor_sun, 1), "\n",
-        "radiant mod: ", radiant_temp, "\n",
-        "water temp: ", water_temp, "\n",
-        "feels like: ", feels_like_temp, "\n",
-        "status: ", p_data.thermal_status, "\n",
-        "units: ", p_data.thermal_units
+    -- baseline modifiers for health stat
+    debug_info = table_concat({
+        "base value health: ", round(p_data.base_value_health, 2), "\n",
+        "thirst: ", p_data.base_health_mod_thirst, "\n",
+        "hunger: ", p_data.base_health_mod_hunger, "\n",
+        "alertness: ", p_data.base_health_mod_alertness, "\n",
+        "immunity: ", p_data.base_health_mod_immunity, "\n",
+        "hot:  ", p_data.base_health_mod_hot, "\n",
+        "cold: ", p_data.base_health_mod_cold, "\n",
+        "illness: ", p_data.base_health_mod_illness, "\n",
+        "poison: ", p_data.base_health_mod_poison, "\n",
+        "legs: ", p_data.base_health_mod_legs, "\n",
+        "hands: ", p_data.base_health_mod_hands, "\n",
     })
-    hud_id = player_hud_ids[player_name].debug_display_weather
+    hud_id = player_hud_ids[player_name].debug_display_7
     player:hud_change(hud_id, "text", debug_info)
 
-    -- list active stat updates triggered from status effects
-    local se_su_info = ""
-    for update_name in pairs(p_data.se_stat_updates) do
-        se_su_info = se_su_info ..  update_name .. "\n"
-    end
-    hud_id = player_hud_ids[player_name].debug_display_se_su
-    player:hud_change(hud_id, "text", se_su_info)
-
-    -- list all immunity effect trackers
-    debug_info = table.concat({
-        "ie cold: ", p_data.ie_counter_cold, "\n",
-        "ie naus: ", p_data.ie_counter_nausea, "\n",
-        "ie diar: ", p_data.ie_counter_diarrhea, "\n",
-        "ie fung: ", p_data.ie_counter_fungal_infection, "\n",
-        "ie para: ", p_data.ie_counter_parasitic_infection, "\n",
-        "ie bact: ", p_data.ie_counter_bacterial_infection, "\n",
-        "ie virl: ", p_data.ie_counter_viral_infection, "\n",
-        "ie prio: ", p_data.ie_counter_prion_infection
+    -- baseline modifiers for comfort stat
+    debug_info = table_concat({
+        "base val Comfort: ", round(p_data.base_value_comfort, 2), "\n",
+        "health: ", p_data.base_comfort_mod_health, "\n",
+        "thirst: ", p_data.base_comfort_mod_thirst, "\n",
+        "hunger: ", p_data.base_comfort_mod_hunger, "\n",
+        "hygiene: ", p_data.base_comfort_mod_hygiene, "\n",
+        "breath: ", p_data.base_comfort_mod_breath, "\n",
+        "stamina: ", p_data.base_comfort_mod_stamina, "\n",
+        "weight: ", p_data.base_comfort_mod_weight, "\n",
+        "hot: ", p_data.base_comfort_mod_hot, "\n",
+        "cold: ", p_data.base_comfort_mod_cold, "\n",
+        "illness: ", p_data.base_comfort_mod_illness, "\n",
+        "poison: ", p_data.base_comfort_mod_poison, "\n",
+        "legs: ", p_data.base_comfort_mod_legs, "\n",
+        "hands: ", p_data.base_comfort_mod_hands, "\n",
     })
-    hud_id = player_hud_ids[player_name].debug_display_ie_counters
+    hud_id = player_hud_ids[player_name].debug_display_8
     player:hud_change(hud_id, "text", debug_info)
 
-    -- show game timer as a test
-    --hud_id = player_hud_ids[player_name].debug_display_time
-    --player:hud_change(hud_id, "text", core.get_gametime())
+    -- baseline modifiers for immunity stat
+    debug_info = table_concat({
+        "base val Immunity: ", round(p_data.base_value_immunity, 2), "\n",
+        "thirst: ", p_data.base_immunity_mod_thirst, "\n",
+        "hunger: ", p_data.base_immunity_mod_hunger, "\n",
+        "alertness: ", p_data.base_immunity_mod_alertness, "\n",
+        "hygiene: ", p_data.base_immunity_mod_hygiene, "\n",
+        "happiness: ", p_data.base_immunity_mod_happiness, "\n",
+        "cold: ", p_data.base_immunity_mod_cold, "\n",
+    })
+    hud_id = player_hud_ids[player_name].debug_display_9
+    player:hud_change(hud_id, "text", debug_info)
+
+    -- baseline modifiers for sanity stat
+    debug_info = table_concat({
+        "base val Sanity: ", round(p_data.base_value_sanity, 2), "\n",
+        "health: ", p_data.base_sanity_mod_health, "\n",
+        "alertness: ", p_data.base_sanity_mod_alertness, "\n",
+        "breath: ", p_data.base_sanity_mod_breath, "\n",
+    })
+    hud_id = player_hud_ids[player_name].debug_display_10
+    player:hud_change(hud_id, "text", debug_info)
+
+    -- baseline modifiers for happiness stat
+    debug_info = table_concat({
+        "base val Happiness: ", round(p_data.base_value_happiness, 2), "\n",
+        "alertness: ", p_data.base_happiness_mod_alertness, "\n",
+        "comfort: ", p_data.base_happiness_mod_comfort, "\n",
+    })
+    hud_id = player_hud_ids[player_name].debug_display_11
+    player:hud_change(hud_id, "text", debug_info)
+
+    -- health recovery trackers
+    debug_info = table_concat({
+        "health rec thirst: ", p_data.health_rec_from_thirst, "\n",
+        "health rec hunger: ", p_data.health_rec_from_hunger, "\n",
+        "health rec breath: ", p_data.health_rec_from_breath, "\n",
+        "health rec hot: ", p_data.health_rec_from_hot, "\n",
+        "health rec cold: ", p_data.health_rec_from_cold, "\n",
+        "health rec illness: ", p_data.health_rec_from_illness, "\n",
+        "health rec poison: ", p_data.health_rec_from_poison, "\n",
+    })
+    hud_id = player_hud_ids[player_name].debug_display_12
+    player:hud_change(hud_id, "text", debug_info)
+
+    -- sneeze, cough, and vomit timers
+    debug_info = table_concat({
+        "sneeze timer: ", round(p_data.sneeze_timer, 2), "\n",
+        "cough  timer: ", round(p_data.cough_timer, 2), "\n",
+        "vomit  timer: ", round(p_data.vomit_timer, 2), "\n",
+    })
+    hud_id = player_hud_ids[player_name].debug_display_13
+    player:hud_change(hud_id, "text", debug_info)
+
+    -- legs damage total
+    debug_info = table_concat({
+        "legs_damage_total: ", p_data.legs_damage_total, "\n",
+        "hands_damage_total: ", p_data.hands_damage_total, "\n",
+    })
+    hud_id = player_hud_ids[player_name].debug_display_14
+    player:hud_change(hud_id, "text", debug_info)
+
+    -- jump and jump buffs
+    debug_info = table_concat({
+        "JUMP FINAL: ", round(physics.jump, 2), "\n",
+        "curr speed: ", p_data.jump_height_current, "\n",
+        "weight: ", p_data.jump_buff_weight, "\n",
+        "crouch: ", p_data.jump_buff_crouch, "\n",
+        "run: ", p_data.jump_buff_run, "\n",
+        "exhaustion: ", p_data.jump_buff_exhaustion, "\n",
+        "illness: ", p_data.jump_buff_illness, "\n",
+        "poison: ", p_data.jump_buff_poison, "\n",
+        "vomit: ", p_data.jump_buff_vomit, "\n",
+        "sneeze: ", p_data.jump_buff_sneeze, "\n",
+        "cough: ", p_data.jump_buff_cough, "\n",
+        "legs: ", p_data.jump_buff_legs, "\n",
+    })
+    hud_id = player_hud_ids[player_name].debug_display_15
+    player:hud_change(hud_id, "text", debug_info)
+
+    -- hands injury mods
+    debug_info = table_concat({
+        "hand_injury_mod_glove: ", p_data.hand_injury_mod_glove, "\n",
+        "hand_injury_mod_skill: ", p_data.hand_injury_mod_skill, "\n",
+    })
+    hud_id = player_hud_ids[player_name].debug_display_16
+    player:hud_change(hud_id, "text", debug_info)
+
+    -- legs injury mods
+    debug_info = table_concat({
+        "fall_health_modifier: ", p_data.fall_health_modifier, "\n",
+        "leg_injury_mod_foot_clothing: ", p_data.leg_injury_mod_foot_clothing, "\n",
+        "leg_injury_mod_foot_armor: ", p_data.leg_injury_mod_foot_armor, "\n",
+        "leg_injury_mod_skill: ", p_data.leg_injury_mod_skill, "\n",
+        "leg_injury_mod_water: ", p_data.leg_injury_mod_water, "\n",
+    })
+    hud_id = player_hud_ids[player_name].debug_display_17
+    player:hud_change(hud_id, "text", debug_info)
+
+    -- modifier values triggered by subskills
+    debug_info = table_concat({
+        "stam rec fast_charger: ", p_data.stamina_rec_mod_fast_charger, "\n",
+        "stam rec mod hot: ", p_data.stamina_rec_mod_hot, "\n",
+        "stam rec mod cold: ", p_data.stamina_rec_mod_cold, "\n",
+        "stam rec mod illness: ", p_data.stamina_rec_mod_illness, "\n",
+        "stam rec mod poison: ", p_data.stamina_rec_mod_poison, "\n",
+        "\n",
+        "hp drain thudmuffin: ", p_data.health_drain_mod_thudmuffin, "\n",
+        "hp drain sipless_survivor: ", p_data.health_drain_mod_sipless_survivor, "\n",
+        "hp drain foodless_freak: ", p_data.health_drain_mod_foodless_freak, "\n",
+        "hp drain smotherproof: ", p_data.health_drain_mod_smotherproof, "\n",
+        "hp drain stage4_nope: ", p_data.health_drain_mod_stage4_nope, "\n",
+        "hp drain dinner_death_dodger: ", p_data.health_drain_mod_dinner_death_dodger, "\n",
+        "hp drain freezeproof: ", p_data.health_drain_mod_freezeproof, "\n",
+        "hp drain scorchproof: ", p_data.health_drain_mod_scorchproof, "\n",
+        "\n",
+        "stam drain burnout_blocker: ", p_data.stamina_drain_mod_burnout_blocker, "\n",
+        "brea drain deep_diver: ", p_data.breath_drain_mod_deep_diver, "\n",
+        "brea rec oxygenator: ", p_data.breath_rec_mod_oxygenator, "\n",
+        "ill drain sniffle_shield: ", p_data.illness_drain_mod_sniffle_shield, "\n",
+        "pois drain toxintanium: ", p_data.poison_drain_mod_toxintanium, "\n",
+        "leg drain shin_credible: ", p_data.leg_drain_mod_shin_credible, "\n",
+        "leg drain knuckle_saurus: ", p_data.hand_drain_mod_knuckle_saurus, "\n",
+        "xp gain fast_learner: ", p_data.experience_rec_mod_fast_learner, "\n",
+        "weight forearm_freak: ", p_data.weight_mod_forearm_freak, "\n",
+    })
+    hud_id = player_hud_ids[player_name].debug_display_18
+    player:hud_change(hud_id, "text", debug_info)
+
+    -- modifier values triggered by subskills (part 2)
+    debug_info = table_concat({
+        "speed mod speed_walker: ", p_data.speed_mod_speed_walker, "\n",
+        "speed mod sprinter: ", p_data.speed_mod_sprinter, "\n",
+        "speed mod creeper: ", p_data.speed_mod_creeper, "\n",
+        "speed mod cargo_tank: ", p_data.speed_mod_cargo_tank, "\n",
+        "jump mod launchitude: ", p_data.jump_mod_launchitude, "\n",
+        "jump mod bulk_bouncer: ", p_data.jump_mod_bulk_bouncer, "\n",
+        "temp mod coolossus: ", p_data.temperature_mod_coolossus, "\n",
+        "temp mod crispy_crusader: ", p_data.temperature_mod_crispy_crusader, "\n",
+        "noise mod unchokeable: ", p_data.noise_mod_unchokeable, "\n",
+        "noise mod booger_barrier: ", p_data.noise_mod_booger_barrier, "\n",
+        "noise mod unhiccable: ", p_data.noise_mod_unhiccable, "\n",
+    })
+    hud_id = player_hud_ids[player_name].debug_display_21
+    player:hud_change(hud_id, "text", debug_info)
+
+    -- speed and speed buffs
+    debug_info = table_concat({
+        "SPEED FINAL: ", round(physics.speed, 2), "\n",
+        "curr speed: ", p_data.speed_walk_current, "\n",
+        "weight: ", p_data.speed_buff_weight, "\n",
+        "crouch: ", p_data.speed_buff_crouch, "\n",
+        "run: ", p_data.speed_buff_run, "\n",
+        "exhaustion: ", p_data.speed_buff_exhaustion, "\n",
+        "illness: ", p_data.speed_buff_illness, "\n",
+        "poison: ", p_data.speed_buff_poison, "\n",
+        "vomit: ", p_data.speed_buff_vomit, "\n",
+        "sneeze: ", p_data.speed_buff_sneeze, "\n",
+        "cough: ", p_data.speed_buff_cough, "\n",
+        "legs: ", p_data.speed_buff_legs, "\n",
+    })
+    hud_id = player_hud_ids[player_name].debug_display_19
+    player:hud_change(hud_id, "text", debug_info)
+
+    -- current aniimation state and moisture related mods
+    debug_info = table_concat({
+        "curr anim state: ", p_data.current_anim_state, "\n",
+        "water_level: ", dump(p_data.water_level), "\n",
+        "equipment_count: ", p_data.equipment_count, "\n",
+        "wetness_drain_mod_equip: ", p_data.wetness_drain_mod_equip, "\n",
+    })
+    hud_id = player_hud_ids[player_name].debug_display_20
+    player:hud_change(hud_id, "text", debug_info)
 
     local job_handle = mt_after(0.5, refresh_debug_display, player, player_name, p_data, player_meta)
     job_handles[player_name].refresh_debug_display = job_handle
@@ -1382,30 +1769,11 @@ core.override_item("ss:debug_wand", {
             -- hide debug info
             else
                 p_data.is_debug_on = 0
-                local hud_id = player_hud_ids[player_name].debug_display_bg
-                user:hud_remove(hud_id)
-                hud_id = player_hud_ids[player_name].debug_display_stats
-                user:hud_remove(hud_id)
-                hud_id = player_hud_ids[player_name].debug_display_su
-                user:hud_remove(hud_id)
-                hud_id = player_hud_ids[player_name].debug_display_se
-                user:hud_remove(hud_id)
-                hud_id = player_hud_ids[player_name].debug_display_physics
-                user:hud_remove(hud_id)
-                hud_id = player_hud_ids[player_name].debug_display_stats_2
-                user:hud_remove(hud_id)
-                hud_id = player_hud_ids[player_name].debug_display_hp_loss
-                user:hud_remove(hud_id)
-                hud_id = player_hud_ids[player_name].debug_display_comfort_loss
-                user:hud_remove(hud_id)
-                hud_id = player_hud_ids[player_name].debug_display_weather
-                user:hud_remove(hud_id)
-                hud_id = player_hud_ids[player_name].debug_display_fs_info
-                user:hud_remove(hud_id)
-                hud_id = player_hud_ids[player_name].debug_display_se_su
-                user:hud_remove(hud_id)
-                hud_id = player_hud_ids[player_name].debug_display_ie_counters
-                user:hud_remove(hud_id)
+                for i = 0, 21 do
+                    local hud_id = player_hud_ids[player_name]["debug_display_" .. i]
+                    user:hud_remove(hud_id)
+                end
+
                 local job_handle = job_handles[player_name].refresh_debug_display
                 job_handle:cancel()
             end
@@ -1514,7 +1882,6 @@ core.register_on_player_receive_fields(function(player, formname, fields)
     elseif formspec_mode == "stats_wand" then
         debug(flag2, "  used STATS WAND")
         play_sound("button", {player_name = player_name})
-
         if fields.increase_health then
             if fields.change_type_health == "curr" then
                 debug(flag2, "  increasing current health")
@@ -1717,6 +2084,91 @@ core.register_on_player_receive_fields(function(player, formname, fields)
             else
                 debug(flag2, "  decreasing max experience")
                 set_stat_max(player, p_data, fields, "experience", "down")
+            end
+
+        elseif fields.increase_legs then
+            if fields.change_type_legs == "curr" then
+                debug(flag2, "  increase legs")
+                set_stat_current(player, p_data, fields, "legs", "up")
+            else
+                debug(flag2, "  increasing max legs")
+                set_stat_max(player, p_data, fields, "legs", "up")
+            end
+        elseif fields.decrease_legs then
+            if fields.change_type_legs == "curr" then
+                debug(flag2, "  decreasing legs")
+                set_stat_current(player, p_data, fields, "legs", "down")
+            else
+                debug(flag2, "  decreasing max legs")
+                set_stat_max(player, p_data, fields, "legs", "down")
+            end
+
+        elseif fields.increase_hands then
+            if fields.change_type_hands == "curr" then
+                debug(flag2, "  increase hands")
+                set_stat_current(player, p_data, fields, "hands", "up")
+            else
+                debug(flag2, "  increasing max hands")
+                set_stat_max(player, p_data, fields, "hands", "up")
+            end
+        elseif fields.decrease_hands then
+            if fields.change_type_hands == "curr" then
+                debug(flag2, "  decreasing hands")
+                set_stat_current(player, p_data, fields, "hands", "down")
+            else
+                debug(flag2, "  decreasing max hands")
+                set_stat_max(player, p_data, fields, "hands", "down")
+            end
+
+        elseif fields.increase_illness then
+            if fields.change_type_illness == "curr" then
+                debug(flag2, "  increase illness")
+                set_stat_current(player, p_data, fields, "illness", "up")
+            else
+                debug(flag2, "  increasing max illness")
+                set_stat_max(player, p_data, fields, "illness", "up")
+            end
+        elseif fields.decrease_illness then
+            if fields.change_type_illness == "curr" then
+                debug(flag2, "  decreasing illness")
+                set_stat_current(player, p_data, fields, "illness", "down")
+            else
+                debug(flag2, "  decreasing max illness")
+                set_stat_max(player, p_data, fields, "illness", "down")
+            end
+
+        elseif fields.increase_poison then
+            if fields.change_type_poison == "curr" then
+                debug(flag2, "  increase poison")
+                set_stat_current(player, p_data, fields, "poison", "up")
+            else
+                debug(flag2, "  increasing max poison")
+                set_stat_max(player, p_data, fields, "poison", "up")
+            end
+        elseif fields.decrease_poison then
+            if fields.change_type_poison == "curr" then
+                debug(flag2, "  decreasing poison")
+                set_stat_current(player, p_data, fields, "poison", "down")
+            else
+                debug(flag2, "  decreasing max poison")
+                set_stat_max(player, p_data, fields, "poison", "down")
+            end
+
+        elseif fields.increase_wetness then
+            if fields.change_type_wetness == "curr" then
+                debug(flag2, "  increase wetness")
+                set_stat_current(player, p_data, fields, "wetness", "up")
+            else
+                debug(flag2, "  increasing max wetness")
+                set_stat_max(player, p_data, fields, "wetness", "up")
+            end
+        elseif fields.decrease_wetness then
+            if fields.change_type_wetness == "curr" then
+                debug(flag2, "  decreasing wetness")
+                set_stat_current(player, p_data, fields, "wetness", "down")
+            else
+                debug(flag2, "  decreasing max wetness")
+                set_stat_max(player, p_data, fields, "wetness", "down")
             end
 
         elseif fields.increase_weight then
@@ -2051,6 +2503,52 @@ core.register_on_player_receive_fields(function(player, formname, fields)
         mt_show_formspec(player_name, "ss:ui_teleporter", formspec)
         player_control_fix(player)
 
+    elseif formspec_mode == "sound_wand" then
+        debug(flag2, "  used SOUND WAND")
+
+        if fields.play_sound then
+            debug(flag2, "  playing sound..")
+            debug(flag2, "  sound_data (before): " .. dump(sound_data))
+            stop_current_sound(player_name)
+
+            local filename = fields.selected_sound
+            local gain = tonumber(fields.selected_gain)
+            local pitch = tonumber(fields.selected_pitch)
+            local fade = tonumber(fields.selected_fade)
+            local loop = fields.selected_loop
+
+            debug(flag2, "  filename: " .. filename)
+            debug(flag2, "  gain: " .. gain)
+            debug(flag2, "  pitch: " .. pitch)
+            debug(flag2, "  fade: " .. fade)
+            debug(flag2, "  loop: " .. loop)
+
+            local loop_bool
+            if loop == "true" then
+                loop_bool = true
+            else
+                loop_bool = false
+            end
+            local handle = core.sound_play(filename, {
+                gain = gain,
+                pitch = pitch,
+                fade = fade,
+                loop = loop_bool,
+            })
+            sound_data[player_name] = {filename, handle}
+            debug(flag2, "  sound_data (after): " .. dump(sound_data))
+
+        elseif fields.stop_sound then
+            debug(flag2, "  stopping sound..")
+            debug(flag2, "  sound_data (before): " .. dump(sound_data))
+            stop_current_sound(player_name)
+            debug(flag2, "  sound_data (after): " .. dump(sound_data))
+
+        else
+            debug(flag2, "  only clicked on dropdown")
+        end
+
+
     else
         debug(flag2, "  interaction not from an admin item. NO FURTHER ACTION.")
         debug(flag2, "register_on_player_receive_fields() end " .. core.get_gametime())
@@ -2068,13 +2566,7 @@ core.register_on_joinplayer(function(player)
     local p_data = player_data[player_name]
     p_data.is_debug_on = 0
 
-    --[[
-    initialize_debug_huds(player, player_name)
-
-    mt_after(1, function()
-        refresh_debug_display(player, player_name, p_data, player:get_meta())
-    end)
-    --]]
+    print("### world seed: " .. mt_get_mapgen_setting("seed"))
 
 end)
 

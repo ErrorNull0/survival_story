@@ -16,7 +16,7 @@ local play_sound = ss.play_sound
 local build_fs = ss.build_fs
 local get_itemstack_weight = ss.get_itemstack_weight
 local get_fs_weight = ss.get_fs_weight
-local update_stat = ss.update_stat
+local do_stat_update_action = ss.do_stat_update_action
 local get_item_burn_time = ss.get_item_burn_time
 
 -- cache global variables for faster access
@@ -68,9 +68,9 @@ local function reset_bundle_grid(player, p_data)
         end
     end
     if dropped_item_count > 0 then
-        notify(player, dropped_item_count .. " items from bundle attempt dropped to the ground", 4, 0.5, 0, 2)
+        notify(player, "inventory", dropped_item_count .. " items from bundle attempt dropped to the ground", 4, 0.5, 0, 2)
     else
-        notify(player, "Items from bundle attempt returned to invenory", 4, 0.5, 0, 2)
+        notify(player, "inventory", "Items from bundle attempt returned to invenory", 4, 0.5, 0, 2)
     end
 
     p_data.bundle_status = "inactive"
@@ -95,7 +95,7 @@ local function reset_bundle_slot(player)
         else
             debug(flag7, "    no space in main inv")
             mt_add_item(player:get_pos(), bundle_item)
-            notify(player, "Item bundle dropped to the ground", NOTIFY_DURATION, 0.5, 0, 2)
+            notify(player, "inventory", "Item bundle dropped to the ground", NOTIFY_DURATION, 0.5, 0, 2)
         end
         player_inv:set_stack("bundle_slot", 1, ItemStack(""))
     end
@@ -116,11 +116,11 @@ local function cancel_view_bundle(player, p_data)
         local bundle_item = player_inv:get_stack("bundle_slot", 1)
         if player_inv:room_for_item("main", bundle_item) then
             player_inv:add_item("main", bundle_item)
-            notify(player, "Item bundle returned to inventory", 3, 0.5, 0, 2)
+            notify(player, "inventory", "Item bundle returned to inventory", 3, 0.5, 0, 2)
         else
             debug(flag8, "      no space in main inv")
             mt_add_item(player:get_pos(), bundle_item)
-            notify(player, "Item bundle dropped to the ground", 3, 0.5, 0, 2)
+            notify(player, "inventory", "Item bundle dropped to the ground", 3, 0.5, 0, 2)
         end
 
         -- remove the bundle item from the bundle slot
@@ -369,7 +369,7 @@ local function get_fs_tab_bundle(player_inv, p_data, player_meta, item_name)
             TOOLTIP_COLOR_TEXT,
         "]",
 
-        "tabheader[0,0;inv_tabs;Main,Status,Skills,Bundle,Settings,?,*;4;true;true]",
+        "tabheader[0,0;inv_tabs;Main,Equipment,Status,Skills,Bundle,Settings,?,*;5;true;true]",
         "hypertext[0.2,0.2;4,1.5;bundle_title;",
         "<style color=#AAAAAA size=16><b>BUNDLE</b></style>]",
 
@@ -494,7 +494,7 @@ core.register_allow_player_inventory_action(function(player, action, inventory, 
                     debug(flag3, "  this is item has spillable contents")
                     if to_index > 8 then
                         debug(flag3, "  spillable item cannot be placed in main inventory")
-                        notify(player, NOTIFICATIONS.pickup_liquid_fail, NOTIFY_DURATION, 0, 0.5, 3)
+                        notify(player, "inventory", NOTIFICATIONS.pickup_liquid_fail, NOTIFY_DURATION, 0, 0.5, 3)
                         quantity_allowed = 0
                     else
                         debug(flag3, "  spillable item moved within hotbar. allowed")
@@ -521,18 +521,18 @@ core.register_allow_player_inventory_action(function(player, action, inventory, 
                                 quantity_allowed = 1
                             else
                                 debug(flag3, "  target slot occupied.")
-                                notify(player, "Cannot swap - find empty slot", NOTIFY_DURATION, 0, 0.5, 3)
+                                notify(player, "inventory", "Cannot swap - find empty slot", NOTIFY_DURATION, 0, 0.5, 3)
                                 quantity_allowed = 0
                             end
                         else
                             debug(flag3, "  item is NOT same type as primary item. not allowed")
-                            notify(player, "Only same item types can be bundled", NOTIFY_DURATION, 0, 0.5, 3)
+                            notify(player, "inventory", "Only same item types can be bundled", NOTIFY_DURATION, 0, 0.5, 3)
                             quantity_allowed = 0
                         end
 
                     else
                         debug(flag3, "  moving to primary slot. not allowed.")
-                        notify(player, "Primary slot already occupied", NOTIFY_DURATION, 0, 0.5, 3)
+                        notify(player, "inventory", "Primary slot already occupied", NOTIFY_DURATION, 0, 0.5, 3)
                         quantity_allowed = 0
                     end
 
@@ -540,11 +540,11 @@ core.register_allow_player_inventory_action(function(player, action, inventory, 
                     debug(flag3, "  bundle not started")
                     if SPILLABLE_ITEM_NAMES[item_name] then
                         debug(flag3, "  item is spillable. not allowed.")
-                        notify(player, "Spillable items cannot be bundled", NOTIFY_DURATION, 0, 0.5, 3)
+                        notify(player, "inventory", "Spillable items cannot be bundled", NOTIFY_DURATION, 0, 0.5, 3)
                         quantity_allowed = 0
                     elseif item_name == "ss:item_bundle" then
                         debug(flag3, "  item bundles not allowed.")
-                        notify(player, "Item bundles cannot be bundled further", NOTIFY_DURATION, 0, 0.5, 3)
+                        notify(player, "inventory", "Item bundles cannot be bundled further", NOTIFY_DURATION, 0, 0.5, 3)
                         quantity_allowed = 0
                     else
                         debug(flag3, "  item is not spillable. allowed.")
@@ -563,7 +563,7 @@ core.register_allow_player_inventory_action(function(player, action, inventory, 
                 else
                     debug(flag3, "  not an item bundle")
                     quantity_allowed = 0
-                    notify(player, "Item must be a bundle", NOTIFY_DURATION, 0, 0.5, 3)
+                    notify(player, "inventory", "Item must be a bundle", NOTIFY_DURATION, 0, 0.5, 3)
                 end
 
             else
@@ -584,14 +584,14 @@ core.register_allow_player_inventory_action(function(player, action, inventory, 
                             quantity_allowed = 1
                         else
                             debug(flag3, "  slot not empty")
-                            notify(player, "Cannot swap - find empty slot", NOTIFY_DURATION, 0, 0.5, 3)
+                            notify(player, "inventory", "Cannot swap - find empty slot", NOTIFY_DURATION, 0, 0.5, 3)
                             quantity_allowed = 0
                         end
                     else
                         debug(flag3, "  to primary slot..")
                         if item:equals(to_item) then
                             quantity_allowed = 0
-                            notify(player, "Cannot swap with primary item", NOTIFY_DURATION, 0, 0.5, 3)
+                            notify(player, "inventory", "Cannot swap with primary item", NOTIFY_DURATION, 0, 0.5, 3)
                         else
                             quantity_allowed = 1
                         end
@@ -602,13 +602,13 @@ core.register_allow_player_inventory_action(function(player, action, inventory, 
                         debug(flag3, "  to non-primary slot")
                         if to_item:is_empty() then
                             debug(flag3, "  slot is empty. not allowed")
-                            notify(player, "Primary bundle item cannot be moved there", NOTIFY_DURATION, 0, 0.5, 3)
+                            notify(player, "inventory", "Primary bundle item cannot be moved there", NOTIFY_DURATION, 0, 0.5, 3)
                             quantity_allowed = 0
                         else
                             debug(flag3, "  slot is not empty. swapping item from primary slot with another item.")
                             if item:equals(to_item) then
                                 quantity_allowed = 0
-                                notify(player, "Cannot swap with primary item", NOTIFY_DURATION, 0, 0.5, 3)
+                                notify(player, "inventory", "Cannot swap with primary item", NOTIFY_DURATION, 0, 0.5, 3)
                             else
                                 quantity_allowed = 1
                             end
@@ -625,7 +625,7 @@ core.register_allow_player_inventory_action(function(player, action, inventory, 
                     debug(flag3, "  p_data.bundle_item_count: " .. p_data.bundle_item_count)
                     if p_data.bundle_item_count > 1 then
                         debug(flag3, "  Cannot remove primary bundle item while other bundle items remain.")
-                        notify(player, "Remove other bundle items first.", NOTIFY_DURATION, 0, 0.5, 3)
+                        notify(player, "inventory", "Remove other bundle items first.", NOTIFY_DURATION, 0, 0.5, 3)
                         quantity_allowed = 0
                     else
                         debug(flag3, "  allowed")
@@ -642,7 +642,7 @@ core.register_allow_player_inventory_action(function(player, action, inventory, 
 
             elseif to_list == "bundle_grid" then
                 debug(flag3, "  to Bundle grid. not allowed.")
-                notify(player, "Item bundles cannot be bundled further", NOTIFY_DURATION, 0, 0.5, 3)
+                notify(player, "inventory", "Item bundles cannot be bundled further", NOTIFY_DURATION, 0, 0.5, 3)
                 quantity_allowed = 0
 
             else debug(flag3, "  ERROR - Unexpected 'to_list' value: " .. to_list) end
@@ -669,7 +669,7 @@ core.register_allow_player_inventory_action(function(player, action, inventory, 
                 debug(flag3, "  p_data.bundle_item_count: " .. p_data.bundle_item_count)
                 if p_data.bundle_item_count > 1 then
                     debug(flag3, "  Cannot remove primary bundle item while other bundle items remain.")
-                    notify(player, "Cannot drop primary item while others remain", NOTIFY_DURATION, 0, 0.5, 3)
+                    notify(player, "inventory", "Cannot drop primary item while others remain", NOTIFY_DURATION, 0, 0.5, 3)
                     quantity_allowed = 0
                 else
                     debug(flag3, "  allowed since no other bundle items exist")
@@ -851,8 +851,7 @@ core.register_on_player_inventory_action(function(player, action, inventory, inv
         debug(flag4, "  REMOVED")
 
         -- update weight statbar hud. this also updates weight metadata.
-        local update_data = {"normal", "weight", -weight, 1, 1, "curr", "add", true}
-        update_stat(player, p_data, player_meta, update_data)
+        do_stat_update_action(player, p_data, player_meta, "normal", "weight", -weight, "curr", "add", true)
 
         local formspec
         if listname == "bundle_grid" then
@@ -932,7 +931,7 @@ core.register_on_player_receive_fields(function(player, formname, fields)
     debug(flag1, "  formname: " .. formname)
 
     -- occurs when clicking on the BUNDLE tab while previously from a different tab.
-    if fields.inv_tabs == "4" then
+    if fields.inv_tabs == "5" then
         debug(flag1, "  clicked on 'BUNDLE' tab!")
         play_sound("button", {player_name = player_name})
         p_data.active_tab = "bundle"
@@ -973,14 +972,12 @@ core.register_on_player_receive_fields(function(player, formname, fields)
             elseif bundle_status == "view_bundle" then
                 debug(flag1, "  was viewing a bundle. resetting item slots..")
                 cancel_view_bundle(player, p_data)
-                --notify(player, "Bundle closed", NOTIFY_DURATION, 0.5, 0, 2)
                 mt_after(0.25, function()
                     play_sound("bundle_close", {player_name = player_name})
                 end)
             else
                 debug(flag1, "  was updating or creating a bundle. resetting item slots..")
                 reset_bundle_grid(player, p_data)
-                --notify(player, "Bundle items placed into inventory", NOTIFY_DURATION, 0.5, 0, 2)
                 mt_after(0.25, function()
                     play_sound("bundle_cancel", {player_name = player_name})
                 end)
@@ -994,9 +991,10 @@ core.register_on_player_receive_fields(function(player, formname, fields)
         elseif fields.inv_tabs == "1"
             or fields.inv_tabs == "2"
             or fields.inv_tabs == "3"
-            or fields.inv_tabs == "5"
+            or fields.inv_tabs == "4"
             or fields.inv_tabs == "6"
-            or fields.inv_tabs == "7" then
+            or fields.inv_tabs == "7"
+            or fields.inv_tabs == "8" then
             debug(flag1, "  clicked away from BUNDLE tab and onto MAIN tab")
             local bundle_status = p_data.bundle_status
             debug(flag1, "  bundle_status: " .. bundle_status)
@@ -1006,14 +1004,12 @@ core.register_on_player_receive_fields(function(player, formname, fields)
             elseif bundle_status == "view_bundle" then
                 debug(flag1, "  was viewing a bundle. resetting item slots..")
                 cancel_view_bundle(player, p_data)
-                --notify(player, "Bundle closed", NOTIFY_DURATION, 0.5, 0, 2)
                 mt_after(0.25, function()
                     play_sound("bundle_close", {player_name = player_name})
                 end)
             else
                 debug(flag1, "  was updating or creating a bundle. resetting item slots..")
                 reset_bundle_grid(player, p_data)
-                --notify(player, "Bundle items placed into inventory", NOTIFY_DURATION, 0.5, 0, 2)
                 mt_after(0.25, function()
                     play_sound("bundle_cancel", {player_name = player_name})
                 end)
@@ -1033,14 +1029,12 @@ core.register_on_player_receive_fields(function(player, formname, fields)
             elseif bundle_status == "view_bundle" then
                 debug(flag1, "  was viewing a bundle. resetting item slots..")
                 cancel_view_bundle(player, p_data)
-                --notify(player, "Bundle closed", NOTIFY_DURATION, 0.5, 0, 2)
                 mt_after(0.25, function()
                     play_sound("bundle_close", {player_name = player_name})
                 end)
             else
                 debug(flag1, "  was updating or creating a bundle. resetting item slots..")
                 reset_bundle_grid(player, p_data)
-                --notify(player, "Bundle items placed into inventory", NOTIFY_DURATION, 0.5, 0, 2)
                 mt_after(0.25, function()
                     play_sound("bundle_cancel", {player_name = player_name})
                 end)
@@ -1055,7 +1049,7 @@ core.register_on_player_receive_fields(function(player, formname, fields)
             play_sound("button", {player_name = player_name})
             local player_inv = player:get_inventory()
             if player_inv:is_empty("bundle_slot") then
-                notify(player, "Place bundled item into item bundle slot", 4, 0, 0.5, 3)
+                notify(player, "inventory", "Place bundled item into item bundle slot", 4, 0, 0.5, 3)
             else
                 play_sound("bundle_open", {player_name = player_name})
                 p_data.bundle_status = "view_bundle"
@@ -1178,8 +1172,7 @@ core.register_on_player_receive_fields(function(player, formname, fields)
                     mt_add_item(player:get_pos(), bundle_item)
 
                     -- reduce inventory weight based on the bundle item's weight
-                    local update_data = {"normal", "weight", -bundle_weight, 1, 1, "curr", "add", true}
-                    update_stat(player, p_data, player_meta, update_data)
+                    do_stat_update_action(player, p_data, player_meta, "normal", "weight", -bundle_weight, "curr", "add", true)
 
                     -- update weight formspec for Main tab
                     local fs = player_data[player_name].fs
@@ -1187,8 +1180,8 @@ core.register_on_player_receive_fields(function(player, formname, fields)
                     player_meta:set_string("fs", mt_serialize(fs))
                     player:set_inventory_formspec(build_fs(fs))
 
-                    notify(player, "New bundle item dropped to ground.", NOTIFY_DURATION, 0.8, 0, 2)
-                    notify(player, "No inventory space", NOTIFY_DURATION, 0, 0.4, 3)
+                    notify(player, "inventory", "New bundle item dropped to ground.", NOTIFY_DURATION, 0.8, 0, 2)
+                    notify(player, "inventory", "No inventory space", NOTIFY_DURATION, 0, 0.4, 3)
                 end
 
                 play_sound("bundle_close", {player_name = player_name})
@@ -1206,7 +1199,7 @@ core.register_on_player_receive_fields(function(player, formname, fields)
             else
                 debug(flag1, "  not enough items. NO FURTHER ACTION.")
                 play_sound("button", {player_name = player_name})
-                notify(player, "Bundle needs 1 more item", NOTIFY_DURATION, 0, 0.5, 3)
+                notify(player, "inventory", "Bundle needs 1 more item", NOTIFY_DURATION, 0, 0.5, 3)
             end
 
         elseif fields.bundle_close then

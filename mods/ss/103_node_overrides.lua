@@ -10,7 +10,7 @@ local mt_get_pointed_thing_position = core.get_pointed_thing_position
 local mt_sound_play = core.sound_play
 local debug = ss.debug
 local notify = ss.notify
-local update_stat = ss.update_stat
+local do_stat_update_action = ss.do_stat_update_action
 local update_fs_weight = ss.update_fs_weight
 local get_itemstack_weight = ss.get_itemstack_weight
 local add_item_to_itemdrop_bag = ss.add_item_to_itemdrop_bag
@@ -119,10 +119,6 @@ core.override_item("ss:stone", {
 	end,
 	on_punch = function(pos, node, puncher, pointed_thing)
 		mt_dig_node(pos, puncher)
-		mt_sound_play("ss_break_stone", {
-			object = puncher,
-			max_hear_distance = 10
-		}, true)
 	end
 })
 
@@ -157,10 +153,6 @@ core.override_item("ss:stick", {
 	end,
 	on_punch = function(pos, node, puncher, pointed_thing)
 		mt_dig_node(pos, puncher)
-		mt_sound_play("ss_inv_wood", {
-			object = puncher,
-			max_hear_distance = 10
-		}, true)
 	end
 })
 
@@ -527,8 +519,7 @@ core.override_item("default:snow", {
         local player_meta = user:get_meta()
         local weight = get_itemstack_weight(ItemStack("default:snow"))
 		local p_data = ss.player_data[user:get_player_name()]
-		local update_data = {"normal", "weight", -weight, 1, 1, "curr", "add", true}
-		update_stat(user, p_data, player_meta, update_data)
+		do_stat_update_action(user, p_data, player_meta, "normal", "weight", -weight, "curr", "add", true)
         update_fs_weight(user, player_meta)
 		return itemstack
 	end,
@@ -733,13 +724,12 @@ for node_name in pairs(core.registered_nodes) do
 				local weight = get_itemstack_weight(item)
 				--debug(flag12, "  weight: " .. weight)
 				local p_data = ss.player_data[player:get_player_name()]
-				local stat_data = {"normal", "weight", -weight, 1, 1, "curr", "add", true}
-				update_stat(player, p_data, player_meta, stat_data)
+				do_stat_update_action(player, p_data, player_meta, "normal", "weight", -weight, "curr", "add", true)
 				update_fs_weight(player, player_meta)
 
 			else
 				debug(flag1, "  below is NOT a supportive node. node placement prevented.")
-				notify(player,"Area below is not solid or stable", 3, 0.5, 0, 3)
+				notify(player, "inventory", "Area below is not solid or stable", 3, 0.5, 0, 3)
 				mt_remove_node(pos)
 			end
 

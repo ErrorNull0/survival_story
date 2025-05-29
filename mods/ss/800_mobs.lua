@@ -18,7 +18,7 @@ local mt_serialize = core.serialize
 local mt_add_entity = core.add_entity
 local debug = ss.debug
 local notify = ss.notify
-local update_stat = ss.update_stat
+local do_stat_update_action = ss.do_stat_update_action
 local play_sound = ss.play_sound
 
 
@@ -510,8 +510,8 @@ for mob_variation = 1, 3 do
 
             local weapon_stamina_loss = weapon_weight * 2
             print("  weapon_stamina_loss: " .. weapon_stamina_loss)
-            local update_data = {"normal", "stamina", -weapon_stamina_loss, 1, 1, "curr", "add", true}
-            update_stat(puncher, p_data, player_meta, update_data)
+            do_stat_update_action(puncher, p_data, player_meta, "normal", "stamina", -weapon_stamina_loss, "curr", "add", true)
+
 
             local cooldown_modifier = player_meta:get_float("cooldown_mod_" .. attack_group)
             local attack_cooldown_time = cooldown_time + cooldown_modifier
@@ -521,7 +521,7 @@ for mob_variation = 1, 3 do
 
             -- force a miss when stamina is not enough to swing the weapon
             if stamina_current < weapon_stamina_loss then
-                notify(puncher, "Stamina too low", 1, 0, 0.5, 3)
+                notify(puncher, "mobs", "Stamina too low", 1, 0, 0.5, 3)
                 print("  ** MISSED **")
                 -- 'intensity' param is set below 0.75 to have reduced gain and pitch
                 --play_mob_sound(mob_name, "miss", attack_group, 0.5)
@@ -598,8 +598,8 @@ for mob_variation = 1, 3 do
 
             if new_hp <= 0 then
                 print("  corpse fully harvested")
-                local update_data = {"normal", "experience", self.experience, 1, 1, "curr", "add", true}
-                update_stat(puncher, p_data, player_meta, update_data)
+                do_stat_update_action(puncher, p_data, player_meta, "normal", "experience", self.experience, "curr", "add", true)
+
                 hide_mob_hud(puncher)
                 self.job_hud[player_name] = nil
 
@@ -748,8 +748,7 @@ for mob_variation = 1, 3 do
 
             local weapon_stamina_loss = weapon_weight * 2
             print("  weapon_stamina_loss: " .. weapon_stamina_loss)
-            local update_data = {"normal", "stamina", -weapon_stamina_loss, 1, 1, "curr", "add", true}
-            update_stat(puncher, p_data, player_meta, update_data)
+			do_stat_update_action(puncher, p_data, player_meta, "normal", "stamina", -weapon_stamina_loss, "curr", "add", true)
 
             local cooldown_modifier = player_meta:get_float("cooldown_mod_" .. attack_group)
             local attack_cooldown_time = cooldown_time + cooldown_modifier
@@ -759,7 +758,7 @@ for mob_variation = 1, 3 do
 
             -- force a miss when stamina is not enough to swing the weapon
             if stamina_current < weapon_stamina_loss then
-                notify(puncher, "Stamina too low", 1, 0, 0.5, 3)
+                notify(puncher, "mobs", "Stamina too low", 1, 0, 0.5, 3)
                 print("  ** MISSED **")
                 -- 'intensity' param is set below 0.75 to have reduced gain and pitch
                 --play_mob_sound(mob_name, "miss", attack_group, 0.5)
@@ -842,8 +841,8 @@ for mob_variation = 1, 3 do
             if new_hp <= 0 then
                 print("  mob is dead")
 
-                update_data = {"normal", "experience", self.experience, 1, 1, "curr", "add", true}
-                update_stat(puncher, p_data, player_meta, update_data)
+                do_stat_update_action(puncher, p_data, player_meta, "normal", "experience", self.experience, "curr", "add", true)
+
                 hide_mob_hud(puncher)
                 self.job_hud[player_name] = nil
 
@@ -1257,6 +1256,21 @@ local flag15 = false
 core.register_on_joinplayer(function(player)
     debug(flag15, "\nregister_on_joinplayer() mobs.lua")
     local player_name = player:get_player_name()
+    local player_meta = player:get_meta()
+    local p_data = player_data[player_name]
+    local metadata
+
+    -- time in seconds player must waits between hand strikes to avoid missing or
+    -- lowered hit damage. all other weapons their cooldown times defined in file
+    -- attack_cooldown.txt. hands cannot since it does not have an in-game name.
+    metadata = player_meta:get_float("fists_cooldown_time")
+    p_data.fists_cooldown_time = (metadata ~= 0 and metadata) or 1.0
+
+    -- the amount of HP the player's fists can inflict. all other weapons their
+    -- attack damage values defined in file attack_damage.txt. hands cannot since
+    -- it does not have an in-game name.
+    metadata = player_meta:get_float("fists_attack_damage")
+    p_data.fists_attack_damage = (metadata ~= 0 and metadata) or 1.5
 
     debug(flag15, "initializing mob huds...")
     -- initialize hud display for the mob hp hudbar. the visual scale is initially set
@@ -1297,4 +1311,18 @@ core.register_on_joinplayer(function(player)
     })
 
     debug(flag15, "register_on_joinplayer() end " .. core.get_gametime())
+end)
+
+
+local flag5 = false
+core.register_on_respawnplayer(function(player)
+    debug(flag5, "\nregister_on_respawnplayer() MOBS")
+	local player_meta = player:get_meta()
+	local player_name = player:get_player_name()
+	local p_data = player_data[player_name]
+
+    p_data.fists_cooldown_time = 1.0
+	player_meta:set_float("fists_cooldown_time", 1.0)
+
+    debug(flag5, "register_on_respawnplayer() END")
 end)

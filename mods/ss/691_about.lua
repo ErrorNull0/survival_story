@@ -19,7 +19,7 @@ core.register_on_player_receive_fields(function(player, formname, fields)
     debug(flag1, "  active_tab: " .. p_data.active_tab)
 
 
-    if fields.inv_tabs == "7" then
+    if fields.inv_tabs == "8" then
         debug(flag1, "  clicked on 'ABOUT' tab!")
         play_sound("button", {player_name = player_name})
         p_data.active_tab = "about"
@@ -31,7 +31,7 @@ core.register_on_player_receive_fields(function(player, formname, fields)
             "formspec_version[7]",
             "size[22.2,10.5,true]",
             "position[0.5,0.4]",
-            "tabheader[0,0;inv_tabs;Main,Status,Skills,Bundle,Settings,?,*;7;true;true]",
+            "tabheader[0,0;inv_tabs;Main,Equipment,Status,Skills,Bundle,Settings,?,*;8;true;true]",
             "hypertext[0.2,0.2;4,1.5;about_title;",
             "<style color=#AAAAAA size=16><b>ABOUT</b></style>]",
 
@@ -61,7 +61,8 @@ core.register_on_player_receive_fields(function(player, formname, fields)
             or fields.inv_tabs == "3"
             or fields.inv_tabs == "4"
             or fields.inv_tabs == "5"
-            or fields.inv_tabs == "6" then
+            or fields.inv_tabs == "6"
+            or fields.inv_tabs == "7" then
             debug(flag1, "  clicked on a tab other than ABOUT. NO FURTHER ACTION.")
             debug(flag1, "register_on_player_receive_fields() END " .. mt_get_gametime())
             return

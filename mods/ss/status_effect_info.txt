@@ -1,0 +1,603 @@
+### line 1: status effect name
+### line 2: short description shown in the Status tab
+### line 3: detailed info show in the Status tab on how to end or prevent the condition
+### line 4: tooltip when hovering over the status effect in the Status tab, explaining
+###   the negative impacts of the condition
+### line 5: background color, text color, and the actual text for the hud that appears
+###   on the left side of the screen when the status effect is activated
+### line 6: notification text for this stat effect activated 'upward' from a lower severity level
+### line 7: notification text for this stat effect activated 'downward' from a higher severity level
+
+health_0
+notify_down=heath is better
+
+health_1
+health is low
+Apply or take first aid to heal wounds.
+Comfort is dropping. Base comfort and base sanity also lowered.
+bg_color=000000, text_color=FFA800, text=
+notify_up=health is low
+notify_down=health still low
+
+health_2
+health is critical
+Apply or take first aid to heal wounds.
+Comfort is dropping. Base comfort and base sanity also lowered.
+bg_color=000000, text_color=FF0000, text=
+notify_up=health is critical
+notify_down=health still critical
+
+health_3
+you are dead
+Respawn and try not to lose all your health again.
+Respawn and try again.
+bg_color=AA0000, text_color=FFFFFF, text=dead
+notify_up=you are dead
+notify_down=
+# no notify_down text since cannot go 'down' from health_3 because that is dead
+
+thirst_0
+notify_down=not so thirsty anymore
+
+thirst_1
+feeling a bit thirsty
+Drink water or liquids, or eat food with some liquid content.
+Immunity and comfort is dropping. Activites use more stamina. Base health, comfort, and immunity also lowered.
+bg_color=000000, text_color=FFA800, text=
+notify_up=feeling a bit thirsty
+notify_down=still a bit thirsty
+
+thirst_2
+feeling very thirsty
+Drink water or liquids, or eat food with some liquid content.
+Immunity and comfort is dropping. Activites use more stamina. Base health, comfort, and immunity also lowered.
+bg_color=000000, text_color=FF0000, text=
+notify_up=feeling very thirsty
+notify_down=still very thirsty
+
+thirst_3
+completely dehydrated
+Drink water or liquids, or eat food with some liquid content.
+Health, immunity and comfort is dropping. Activites use more stamina. Base health, comfort, and immunity also lowered.
+bg_color=AA0000, text_color=FFFFFF, text=dehydrated
+notify_up=completely dehydrated
+notify_down=
+
+hunger_0
+notify_down=not so hungry anymore
+
+hunger_1
+feeling a bit hungry
+Eat food and avoid using up too much stamina.
+Immunity and comfort is dropping. Activites use more stamina. Base health, comfort, and immunity also lowered.
+bg_color=000000, text_color=FFA800, text=
+notify_up=feeling a bit hungry
+notify_down=still a bit hungry
+
+hunger_2
+feeling very hungry
+Eat food and avoid using up too much stamina.
+Immunity and comfort is dropping. Activites use more stamina. Base health, comfort, and immunity also lowered.
+bg_color=000000, text_color=FF0000, text=
+notify_up=feeling very hungry
+notify_down=still very hungry
+
+hunger_3
+completely starving
+Eat food and avoid using up too much stamina.
+Health, immunity and comfort is dropping. Activites use more stamina. Base health, comfort, and immunity also lowered.
+bg_color=AA0000, text_color=FFFFFF, text=starving
+notify_up=completely starving
+notify_down=
+
+alertness_0
+notify_down=feeling more awake now
+
+alertness_1
+felling a bit sleepy
+Get enough sleep or take consumables to prevent sleepiness.
+Immunity, sanity and happiness is dropping. Increased illness potential. Activites use more stamina. Base health, immunity, sanity, and happiness also lowered.
+bg_color=000000, text_color=FFA800, text=
+notify_up=getting a bit sleepy
+notify_down=still a bit sleepy
+
+alertness_2
+feeling very sleepy
+Get enough sleep or take consumables to prevent sleepiness.
+Immunity, sanity and happiness is dropping. Increased illness potential. Activites use more stamina. Base health, immunity, sanity, and happiness also lowered.
+bg_color=000000, text_color=FF0000, text=
+notify_up=getting very sleepy
+notify_down=still very sleepy
+
+alertness_3
+fighting to stay awake
+Get enough sleep or take consumables to prevent sleepiness.
+Immunity, sanity and happiness is dropping. Increased illness potential. Activites use more stamina. Base health, immunity, sanity, and happiness also lowered.
+bg_color=AA0000, text_color=FFFFFF, text=sleepy
+notify_up=fighting to stay awake
+notify_down=
+
+hygiene_0
+notify_down=feeling cleaner now
+
+hygiene_1
+feeling a bit dirty
+Wash yourself and/or brush your teeth.
+Base comfort and base immunity is lowered.
+bg_color=000000, text_color=FFA800, text=
+notify_up=getting a bit dirty
+notify_down=still a bit dirty
+
+hygiene_2
+feeling a bit smelly too
+Wash yourself and/or brush your teeth.
+Comfort is dropping. Base comfort and base immunity is also lowered.
+bg_color=000000, text_color=FF0000, text=
+notify_up=getting a bit smelly
+notify_down=still a bit smelly
+
+hygiene_3
+completely dirty and stinky
+Wash yourself and/or brush your teeth.
+Comfort and immunity is dropping. Base comfort and base immunity is also lowered.
+bg_color=AA0000, text_color=FFFFFF, text=filthy
+notify_up=completely dirty and stinky
+notify_down=
+
+comfort_0
+notify_down=feeling more comfortable now
+
+comfort_1
+feeling a bit tense
+Avoid any scenarios that would cause aches or pains, like injuries, hunger/thirst, illneses, etc.
+Happiness is dropping. Base happiness is also lowered.
+bg_color=000000, text_color=FFA800, text=
+notify_up=feeling a bit tense
+notify_down=still a bit tense
+
+comfort_2
+feeling restless
+Avoid any scenarios that would cause aches or pains, like injuries, hunger/thirst, illneses, etc.
+Happiness is dropping. Base happiness is also lowered.
+bg_color=000000, text_color=FF0000, text=
+notify_up=feeling restless
+notify_down=still a bit restless
+
+comfort_3
+completely uncomfortable
+Avoid any scenarios that would cause aches or pains, like injuries, hunger/thirst, illneses, etc.
+Happiness is dropping. Base happiness is also lowered.
+bg_color=AA0000, text_color=FFFFFF, text=uncomfortable
+notify_up=completely uncomfortable
+notify_down=
+
+immunity_0
+notify_down=feeling healthier
+
+immunity_1
+feeling a bit week
+Get enough sleep, hygiene, and mental health. Avoid extreme cold, thirst, and hunger.
+Base health is lowered.
+bg_color=000000, text_color=FFA800, text=
+notify_up=feeling a bit week
+notify_down=still a bit weak
+
+immunity_2
+feeling very weak
+Get enough sleep, hygiene, and mental health. Avoid extreme cold, thirst, and hunger.
+Base health is lowered.
+bg_color=000000, text_color=FF0000, text=
+notify_up=feeling very weak
+notify_down=still very weak
+
+immunity_3
+severely weak and sickly
+Get enough sleep, hygiene, and mental health. Avoid extreme cold, thirst, and hunger.
+Base health is lowered.
+bg_color=AA0000, text_color=FFFFFF, text=sickly
+notify_up=severely weak and sickly
+notify_down=
+
+sanity_0
+notify_down=feeling more stable now
+
+sanity_1
+feeling a bit unsettled
+Get enough sleep and avoid disturbing or stressful situations.
+???
+bg_color=000000, text_color=FFA800, text=
+notify_up=feeling a bit unsettled
+notify_down=still a bit unsettled
+
+sanity_2
+feeling more crazy
+Get enough sleep and avoid disturbing or stressful situations
+???
+bg_color=000000, text_color=FF0000, text=
+notify_up=feeling more crazy
+notify_down=still feeling crazy
+
+sanity_3
+completely psychotic
+Get enough sleep and avoid disturbing or stressful situations
+???
+bg_color=AA0000, text_color=FFFFFF, text=psychotic
+notify_up=completely psychotic
+notify_down=
+
+happiness_0
+notify_down=feeling happier now
+
+happiness_1
+feeling a bit down
+Get enough sleep and maintain normal comfort levels.
+Immunity is dropping. Base immunity is also lowered.
+bg_color=000000, text_color=FFA800, text=
+notify_up=feeling a bit down
+notify_down=still a bit down
+
+happiness_2
+feeling sad
+Get enough sleep and maintain normal comfort levels.
+Immunity is dropping. Base immunity is also lowered.
+bg_color=000000, text_color=FF0000, text=
+notify_up=feeling sad
+notify_down=still a bit sad
+
+happiness_3
+completely depressed
+Get enough sleep and maintain normal comfort levels.
+Immunity is dropping. Base immunity is also lowered.
+bg_color=AA0000, text_color=FFFFFF, text=depressed
+notify_up=completely depressed
+notify_down=
+
+breath_0
+notify_down=breath level is bearable
+
+breath_1
+need a breath
+Restore normal breathing or avoid contaminated air.
+Comfort and sanity is dropping. Base comfort and base sanity also lowered.
+bg_color=000000, text_color=FFA800, text=
+notify_up=need a breath soon
+notify_down=still need a breath soon
+
+breath_2
+need a breath soon
+Restore normal breathing or avoid contaminated air.
+Comfort and sanity is dropping. Base comfort and base sanity also lowered.
+bg_color=000000, text_color=FF0000, text=
+notify_up=can't hold much longer
+notify_down=still need a breath soon
+
+breath_3
+completely suffocating
+Restore normal breathing or avoid contaminated air.
+Health, comfort, and sanity is dropping. Base comfort and base sanity also lowered.
+bg_color=AA0000, text_color=FFFFFF, text=suffocating
+notify_up=suffocating
+notify_down=
+
+stamina_0
+notify_down=energy level is better
+
+stamina_1
+feeling a bit tired
+Take a break from physical activity.
+Thirst, hunger, alertness, hygiene, and comfort is dropping. Movement speed and jumping is hindered. Base comfort is also lowered.
+bg_color=000000, text_color=FFA800, text=
+notify_up=getting a bit tired
+notify_down=still a bit tired
+
+stamina_2
+feeling exhausted
+Take a break from physical activity.
+Thirst, hunger, alertness, hygiene, and comfort is dropping. Movement speed and jumping is hindered. Base comfort is also lowered.
+bg_color=000000, text_color=FF0000, text=
+notify_up=getting exhausted
+notify_down=still exhausted
+
+stamina_3
+completely exhausted
+Take a break from physical activity.
+Thirst, hunger, alertness, hygiene, and comfort is dropping. Movement speed and jumping is hindered. Base comfort is also lowered.
+bg_color=AA0000, text_color=FFFFFF, text=exhuasted
+notify_up=completely exhausted
+notify_down=
+
+weight_0
+notify_down=weight is much better
+
+weight_1
+weight is noticeable
+Drop heavy items you are carrying.
+Comfort is dropping. Higher leg injury potential. Movement speed and jumping is hindered. Base comfort is also lowered.
+bg_color=000000, text_color=FFA800, text=
+notify_up=weight is noticeable
+notify_down=weight is still noticeable
+
+weight_2
+weight is slightly heavy
+Drop heavy items you are carrying.
+Comfort is dropping. Higher leg injury potential. Movement speed and jumping is hindered. Base comfort is also lowered.
+bg_color=000000, text_color=FFA800, text=
+notify_up=weight is a bit heavy
+notify_down=weight still a bit heavy
+
+weight_3
+weight is heavy
+Drop heavy items you are carrying.
+Comfort is dropping. Higher leg injury potential. Movement speed and jumping is hindered. Activities use more stamina. Base comfort is also lowered.
+bg_color=000000, text_color=FFA800, text=
+notify_up=weight is heavy
+notify_down=weight still heavy
+
+weight_4
+weight is very heavy
+Drop heavy items you are carrying.
+Comfort is dropping. Higher leg injury potential. Movement speed and jumping is hindered. Activities use more stamina. Base comfort is also lowered.
+bg_color=000000, text_color=FF0000, text=
+notify_up=weight is very heavy
+notify_down=weight still very heavy
+
+weight_5
+weight is overburdening
+Drop heavy items you are carrying.
+Comfort is dropping. Higher leg injury potential. Movement speed and jumping is hindered. Activities use more stamina. Base comfort is also lowered.
+bg_color=AA0000, text_color=FFFFFF, text=overburdened
+notify_up=weight is overburdening
+notify_down=
+
+hot_0
+notify_down=temperature is nicer now
+
+hot_1
+feeling a bit warm
+Shelter from the heat, wear cooling clothing, or jump in some water.
+Thirst, hygiene, and comfort is dropping. Base comfort is also lowered.
+bg_color=000000, text_color=FFA800, text=
+notify_up=feeling a bit warm
+notify_down=still a bit warm
+
+hot_2
+feeling hot
+Shelter from the heat, wear cooling clothing, or jump in some water.
+Thirst, hygiene, and comfort is dropping. Stamina recovery is slower. Base health and base comfort is also lowered.
+bg_color=000000, text_color=FFA800, text=
+notify_up=feeling hot
+notify_down=still feels hot
+
+hot_3
+completely sweltering
+Shelter from the heat, wear cooling clothing, or jump in some water.
+Health, thirst, hygiene, and comfort is dropping. Stamina recovery is slower. Base health and base comfort is also lowered.
+bg_color=000000, text_color=FF0000, text=
+notify_up=it's sweltering
+notify_down=still sweltering
+
+hot_4
+completely scorching
+Shelter from the heat, wear cooling clothing, or jump in some water.
+Health, thirst, hygiene, and comfort is dropping. Stamina recovery is slower. Base health and base comfort is also lowered.
+bg_color=AA0000, text_color=FFFFFF, text=
+notify_up=it's scorching
+notify_down=
+
+cold_0
+notify_down=temperature is nicer now
+
+cold_1
+feeling a bit chilly
+Shelter from the cold, wear thicker clothing, or find a heat source.
+Comfort is dropping. Base comfort and base immunity is also lowered.
+bg_color=000000, text_color=FFA800, text=
+notify_up=feeling a bit chilly
+notify_down=still a bit chilly
+
+cold_2
+feeling cold
+Shelter from the cold, wear thicker clothing, or find a heat source.
+Comfort and immunity is dropping. Stamina recovery is slower. Increased illness potential. Base health, comfort and immunity is also lowered.
+bg_color=000000, text_color=FFA800, text=
+notify_up=feeling pretty cold
+notify_down=still feeling cold
+
+cold_3
+it's frigid
+Shelter from the cold, wear thicker clothing, or find a heat source.
+Health, comfort, and immunity is dropping. Stamina recovery is slower. Increased illness potential. Base health, comfort and immunity is also lowered.
+bg_color=000000, text_color=FF0000, text=
+notify_up=it's frigid
+notify_down=still frigid
+
+cold_4
+completely freezing
+Shelter from the cold, wear thicker clothing, or find a heat source.
+Health, comfort, and immunity is dropping. Stamina recovery is slower. Increased illness potential. Base health, comfort and immunity is also lowered.
+bg_color=AA0000, text_color=FFFFFF, text=
+notify_up=it's freezing
+notify_down=
+
+illness_0
+notify_down=recovered from illness
+
+illness_1
+ill with a cold
+Get enough sleep and avoid cold temps. Immunity impacts natural recovery.
+Alertness and comfort is dropping. Activities use more stamina which also recovers slower. Movement speed and jumping is hindered. Base health and base comfort is also lowered.
+bg_color=000000, text_color=FFA800, text=ill with cold
+notify_up=ill with a cold
+notify_down=still ill with a cold
+
+illness_2
+ill with the flu
+Get enough sleep and avoid cold temps. Immunity impacts natural recovery.
+Alertness and comfort is dropping. Activities use more stamina which also recovers slower. Movement speed and jumping is hindered. Base health and base comfort is also lowered.
+bg_color=000000, text_color=FF0000, text=ill with flu
+notify_up=ill with the flu
+notify_down=still ill with the flu
+
+illness_3
+ill with pneumonia
+Get enough sleep and avoid cold temps. Immunity impacts natural recovery.
+Health, alertness and comfort is dropping. Activities use more stamina which also recovers slower. Movement speed and jumping is hindered. Base health and base comfort is also lowered.
+bg_color=AA0000, text_color=FFFFFF, text=ill with pneumonia
+notify_up=ill with pneumonia
+notify_down=
+
+poison_0
+notify_down=recovered from food poisoning
+
+poison_1
+having stomach aches
+Avoid toxic or contaminated food and water. Immunity impacts natural recovery.
+Comfort is dropping. Activities use more stamina which also recovers slower. Movement speed and jumping is hindered. Base health and base comfort is lowered.
+bg_color=000000, text_color=FFA800, text=stomach ache
+notify_up=having a stomach ache
+notify_down=still having a stomach ache
+
+poison_2
+feeling nauseous
+Avoid toxic or contaminated food and water. Immunity impacts natural recovery.
+Comfort is dropping. Occosional vomitting. Activities use more stamina which also recovers slower. Movement speed and jumping is hindered. Base health and base comfort is lowered.
+bg_color=000000, text_color=FF0000, text=nausea
+notify_up=feeling nauseous
+notify_down=still feeling nauseous
+
+poison_3
+suffering from dysentery
+Avoid toxic or contaminated food and water. Immunity impacts natural recovery.
+Health and comfort is dropping. Occosional vomitting. Activities use more stamina which also recovers slower. Movement speed and jumping is hindered. Base health and base comfort is lowered.
+bg_color=AA0000, text_color=FFFFFF, text=dysentery
+notify_up=suffering from dysentery
+notify_down=
+
+wetness_0
+notify_down=no longer damp. all dried.
+
+wetness_1
+damp from moisture
+Remove clothing or stand near a heat source (or both) to dry out faster.
+The temperature you feel might be impacted.
+bg_color=000000, text_color=FFA800, text=damp
+notify_up=damp with some moisture
+notify_down=still a bit damp
+
+wetness_2
+body is wet
+Remove clothing or stand near a heat source (or both) to dry out faster.
+The temperature you feel might be impacted.
+bg_color=000000, text_color=FFA800, text=wet
+notify_up=getting wet
+notify_down=still wet
+
+wetness_3
+body is soaking wet
+Remove clothing or stand near a heat source (or both) to dry out faster.
+The temperature you feel might be impacted.
+bg_color=000000, text_color=FFA800, text=soaked
+notify_up=getting soaking wet
+notify_down=
+
+legs_0
+notify_down=leg has recovered
+
+legs_1
+leg is sore
+Avoid running, jumping, and falling from high places. Leg can slowly heal over time.
+Comfort is dropping. Movement speed and jumping is hindered. Base health and base comfort is lowered.
+bg_color=000000, text_color=FFA800, text=sore leg
+notify_up=leg is sore
+notify_down=leg is better but still sore
+
+legs_2
+leg is sprained
+Avoid running, jumping, and falling from high places. Leg can slowly heal over time.
+Comfort is dropping. Movement speed and jumping is hindered. Base health and base comfort is lowered.
+bg_color=000000, text_color=FF0000, text=sprained leg
+notify_up=leg is sprained
+notify_down=leg is better but still sprained
+
+legs_3
+leg is broken
+Avoid running, jumping, and falling from high places. Leg can slowly heal over time.
+Comfort is dropping. Movement speed and jumping is hindered. Base health and base comfort is lowered.
+bg_color=AA0000, text_color=FFFFFF, text=broken leg
+notify_up=leg is broken
+notify_down=
+
+legs_4
+sprained leg is splinted
+Leg recovery time is improved. Avoid running, jumping, and falling from high places.
+Comfort is dropping. Movement speed and jumping is hindered. Base health and base comfort is lowered.
+bg_color=000000, text_color=00FF00, text=splinted sprained leg
+notify_up=sprained leg splinted
+notify_down=
+
+legs_5
+broken leg is splinted
+Leg recovery time is improved. Avoid running, jumping, and falling from high places.
+Comfort is dropping. Movement speed and jumping is hindered. Base health and base comfort is lowered.
+bg_color=000000, text_color=00FF00, text=splinted broken leg
+notify_up=broken leg splinted
+notify_down=
+
+legs_6
+broken leg is casted
+Leg recovery time is improved. Avoid running, jumping, and falling from high places.
+Comfort is dropping. Movement speed and jumping is hindered. Base health and base comfort is lowered.
+bg_color=000000, text_color=00FF00, text=casted broken leg
+notify_up=broken leg casted
+notify_down=
+
+hands_0
+notify_down=hand has recovered
+
+hands_1
+hand is sore
+Avoid punching hard objects and swinging heavy tools. Hand can slowly heal over time.
+Comfort is dropping. Effectiveness and recovery time of swinging fists or tools is hindered. Base health and base comfort is lowered.
+bg_color=000000, text_color=FFA800, text=sore hand
+notify_up=hand is sore
+notify_down=hand is better but still sore
+
+hands_2
+hand is sprained
+Avoid punching hard objects and swinging heavy tools. Hand can slowly heal over time.
+Comfort is dropping. Effectiveness and recovery time of swinging fists or tools is hindered. Base health and base comfort is lowered.
+bg_color=000000, text_color=FF0000, text=sprained hand
+notify_up=hand is sprained
+notify_down=hand is better but still sprained
+
+hands_3
+hand is broken
+Avoid punching hard objects and swinging heavy tools. Hand can slowly heal over time.
+Comfort is dropping. Effectiveness and recovery time of swinging fists or tools is hindered. Base health and base comfort is lowered.
+bg_color=AA0000, text_color=FFFFFF, text=broken hand
+notify_up=hand is broken
+notify_down=
+
+hands_4
+sprained hand is splinted
+Hand recovery time is improved. Avoid punching hard objects and swinging heavy tools.
+Comfort is dropping. Effectiveness and recovery time of swinging fists or tools is hindered. Base health and base comfort is lowered.
+bg_color=000000, text_color=00FF00, text=splinted sprained hand
+notify_up=sprained hand splinted
+notify_down=
+
+hands_5
+broken hand is splinted
+Hand recovery time is improved. Avoid punching hard objects and swinging heavy tools.
+Comfort is dropping. Effectiveness and recovery time of swinging fists or tools is hindered. Base health and base comfort is lowered.
+bg_color=000000, text_color=00FF00, text=splinted broken hand
+notify_up=broken hand splinted
+notify_down=
+
+hands_6
+broken hand is casted
+Hand recovery time is improved. Avoid punching hard objects and swinging heavy tools.
+Comfort is dropping. Effectiveness and recovery time of swinging fists or tools is hindered. Base health and base comfort is lowered.
+bg_color=000000, text_color=00FF00, text=casted broken hand
+notify_up=broken hand casted
+notify_down=

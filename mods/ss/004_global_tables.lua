@@ -1,5 +1,10 @@
 print("- loading global_tables.lua")
 
+-- cache global funcions for faster access
+local string_sub = string.sub
+local string_split = string.split
+
+
 --[[ This file represents the point during mod loading where all registered items
 like nodes, items, and tools, have been defined and loaded. So this is the best
 time to perform actions based on the "core.registered_" tables, like initialize
@@ -86,19 +91,19 @@ for node_name, node_def in pairs(core.registered_nodes) do
 
 	else
 
-		local name_tokens = string.split(node_name, ":")
+		local name_tokens = string_split(node_name, ":")
 		debug(flag4, "    name_tokens: " .. dump(name_tokens))
 		local sub_name = name_tokens[2]
 		debug(flag4, "    sub_name: " .. sub_name)
-		if string.sub(sub_name, 1, 11) == "fence_rail_" then
+		if string_sub(sub_name, 1, 11) == "fence_rail_" then
 			ss.NODE_NAMES_GAPPY_NONDIGGABLE[node_name] = true
 			debug(flag4, "    added to NODE_NAMES_GAPPY_NONDIGGABLE")
 
-		elseif string.sub(sub_name, 1, 6) == "fence_" then
+		elseif string_sub(sub_name, 1, 6) == "fence_" then
 			ss.NODE_NAMES_SOLID_CUBE[node_name] = true
 			debug(flag4, "    added to NODE_NAMES_SOLID_CUBE")
 
-		elseif string.sub(sub_name, 1, 9) == "campfire_" then
+		elseif string_sub(sub_name, 1, 9) == "campfire_" then
 			ss.NODE_NAMES_GAPPY_NONDIGGABLE[node_name] = true
 			debug(flag4, "    added to NODE_NAMES_GAPPY_NONDIGGABLE")
 
@@ -321,7 +326,7 @@ for line in file:lines() do
 	else
 		-- table name line
 		if blank_line_found then
-			local line_tokens = string.split(line)
+			local line_tokens = string_split(line)
 			table_name = line_tokens[1]
 			debug(flag2, "  table_name: " .. table_name)
 			blank_line_found = false
@@ -337,3 +342,273 @@ file:close()
 --print("  ss.CAMPFIRE_STAND_NAMES: " .. dump(ss.CAMPFIRE_STAND_NAMES))
 --print("  ss.CAMPFIRE_GRILL_NAMES: " .. dump(ss.CAMPFIRE_GRILL_NAMES))
 --print("  ss.FIRE_STARTER_NAMES: " .. dump(ss.FIRE_STARTER_NAMES))
+
+
+-- #### initialize ss.NODE_LEGS_DRAIN_MOD
+
+for node_name in pairs(core.registered_nodes) do
+
+	if false then
+
+	elseif node_name == "default:clay" then
+		ss.NODE_LEGS_DRAIN_MOD["default:clay"] = 0.95
+	elseif node_name == "default:bookshelf" then
+		ss.NODE_LEGS_DRAIN_MOD["default:bookshelf"] = 0.99
+	elseif node_name == "default:meselamp" then
+		ss.NODE_LEGS_DRAIN_MOD["default:meselamp"] = 0.99
+	elseif node_name == "default:mese_post_light" then
+		ss.NODE_LEGS_DRAIN_MOD["default:mese_post_light"] = 0.99
+
+	elseif string.find(node_name, "leaves") then
+		ss.NODE_LEGS_DRAIN_MOD[node_name] = 0.5
+
+	elseif string.find(node_name, "needles") then
+		ss.NODE_LEGS_DRAIN_MOD[node_name] = 0.5
+
+	elseif string.find(node_name, "coral") then
+		if string.find(node_name, "brown") then
+			ss.NODE_LEGS_DRAIN_MOD[node_name] = 0.8
+		elseif string.find(node_name, "skeleton") then
+			ss.NODE_LEGS_DRAIN_MOD[node_name] = 0.8
+		else
+			ss.NODE_LEGS_DRAIN_MOD[node_name] = 0.6
+		end
+
+	elseif string.find(node_name, "cactus") then
+		if string.find(node_name, "seedling") then
+			ss.NODE_LEGS_DRAIN_MOD[node_name] = 0.3
+		else
+			ss.NODE_LEGS_DRAIN_MOD[node_name] = 0.7
+		end
+
+	elseif string.find(node_name, "gravel") then
+		ss.NODE_LEGS_DRAIN_MOD[node_name] = 0.8
+
+	elseif string.find(node_name, "dirt") then
+		if string.find(node_name, "grass") then
+			ss.NODE_LEGS_DRAIN_MOD[node_name] = 0.85
+		elseif string.find(node_name, "litter") then
+			ss.NODE_LEGS_DRAIN_MOD[node_name] = 0.85
+		elseif string.find(node_name, "snow") then
+			ss.NODE_LEGS_DRAIN_MOD[node_name] = 0.7
+		else
+			ss.NODE_LEGS_DRAIN_MOD[node_name] = 0.9
+		end
+
+	elseif string.find(node_name, "permafrost") then
+		if string.find(node_name, "stones") then
+			ss.NODE_LEGS_DRAIN_MOD[node_name] = 0.9
+		else
+			ss.NODE_LEGS_DRAIN_MOD[node_name] = 0.85
+		end
+
+	elseif string.find(node_name, "sand") then
+		if string.find(node_name, "stone") then
+			ss.NODE_LEGS_DRAIN_MOD[node_name] = 0.99
+
+		elseif string.find(node_name, "soil") then
+			ss.NODE_LEGS_DRAIN_MOD[node_name] = 0.75
+		else
+			ss.NODE_LEGS_DRAIN_MOD[node_name] = 0.7
+		end
+
+	elseif string.find(node_name, "soil") then
+		if string.find(node_name, "wet") then
+			ss.NODE_LEGS_DRAIN_MOD[node_name] = 0.7
+		elseif string.find(node_name, "dry") then
+			ss.NODE_LEGS_DRAIN_MOD[node_name] = 0.8
+		else
+			ss.NODE_LEGS_DRAIN_MOD[node_name] = 0.75
+		end
+
+	elseif string.find(node_name, "snow") then
+		ss.NODE_LEGS_DRAIN_MOD[node_name] = 0.4
+
+	elseif string.find(node_name, "straw") then
+		ss.NODE_LEGS_DRAIN_MOD[node_name] = 0.6
+
+	elseif string.find(node_name, "wood") then
+		if string.find(node_name, "stair") then
+			ss.NODE_LEGS_DRAIN_MOD[node_name] = 0.98
+		elseif string.find(node_name, "fence") then
+			ss.NODE_LEGS_DRAIN_MOD[node_name] = 0.96
+		elseif string.find(node_name, "post") then
+			ss.NODE_LEGS_DRAIN_MOD[node_name] = 0.96
+		elseif string.find(node_name, "ladder") then
+			ss.NODE_LEGS_DRAIN_MOD[node_name] = 0.96
+		elseif string.find(node_name, "sign") then
+			ss.NODE_LEGS_DRAIN_MOD[node_name] = 0.95
+		else
+			ss.NODE_LEGS_DRAIN_MOD[node_name] = 0.99
+		end
+
+	elseif string.find(node_name, "tree") then
+		ss.NODE_LEGS_DRAIN_MOD[node_name] = 1
+
+	else
+		ss.NODE_LEGS_DRAIN_MOD[node_name] = 1
+	end
+end
+
+--print("### ss.NODE_LEGS_DRAIN_MOD: " .. dump(ss.NODE_LEGS_DRAIN_MOD))
+
+
+
+
+-- #### initialize ss.NODE_HANDS_DRAIN_MOD
+
+for node_name in pairs(core.registered_nodes) do
+
+	if false then
+
+	elseif node_name == "default:apple" then
+		ss.NODE_HANDS_DRAIN_MOD["default:apple"] = 0.01
+	elseif node_name == "default:blueberry_bush_leaves_with_berries" then
+		ss.NODE_HANDS_DRAIN_MOD["default:blueberry_bush_leaves_with_berries"] = 0.01
+	elseif node_name == "ss:stick" then
+		ss.NODE_HANDS_DRAIN_MOD["ss:stick"] = 0.01
+	elseif node_name == "ss:stone" then
+		ss.NODE_HANDS_DRAIN_MOD["ss:stone"] = 0.01
+
+	elseif node_name == "default:dry_shrub" then
+		ss.NODE_HANDS_DRAIN_MOD["default:dry_shrub"] = 0.4
+	elseif node_name == "ss:itemdrop_box" then
+		ss.NODE_HANDS_DRAIN_MOD["ss:itemdrop_box"] = 0.2
+	elseif node_name == "default:papyrus" then
+		ss.NODE_HANDS_DRAIN_MOD["default:papyrus"] = 0.2
+	elseif node_name == "default:clay" then
+		ss.NODE_HANDS_DRAIN_MOD["default:clay"] = 0.95
+	elseif node_name == "default:bookshelf" then
+		ss.NODE_HANDS_DRAIN_MOD["default:bookshelf"] = 0.99
+	elseif node_name == "default:meselamp" then
+		ss.NODE_HANDS_DRAIN_MOD["default:meselamp"] = 0.99
+	elseif node_name == "default:mese_post_light" then
+		ss.NODE_HANDS_DRAIN_MOD["default:mese_post_light"] = 0.99
+
+	elseif string.find(node_name, "leaves") then
+		ss.NODE_HANDS_DRAIN_MOD[node_name] = 0.5
+
+	elseif string.find(node_name, "needles") then
+		ss.NODE_HANDS_DRAIN_MOD[node_name] = 0.5
+
+	elseif string.find(node_name, "coral") then
+		if string.find(node_name, "brown") then
+			ss.NODE_HANDS_DRAIN_MOD[node_name] = 0.8
+		elseif string.find(node_name, "skeleton") then
+			ss.NODE_HANDS_DRAIN_MOD[node_name] = 0.8
+		else
+			ss.NODE_HANDS_DRAIN_MOD[node_name] = 0.6
+		end
+
+	elseif string.find(node_name, "cactus") then
+		if string.find(node_name, "seedling") then
+			ss.NODE_HANDS_DRAIN_MOD[node_name] = 0.3
+		else
+			ss.NODE_HANDS_DRAIN_MOD[node_name] = 0.7
+		end
+
+	elseif string.find(node_name, "gravel") then
+		ss.NODE_HANDS_DRAIN_MOD[node_name] = 0.8
+
+	elseif string.find(node_name, "dirt") then
+		if string.find(node_name, "grass") then
+			ss.NODE_HANDS_DRAIN_MOD[node_name] = 0.85
+		elseif string.find(node_name, "litter") then
+			ss.NODE_HANDS_DRAIN_MOD[node_name] = 0.85
+		elseif string.find(node_name, "snow") then
+			ss.NODE_HANDS_DRAIN_MOD[node_name] = 0.7
+		else
+			ss.NODE_HANDS_DRAIN_MOD[node_name] = 0.9
+		end
+
+	elseif string.find(node_name, "permafrost") then
+		if string.find(node_name, "stones") then
+			ss.NODE_HANDS_DRAIN_MOD[node_name] = 0.9
+		else
+			ss.NODE_HANDS_DRAIN_MOD[node_name] = 0.85
+		end
+
+	elseif string.find(node_name, "sand") then
+		if string.find(node_name, "stone") then
+			ss.NODE_HANDS_DRAIN_MOD[node_name] = 0.99
+
+		elseif string.find(node_name, "soil") then
+			ss.NODE_HANDS_DRAIN_MOD[node_name] = 0.75
+		else
+			ss.NODE_HANDS_DRAIN_MOD[node_name] = 0.7
+		end
+
+	elseif string.find(node_name, "soil") then
+		if string.find(node_name, "wet") then
+			ss.NODE_HANDS_DRAIN_MOD[node_name] = 0.7
+		elseif string.find(node_name, "dry") then
+			ss.NODE_HANDS_DRAIN_MOD[node_name] = 0.8
+		else
+			ss.NODE_HANDS_DRAIN_MOD[node_name] = 0.75
+		end
+
+	elseif string.find(node_name, "snow") then
+		ss.NODE_HANDS_DRAIN_MOD[node_name] = 0.4
+
+	elseif string.find(node_name, "straw") then
+		ss.NODE_HANDS_DRAIN_MOD[node_name] = 0.6
+
+	elseif string.find(node_name, "wood") then
+		if string.find(node_name, "stair") then
+			ss.NODE_HANDS_DRAIN_MOD[node_name] = 0.98
+		elseif string.find(node_name, "fence") then
+			ss.NODE_HANDS_DRAIN_MOD[node_name] = 0.96
+		elseif string.find(node_name, "post") then
+			ss.NODE_HANDS_DRAIN_MOD[node_name] = 0.96
+		elseif string.find(node_name, "ladder") then
+			ss.NODE_HANDS_DRAIN_MOD[node_name] = 0.96
+		elseif string.find(node_name, "sign") then
+			ss.NODE_HANDS_DRAIN_MOD[node_name] = 0.95
+		else
+			ss.NODE_HANDS_DRAIN_MOD[node_name] = 0.99
+		end
+
+	elseif string.find(node_name, "tree") then
+		ss.NODE_HANDS_DRAIN_MOD[node_name] = 1
+
+	elseif string.find(node_name, "grass") then
+		ss.NODE_HANDS_DRAIN_MOD[node_name] = 0.1
+
+	elseif string.find(node_name, "sapling") then
+		ss.NODE_HANDS_DRAIN_MOD[node_name] = 0.2
+
+	elseif string.find(node_name, "flower") then
+		if string.find(node_name, "rose") then
+			ss.NODE_HANDS_DRAIN_MOD[node_name] = 0.2
+		else
+			ss.NODE_HANDS_DRAIN_MOD[node_name] = 0.1
+		end
+
+	elseif string.find(node_name, "fern") then
+		ss.NODE_HANDS_DRAIN_MOD[node_name] = 0.2
+
+	elseif string.find(node_name, "bush_stem") then
+		ss.NODE_HANDS_DRAIN_MOD[node_name] = 0.7
+
+	elseif string.find(node_name, "farm") then
+		if string.find(node_name, "seed") or string.find(node_name, "1")
+			or string.find(node_name, "2") or string.find(node_name, "3")
+			or string.find(node_name, "4") then
+			ss.NODE_HANDS_DRAIN_MOD[node_name] = 0.1
+		else
+			ss.NODE_HANDS_DRAIN_MOD[node_name] = 0.2
+		end
+
+	elseif string.find(node_name, "bag") then
+		ss.NODE_HANDS_DRAIN_MOD[node_name] = 0.2
+
+	elseif string.find(node_name, "campfire") then
+		ss.NODE_HANDS_DRAIN_MOD[node_name] = 0.1
+
+	elseif string.find(node_name, "torch") then
+		ss.NODE_HANDS_DRAIN_MOD[node_name] = 0.03
+
+	else
+		ss.NODE_HANDS_DRAIN_MOD[node_name] = 1
+	end
+end

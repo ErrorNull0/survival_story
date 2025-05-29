@@ -4,23 +4,59 @@ print("- loading armor.lua")
 local table_concat = table.concat
 local table_insert = table.insert
 local string_gsub = string.gsub
+local string_sub = string.sub
 local mt_serialize = core.serialize
+local mt_get_gametime = core.get_gametime
 local mt_show_formspec = core.show_formspec
 local mt_after = core.after
 local play_sound = ss.play_sound
-local mt_get_gametime = core.get_gametime
 local debug = ss.debug
 local ss_round = ss.round
+local lerp = ss.lerp
+local after_player_check = ss.after_player_check
 local get_fs_player_avatar = ss.get_fs_player_avatar
 local get_fs_equipment_buffs = ss.get_fs_equipment_buffs
 local get_fs_equip_slots = ss.get_fs_equip_slots
 local build_fs = ss.build_fs
 
 local ITEM_WEIGHTS = ss.ITEM_WEIGHTS
-local ARMOR_BUFFS = ss.ARMOR_BUFFS
 local ARMOR_COLORS = ss.ARMOR_COLORS
 local ARMOR_CONTRASTS = ss.ARMOR_CONTRASTS
+local EQUIPMENT_BUFFS = ss.EQUIPMENT_BUFFS
+local LEG_INJURY_MODIFIERS = ss.LEG_INJURY_MODIFIERS
 local player_data = ss.player_data
+
+
+-- each 'ARMOR_<body part>' table below contains all items that are allowed to
+-- be equipped into that corresponding body part slot
+ss.ARMOR_HEAD = {
+    ["ss:armor_head_cloth_2"] = true,
+    ["ss:armor_head_wood_1"] = true,
+    ["ss:armor_head_leather_1"] = true,
+    ["ss:armor_head_leather_2"] = true
+}
+ss.ARMOR_FACE = {
+    ["ss:armor_face_cloth_1"] = true,
+    ["ss:armor_face_cloth_2"] = true
+}
+ss.ARMOR_CHEST = {
+    ["ss:armor_chest_wood_1"] = true,
+    ["ss:armor_chest_leather_1"] = true
+}
+ss.ARMOR_ARMS = {
+    ["ss:armor_arms_wood_1"] = true,
+    ["ss:armor_arms_leather_1"] = true
+}
+ss.ARMOR_LEGS = {
+    ["ss:armor_legs_wood_1"] = true,
+    ["ss:armor_legs_leather_1"] = true
+}
+ss.ARMOR_FEET = {
+    ["ss:armor_feet_fiber_1"] = true,
+    ["ss:armor_feet_fiber_2"] = true,
+    ["ss:armor_feet_cloth_2"] = true,
+    ["ss:armor_feet_leather_1"] = true
+}
 
 
 -- any feet armor like shoes or boots that could cover over long leg clothing go here.
@@ -30,7 +66,6 @@ local SHOES = {
     ["ss:armor_feet_fiber_2"] = true,
     ["ss:armor_feet_leather_1"] = true
 }
-
 
 local flag4 = false
 --- @param body_part string body part for the armor: head, face, chest, arms, legs
@@ -81,13 +116,17 @@ local function update_armor_buffs(player_name, player_meta, p_data, fs, item_nam
     -- thus the equip buff values of 'item_name' just need to be added to p_data.equip_buff_xxxxx.
     if action == "add" then
         debug(flag5, "  adding to existing equipment buffs..")
-        p_data.equip_buff_damage = p_data.equip_buff_damage + ARMOR_BUFFS[item_name].damage
-        p_data.equip_buff_cold = p_data.equip_buff_cold + ARMOR_BUFFS[item_name].cold
-        p_data.equip_buff_heat = p_data.equip_buff_heat + ARMOR_BUFFS[item_name].heat
-        p_data.equip_buff_wetness = p_data.equip_buff_wetness + ARMOR_BUFFS[item_name].wetness
-        p_data.equip_buff_disease = p_data.equip_buff_disease + ARMOR_BUFFS[item_name].disease
-        p_data.equip_buff_radiation = p_data.equip_buff_radiation + ARMOR_BUFFS[item_name].radiation
-        p_data.equip_buff_noise = p_data.equip_buff_noise + ARMOR_BUFFS[item_name].noise
+        p_data.equip_buff_damage = p_data.equip_buff_damage + EQUIPMENT_BUFFS[item_name].damage
+        p_data.equip_buff_cold = p_data.equip_buff_cold + EQUIPMENT_BUFFS[item_name].cold
+        p_data.equip_buff_heat = p_data.equip_buff_heat + EQUIPMENT_BUFFS[item_name].heat
+        p_data.equip_buff_sun = p_data.equip_buff_sun + EQUIPMENT_BUFFS[item_name].sun
+        p_data.equip_buff_water = p_data.equip_buff_water + EQUIPMENT_BUFFS[item_name].water
+        p_data.equip_buff_wetness = p_data.equip_buff_wetness + EQUIPMENT_BUFFS[item_name].wetness
+        p_data.equip_buff_disease = p_data.equip_buff_disease + EQUIPMENT_BUFFS[item_name].disease
+        p_data.equip_buff_electrical = p_data.equip_buff_electrical + EQUIPMENT_BUFFS[item_name].electrical
+        p_data.equip_buff_radiation = p_data.equip_buff_radiation + EQUIPMENT_BUFFS[item_name].radiation
+        p_data.equip_buff_gas = p_data.equip_buff_gas + EQUIPMENT_BUFFS[item_name].gas
+        p_data.equip_buff_noise = p_data.equip_buff_noise + EQUIPMENT_BUFFS[item_name].noise
         p_data.equip_buff_weight = ss_round(p_data.equip_buff_weight + ITEM_WEIGHTS[item_name], 2)
 
         -- save item name in case this ADD action is actually just first part of a SWAP (refer below)
@@ -100,13 +139,17 @@ local function update_armor_buffs(player_name, player_meta, p_data, fs, item_nam
     -- resulting in 'p_data.equip_buff_xxxxx' = <whatever existing equip buff value>.
     elseif action == "remove" then 
         debug(flag5, "  removing from existing equipment buffs totals..")
-        p_data.equip_buff_damage = p_data.equip_buff_damage - ARMOR_BUFFS[item_name].damage
-        p_data.equip_buff_cold = p_data.equip_buff_cold - ARMOR_BUFFS[item_name].cold
-        p_data.equip_buff_heat = p_data.equip_buff_heat - ARMOR_BUFFS[item_name].heat
-        p_data.equip_buff_wetness = p_data.equip_buff_wetness - ARMOR_BUFFS[item_name].wetness
-        p_data.equip_buff_disease = p_data.equip_buff_disease - ARMOR_BUFFS[item_name].disease
-        p_data.equip_buff_radiation = p_data.equip_buff_radiation - ARMOR_BUFFS[item_name].radiation
-        p_data.equip_buff_noise = p_data.equip_buff_noise - ARMOR_BUFFS[item_name].noise
+        p_data.equip_buff_damage = p_data.equip_buff_damage - EQUIPMENT_BUFFS[item_name].damage
+        p_data.equip_buff_cold = p_data.equip_buff_cold - EQUIPMENT_BUFFS[item_name].cold
+        p_data.equip_buff_heat = p_data.equip_buff_heat - EQUIPMENT_BUFFS[item_name].heat
+        p_data.equip_buff_sun = p_data.equip_buff_sun - EQUIPMENT_BUFFS[item_name].sun
+        p_data.equip_buff_water = p_data.equip_buff_water - EQUIPMENT_BUFFS[item_name].water
+        p_data.equip_buff_wetness = p_data.equip_buff_wetness - EQUIPMENT_BUFFS[item_name].wetness
+        p_data.equip_buff_disease = p_data.equip_buff_disease - EQUIPMENT_BUFFS[item_name].disease
+        p_data.equip_buff_electrical = p_data.equip_buff_electrical - EQUIPMENT_BUFFS[item_name].electrical
+        p_data.equip_buff_radiation = p_data.equip_buff_radiation - EQUIPMENT_BUFFS[item_name].radiation
+        p_data.equip_buff_gas = p_data.equip_buff_gas - EQUIPMENT_BUFFS[item_name].gas
+        p_data.equip_buff_noise = p_data.equip_buff_noise - EQUIPMENT_BUFFS[item_name].noise
         p_data.equip_buff_weight = ss_round(p_data.equip_buff_weight - ITEM_WEIGHTS[item_name], 2)
 
 
@@ -125,25 +168,33 @@ local function update_armor_buffs(player_name, player_meta, p_data, fs, item_nam
 
         debug(flag5, "  ensuring 'prev' buff value totals reflect the item that was initially swapped in..")
         -- p_data.equip_buff_damage_xxxx_prev = <whatever existing equip buff value> + <undesired equipped item>
-        p_data.equip_buff_damage_prev = p_data.equip_buff_damage - ARMOR_BUFFS[swapped_in_item_name].damage
-        p_data.equip_buff_cold_prev = p_data.equip_buff_cold - ARMOR_BUFFS[swapped_in_item_name].cold
-        p_data.equip_buff_heat_prev = p_data.equip_buff_heat - ARMOR_BUFFS[swapped_in_item_name].heat
-        p_data.equip_buff_wetness_prev = p_data.equip_buff_wetness - ARMOR_BUFFS[swapped_in_item_name].wetness
-        p_data.equip_buff_disease_prev = p_data.equip_buff_disease - ARMOR_BUFFS[swapped_in_item_name].disease
-        p_data.equip_buff_radiation_prev = p_data.equip_buff_radiation - ARMOR_BUFFS[swapped_in_item_name].radiation
-        p_data.equip_buff_noise_prev = p_data.equip_buff_noise - ARMOR_BUFFS[swapped_in_item_name].noise
+        p_data.equip_buff_damage_prev = p_data.equip_buff_damage - EQUIPMENT_BUFFS[swapped_in_item_name].damage
+        p_data.equip_buff_cold_prev = p_data.equip_buff_cold - EQUIPMENT_BUFFS[swapped_in_item_name].cold
+        p_data.equip_buff_heat_prev = p_data.equip_buff_heat - EQUIPMENT_BUFFS[swapped_in_item_name].heat
+        p_data.equip_buff_sun_prev = p_data.equip_buff_sun - EQUIPMENT_BUFFS[swapped_in_item_name].sun
+        p_data.equip_buff_water_prev = p_data.equip_buff_water - EQUIPMENT_BUFFS[swapped_in_item_name].water
+        p_data.equip_buff_wetness_prev = p_data.equip_buff_wetness - EQUIPMENT_BUFFS[swapped_in_item_name].wetness
+        p_data.equip_buff_disease_prev = p_data.equip_buff_disease - EQUIPMENT_BUFFS[swapped_in_item_name].disease
+        p_data.equip_buff_electrical_prev = p_data.equip_buff_electrical - EQUIPMENT_BUFFS[swapped_in_item_name].electrical
+        p_data.equip_buff_radiation_prev = p_data.equip_buff_radiation - EQUIPMENT_BUFFS[swapped_in_item_name].radiation
+        p_data.equip_buff_gas_prev = p_data.equip_buff_gas - EQUIPMENT_BUFFS[swapped_in_item_name].gas
+        p_data.equip_buff_noise_prev = p_data.equip_buff_noise - EQUIPMENT_BUFFS[swapped_in_item_name].noise
         p_data.equip_buff_weight_prev = ss_round(p_data.equip_buff_weight - ITEM_WEIGHTS[swapped_in_item_name], 2)
 
         -- remove the undesired item's equip buff values from the equip buff totals, which leaves
         -- the buff totals to rerpesent: <whatever existing equip buff value> + <desired equipped item>
         debug(flag5, "  removing from existing equipment buffs totals..")
-        p_data.equip_buff_damage = p_data.equip_buff_damage - ARMOR_BUFFS[item_name].damage
-        p_data.equip_buff_cold = p_data.equip_buff_cold - ARMOR_BUFFS[item_name].cold
-        p_data.equip_buff_heat = p_data.equip_buff_heat - ARMOR_BUFFS[item_name].heat
-        p_data.equip_buff_wetness = p_data.equip_buff_wetness - ARMOR_BUFFS[item_name].wetness
-        p_data.equip_buff_disease = p_data.equip_buff_disease - ARMOR_BUFFS[item_name].disease
-        p_data.equip_buff_radiation = p_data.equip_buff_radiation - ARMOR_BUFFS[item_name].radiation
-        p_data.equip_buff_noise = p_data.equip_buff_noise - ARMOR_BUFFS[item_name].noise
+        p_data.equip_buff_damage = p_data.equip_buff_damage - EQUIPMENT_BUFFS[item_name].damage
+        p_data.equip_buff_cold = p_data.equip_buff_cold - EQUIPMENT_BUFFS[item_name].cold
+        p_data.equip_buff_heat = p_data.equip_buff_heat - EQUIPMENT_BUFFS[item_name].heat
+        p_data.equip_buff_sun = p_data.equip_buff_sun - EQUIPMENT_BUFFS[item_name].sun
+        p_data.equip_buff_water = p_data.equip_buff_water - EQUIPMENT_BUFFS[item_name].water
+        p_data.equip_buff_wetness = p_data.equip_buff_wetness - EQUIPMENT_BUFFS[item_name].wetness
+        p_data.equip_buff_disease = p_data.equip_buff_disease - EQUIPMENT_BUFFS[item_name].disease
+        p_data.equip_buff_electrical = p_data.equip_buff_electrical - EQUIPMENT_BUFFS[item_name].electrical
+        p_data.equip_buff_radiation = p_data.equip_buff_radiation - EQUIPMENT_BUFFS[item_name].radiation
+        p_data.equip_buff_gas = p_data.equip_buff_gas - EQUIPMENT_BUFFS[item_name].gas
+        p_data.equip_buff_noise = p_data.equip_buff_noise - EQUIPMENT_BUFFS[item_name].noise
         p_data.equip_buff_weight = ss_round(p_data.equip_buff_weight - ITEM_WEIGHTS[item_name], 2)
 
         -- at this point 'p_data.equip_buff_xxxx_prev' represents the buff value total
@@ -158,9 +209,13 @@ local function update_armor_buffs(player_name, player_meta, p_data, fs, item_nam
      player_meta:set_float("equip_buff_damage", p_data.equip_buff_damage)
      player_meta:set_float("equip_buff_cold", p_data.equip_buff_cold)
      player_meta:set_float("equip_buff_heat", p_data.equip_buff_heat)
+     player_meta:set_float("equip_buff_sun", p_data.equip_buff_sun)
+     player_meta:set_float("equip_buff_water", p_data.equip_buff_water)
      player_meta:set_float("equip_buff_wetness", p_data.equip_buff_wetness)
      player_meta:set_float("equip_buff_disease", p_data.equip_buff_disease)
+     player_meta:set_float("equip_buff_electrical", p_data.equip_buff_electrical)
      player_meta:set_float("equip_buff_radiation", p_data.equip_buff_radiation)
+     player_meta:set_float("equip_buff_gas", p_data.equip_buff_gas)
      player_meta:set_float("equip_buff_noise", p_data.equip_buff_noise)
      player_meta:set_float("equip_buff_weight", p_data.equip_buff_weight)
 
@@ -237,65 +292,14 @@ function ss.update_armor(player, item, slot_name, action)
         debug(flag2, "  applying armor texture..")
         debug(flag2, "  retrieved color: " .. texture_color)
 
+        -- update the equipment buff values that are displayed on the bottom left
+        -- area of the main inventory formspec
         update_armor_buffs(player_name, player_meta, p_data, fs, item_name, "add")
 
-        local slot_type = string_gsub(slot_name, "armor_slot_", "")
-        debug(flag2, "  slot_type: " .. slot_type)
-
-        local subtable_name = "equipped_armor_" .. slot_type
+        local subtable_name = "equipped_armor_" .. string_sub(slot_name, 12)
         debug(flag2, "  subtable_name: " .. subtable_name)
 
-        local buff_types = {}
-
-        local buff_data = ARMOR_BUFFS[item_name]
-        debug(flag2, "  buff_data: " .. dump(buff_data))
-
-        if buff_data.damage > 0 then
-            local buff_string = "damage=" .. buff_data.damage
-            debug(flag2, "  buff_string: " .. buff_string)
-            table_insert(buff_types, buff_string)
-        end
-        if buff_data.cold > 0 then
-            local buff_string = "cold=" .. buff_data.cold
-            debug(flag2, "  buff_string: " .. buff_string)
-            table_insert(buff_types, buff_string)
-        end
-        if buff_data.heat > 0 then
-            local buff_string = "heat=" .. buff_data.heat
-            debug(flag2, "  buff_string: " .. buff_string)
-            table_insert(buff_types, buff_string)
-        end
-        if buff_data.wetness > 0 then
-            local buff_string = "wetness=" .. buff_data.wetness
-            debug(flag2, "  buff_string: " .. buff_string)
-            table_insert(buff_types, buff_string)
-        end
-        if buff_data.disease > 0 then
-            local buff_string = "disease=" .. buff_data.disease
-            debug(flag2, "  buff_string: " .. buff_string)
-            table_insert(buff_types, buff_string)
-        end
-        if buff_data.radiation > 0 then
-            local buff_string = "radiation=" .. buff_data.radiation
-            debug(flag2, "  buff_string: " .. buff_string)
-            table_insert(buff_types, buff_string)
-        end
-        if buff_data.noise > 0 then
-            local buff_string = "noise=" .. buff_data.noise
-            debug(flag2, "  buff_string: " .. buff_string)
-            table_insert(buff_types, buff_string)
-        end
-        if ITEM_WEIGHTS[item_name] > 0 then
-            local buff_string = "weight=" .. ITEM_WEIGHTS[item_name]
-            debug(flag2, "  buff_string: " .. buff_string)
-            table_insert(buff_types, buff_string)
-        end
-
-        debug(flag2, "  buff_types: " .. dump(buff_types))
-        local buff_types_string = table_concat(buff_types, ",")
-        debug(flag2, "  buff_types: " .. buff_types_string)
-
-        local equipped_armor_data = item_name .. " " .. item_meta:get_string("inventory_image") .. " " .. buff_types_string
+        local equipped_armor_data = item_name .. " " .. item_meta:get_string("inventory_image")
         p_data[subtable_name] = equipped_armor_data
         debug(flag2, "  p_data." .. subtable_name .. ": " .. equipped_armor_data)
 
@@ -354,6 +358,16 @@ function ss.update_armor(player, item, slot_name, action)
         player_meta:set_string("avatar_texture_armor", combined_armor_textures)
         debug(flag2, "  p_data.avatar_texture_armor: " .. combined_armor_textures)
 
+        if slot_name == "armor_slot_feet" then
+            debug(flag2, "  equiping to feet slot: " .. item_name)
+            local modifier_value = LEG_INJURY_MODIFIERS[item_name]
+            debug(flag2, "  leg_injury_mod_foot_armor: " .. modifier_value)
+            p_data.leg_injury_mod_foot_armor = modifier_value
+            player_meta:set_float("leg_injury_mod_foot_armor", modifier_value)
+        else
+            debug(flag2, "  equiping armor into slot other than feet")
+        end
+
         -- generate the final texture string to be applied to the player model, which is
         -- the base skin texture + combined clothing textures + combined armor textures
         debug(flag2, "  p_data.vatar_texture_base: " .. p_data.avatar_texture_base)
@@ -363,6 +377,9 @@ function ss.update_armor(player, item, slot_name, action)
             p_data.avatar_texture_clothes, "^",
             combined_armor_textures
         })
+
+        p_data.equipment_count = p_data.equipment_count + 1
+        p_data.wetness_drain_mod_equip = lerp(1, 0.3, p_data.equipment_count/12)
 
     else
         debug(flag2, "  removing armor for " .. slot_name)
@@ -483,6 +500,8 @@ function ss.update_armor(player, item, slot_name, action)
             player_meta:set_string("equipped_armor_feet", "")
             p_data.foot_armor_texture = ""
             player_meta:set_string("foot_armor_texture", "")
+            p_data.leg_injury_mod_foot_armor = 1
+            player_meta:set_float("leg_injury_mod_foot_armor", 1)
 
         else
             debug(flag2, "  ERROR - Unknown slot_name: " .. slot_name)
@@ -564,6 +583,9 @@ function ss.update_armor(player, item, slot_name, action)
 
             end
         end
+
+        p_data.equipment_count = p_data.equipment_count - 1
+        p_data.wetness_drain_mod_equip = lerp(1, 0.3, p_data.equipment_count/12)
 
     end
 
@@ -656,7 +678,7 @@ end
 
 local flag15 = false
 core.register_on_joinplayer(function(player)
-    debug(flag15, "\nregister_on_joinplayer() armor.lua")
+    debug(flag15, "\nregister_on_joinplayer() ARMOR")
     local player_name = player:get_player_name()
     local p_data = player_data[player_name]
 
@@ -685,11 +707,8 @@ core.register_on_joinplayer(function(player)
                     p_data.avatar_texture_armor
                 })
                 debug(flag15, "  avatar_texture: " .. avatar_texture)
-                mt_after(1.5, function()
-                    if not player:is_player() then
-                        debug(flag15, "  player no longer exists. function skipped.")
-                        return
-                    end
+                mt_after(0.1, function()
+                    after_player_check(player)
                     player:set_properties({ textures = {avatar_texture} })
                 end)
             end
@@ -711,11 +730,8 @@ core.register_on_joinplayer(function(player)
                 })
                 debug(flag15, "  avatar_texture: " .. avatar_texture)
             end
-            mt_after(1.5, function()
-                if not player:is_player() then
-                    debug(flag15, "  player no longer exists. function skipped.")
-                    return
-                end
+            mt_after(0.1, function()
+                after_player_check(player)
                 player:set_properties({ textures = {avatar_texture} })
             end)
         end

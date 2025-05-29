@@ -11,7 +11,7 @@ local function custom_on_secondary_use(itemstack, user, pointed_thing)
     local item_meta = itemstack:get_meta()
     local remaining_uses = item_meta:get_int("remaining_uses")
 	local text = "remaining uses  " .. core.get_color_escape_sequence("yellow") .. remaining_uses
-    notify(user, text, 1, 0.5, 0, 2)
+    notify(user, "remaining_uses", text, 1, 0.5, 0, 2)
 end
 
 

@@ -1215,8 +1215,14 @@ Splint,,craftitem,medical,
 ss_inv_dense,,,ss_action_splint,
 2.80,90,270,0,1.5,1.5,blunt,1.6
 a basic splint made from wood and cloth.
-Suffering from a sprain or fracture? Wearing a splint not only recovers a bit of mobility but also accelerates the healing process of the injury. Turns into charcoal if heated long enough.
+Using a splint recovers a bit of mobility but also accelerates the healing process. Turns into charcoal if heated long enough.
 
+ss:cast,ss_cast,
+Cast,,craftitem,medical,
+ss_inv_default,,,ss_action_tear_cloth,
+0.50,3,8,2,0,1.0,fist,
+a basic casting kit to dress broken limbs.
+Using a cast recovers more mobility than a splint as well as accelerate the healing process.
 
 ### CAMPFIRE ###
 
@@ -1354,6 +1360,13 @@ ss_inv_dense,ss_swoosh_faint,,,
 1.0,0,0,0,1.5,1.0,blunt,1.8
 A weather wand.
 Admin tool that can modifify the current biome's climate. Resets upon game restart. Hold down Aux1 button and press left mouse button to activate.
+
+ss:sound_wand,ss_wand_weather,
+Sound Wand,,craftitem,admin tool,
+ss_inv_dense,ss_swoosh_faint,,ss_action_wand,
+1.0,0,0,0,1.5,1.0,blunt,1.8
+A magic sound wand.
+Admin tool that allows testing of sound effects. Hold down Aux1 button and pressing left mouse button to show the window.
 
 ss:screwdriver,ss_stick,
 Screwdriver,,craftitem,admin tool,

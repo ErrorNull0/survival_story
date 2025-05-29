@@ -7,10 +7,13 @@ local math_round = math.round
 local math_min = math.min
 local string_sub = string.sub
 local string_len = string.len
+local string_find = string.find
+local string_upper = string.upper
 local table_remove = table.remove
 local table_insert = table.insert
 local table_concat = table.concat
 local mt_sound_play = core.sound_play
+local mt_sound_stop = core.sound_stop
 local mt_colorize = core.colorize
 local mt_after = core.after
 local mt_get_meta = core.get_meta
@@ -37,7 +40,6 @@ local NODE_NAMES_WATER = ss.NODE_NAMES_WATER
 local ITEM_BURN_TIMES = ss.ITEM_BURN_TIMES
 local COOK_THRESHOLD = ss.COOK_THRESHOLD
 local WEAR_VALUE_MAX = ss.WEAR_VALUE_MAX
-local NOTIFY_BOX_HEIGHT = ss.NOTIFY_BOX_HEIGHT
 local ITEM_TOOLTIP = ss.ITEM_TOOLTIP
 local SOUND_EFFECT_DURATION = ss.SOUND_EFFECT_DURATION
 local formspec_viewers = ss.formspec_viewers
@@ -47,6 +49,11 @@ local player_hud_ids = ss.player_hud_ids
 local itemdrop_bag_pos = ss.itemdrop_bag_pos
 
 
+-- The height of the gray background box on which the notification text is
+-- displayed on top of
+ss.NOTIFY_BOX_HEIGHT = 25
+local NOTIFY_BOX_HEIGHT = ss.NOTIFY_BOX_HEIGHT
+
 -- Prints debug text to console for debugging and testing.
 --- @param flag boolean whether to actually print the text to console
 --- @param text string the text to be printed to the console
@@ -55,6 +62,16 @@ function ss.debug(flag, text)
 end
 local debug = ss.debug
 
+
+-- typically called inside core.after to check if player is still valid, and if not
+-- quit the execution
+function ss.after_player_check(player)
+    if not player:is_player() then
+        print("\n#### 'player' object not valid' ### ")
+        return
+	end
+end
+local after_player_check = ss.after_player_check
 
 --[[ Workaround for player_control continuously sending input clicked/pressed when
 a custom formspec is activated via right mouse button. this function is currently
@@ -80,8 +97,6 @@ function ss.key_to_pos(key)
     local x, y, z = key:match("([^,]+),([^,]+),([^,]+)")
     return {x = tonumber(x), y = tonumber(y), z = tonumber(z)}
 end
-local key_to_pos = ss.key_to_pos
-
 
 
 --- @param number number the float number that will be rounded
@@ -98,8 +113,27 @@ end
 local round = ss.round
 
 
-function ss.convert_to_celcius(temperature)
-    return round((temperature - 32) * 5 / 9, 1)
+
+-- returns a value between a and b, based on the t ratio
+--- @param a number start value
+--- @param b number end value
+--- @param t number the progress ratio between 0 or 1
+function ss.lerp(a, b, t)
+    return a + (b - a) * t
+end
+
+
+--- @param temperature number temperature in fahrenheit
+--- @param precision number how many decimal places to round
+--- @param flag? boolean whether to return the temperature difference
+function ss.convert_to_celcius(temperature, precision, flag)
+    if flag then
+        -- temperature difference
+        return round(temperature * 5 / 9, precision)
+    else
+        -- actual temperature
+        return round((temperature - 32) * 5 / 9, precision)
+    end
 end
 
 
@@ -146,7 +180,7 @@ function ss.is_underwater(player)
     local current_anim = p_data.current_anim_state
     debug(flag17, "      current_anim_state: " .. current_anim)
     local head_height
-    if string.sub(current_anim, 1, 6) == "crouch" then
+    if string_sub(current_anim, 1, 6) == "crouch" then
         debug(flag17, "      player crouched")
         head_height = 0.5
     else
@@ -179,31 +213,19 @@ local flag20 = false
 --- @param action string the trigger of the sound event: 'move', 'use', or 'drop'
 --- @param sound_data table contains data relevant to the 'action' parameter
 function ss.play_sound(action, sound_data)
-    debug(flag20, "  ss.play_sound() global_functions.lua")
+    debug(flag20, "  ss.play_sound()")
     debug(flag20, "    action: " .. action)
 
     if action == "item_move" then
-        local item_name = sound_data.item_name
-        debug(flag20, "    item_name: " .. item_name)
-        local sound_file = ITEM_SOUNDS_INV[item_name]
+        local sound_file = ITEM_SOUNDS_INV[sound_data.item_name]
         if sound_file then
-            debug(flag20, "    sound_file: " .. sound_file)
-            mt_sound_play(
-                {name = sound_file, gain = 0.3},
-                {to_player = sound_data.player_name}
-            )
+            mt_sound_play(sound_file, {gain = 0.3, to_player = sound_data.player_name}, true)
         end
 
     elseif action == "item_use" then
-        if not sound_data.player or sound_data.player:get_player_name() == "" then
-            debug(flag20, "    player no longer exists. function skipped.")
-            return
-        end
-        local item_name = sound_data.item_name
-        debug(flag20, "    item_name: " .. item_name)
-        local sound_file = ITEM_SOUNDS_USE[item_name]
+        after_player_check(sound_data.player)
+        local sound_file = ITEM_SOUNDS_USE[sound_data.item_name]
         if sound_file then
-            debug(flag20, "    sound_file: " .. sound_file)
             mt_sound_play(sound_file, {
                 object = sound_data.player,
                 max_hear_distance = 10
@@ -211,11 +233,8 @@ function ss.play_sound(action, sound_data)
         end
 
     elseif action == "item_break" then
-        local item_name = sound_data.item_name
-        debug(flag20, "    item_name: " .. item_name)
-        local sound_file = ITEM_SOUNDS_BREAK[item_name]
+        local sound_file = ITEM_SOUNDS_BREAK[sound_data.item_name]
         if sound_file then
-            debug(flag20, "    sound_file: " .. sound_file)
             mt_sound_play(sound_file, {
                 pos = sound_data.pos,
                 max_hear_distance = 10
@@ -223,15 +242,9 @@ function ss.play_sound(action, sound_data)
         end
 
     elseif action == "swing_container" then
-        if not sound_data.player or sound_data.player:get_player_name() == "" then
-            debug(flag20, "    player no longer exists. function skipped.")
-            return
-        end
-        local item_name = sound_data.item_name
-        debug(flag20, "    item_name: " .. item_name)
-        local sound_file = ITEM_SOUNDS_MISS[item_name]
+        after_player_check(sound_data.player)
+        local sound_file = ITEM_SOUNDS_MISS[sound_data.item_name]
         if sound_file then
-            debug(flag20, "    sound_file: " .. sound_file)
             mt_sound_play(sound_file, {
                 object = sound_data.player,
                 max_hear_distance = 10
@@ -239,119 +252,70 @@ function ss.play_sound(action, sound_data)
         end
 
     elseif action == "item_drop" then
-        if not sound_data.player or sound_data.player:get_player_name() == "" then
-            debug(flag20, "    player no longer exists. function skipped.")
-            return
-        end
-        mt_sound_play(
-            {name = "ss_action_drop_item", gain = 0.3},
-            {object = sound_data.player, max_hear_distance = 10}
-        )
+        after_player_check(sound_data.player)
+        mt_sound_play("ss_action_drop_item", {gain = 0.3, object = sound_data.player, max_hear_distance = 10}, true)
 
     elseif action == "button" then
-        mt_sound_play(
-            {name = "ss_ui_click1", gain = 0.5},
-            {to_player = sound_data.player_name}
-        )
+        mt_sound_play("ss_ui_click1", {gain = 0.5, to_player = sound_data.player_name}, true)
 
     elseif action == "notify_info" then
-        mt_sound_play(
-            {name = "ss_notify_info", gain = 0.5},
-            {to_player = sound_data.player_name}
-        )
+        mt_sound_play("ss_notify_info", {gain = 0.5, to_player = sound_data.player_name}, true)
 
     elseif action == "notify_warning" then
-        mt_sound_play(
-            {name = "ss_notify_warning", gain = 0.1},
-            {to_player = sound_data.player_name}
-        )
+        mt_sound_play("ss_notify_warning", {gain = 0.1, to_player = sound_data.player_name}, true)
 
     elseif action == "bundle_open" then
-        mt_sound_play(
-            "ss_item_bundle_open",
-            {to_player = sound_data.player_name}
-        )
+        mt_sound_play( "ss_item_bundle_open", {to_player = sound_data.player_name}, true)
 
     elseif action == "bundle_close" then
-        mt_sound_play(
-            "ss_item_bundle_close",
-            {to_player = sound_data.player_name}
-        )
+        mt_sound_play("ss_item_bundle_close", {to_player = sound_data.player_name}, true)
 
     elseif action == "bundle_cancel" then
-        mt_sound_play(
-            "ss_ui_cloth",
-            {to_player = sound_data.player_name}
-        )
+        mt_sound_play("ss_ui_cloth", {to_player = sound_data.player_name}, true)
 
     elseif action == "bag_open" then
-        local pos = sound_data.pos
-        debug(flag20, "    pos: " .. mt_pos_to_string(pos))
         mt_sound_play("ss_ui_cloth", {
-            pos = pos,
+            pos = sound_data.pos,
             max_hear_distance = 10,
         }, true)
 
     elseif action == "campfire_open" then
-        local pos = sound_data.pos
-        debug(flag20, "    pos: " .. mt_pos_to_string(pos))
         mt_sound_play("ss_inv_wood_pile", {
-            pos = pos,
+            pos = sound_data.pos,
             max_hear_distance = 10,
         }, true)
 
     elseif action == "campfire_start" then
-        local pos = sound_data.pos
-        debug(flag20, "    pos: " .. mt_pos_to_string(pos))
         mt_sound_play("ss_flame_burn", {
-            pos = pos,
+            pos = sound_data.pos,
             max_hear_distance = 10,
         }, true)
 
     elseif action == "campfire_stop" then
-        local pos = sound_data.pos
-        debug(flag20, "    pos: " .. mt_pos_to_string(pos))
         mt_sound_play("ss_flame_douse", {
-            pos = pos,
+            pos = sound_data.pos,
             max_hear_distance = 10,
         }, true)
 
     elseif action == "campfire_cooked" then
-        local pos = sound_data.pos
-        debug(flag20, "    pos: " .. mt_pos_to_string(pos))
         mt_sound_play("ss_item_cooked", {
             gain = 0.6,
-            pos = pos,
+            pos = sound_data.pos,
             max_hear_distance = 10,
         }, true)
 
-    elseif action == "breath_recover" then
-        if not sound_data.player or sound_data.player:get_player_name() == "" then
-            debug(flag20, "    player no longer exists. function skipped.")
-            return
-        end
-        local sound_file = sound_data.sound_file
-        mt_sound_play(sound_file, {
-            gain = math_random(90,105) / 100,
-            pitch = math_random(95,105) / 100,
-            object = sound_data.player,
-            max_hear_distance = 10
-        }, true)
-
-    elseif action == "body_noise" then
-        if not sound_data.player or sound_data.player:get_player_name() == "" then
-            debug(flag20, "    player no longer exists. function skipped.")
-            return
-        end
+    elseif action == "vocal_sound" then
+        after_player_check(sound_data.player)
         local p_data = sound_data.p_data
-        mt_sound_play(sound_data.sound_file, {
+        local filename = sound_data.sound_file
+        mt_sound_play(filename, {
             gain = math_random(80,100) / 100,
             pitch = math_random(95,105) / 100,
             object = sound_data.player,
             max_hear_distance = 10
         }, true)
         p_data.player_vocalizing = true
-        mt_after(sound_data.duration, function()
+        mt_after(SOUND_EFFECT_DURATION[filename], function()
             p_data.player_vocalizing = false
         end)
 
@@ -362,17 +326,15 @@ function ss.play_sound(action, sound_data)
         local severity_direction = sound_data.severity
         local delay = sound_data.delay
 
+        debug(flag20, "    stat: " .. stat)
+
         mt_after(delay, function()
             debug(flag20, "  ss.play_sound >> core.after()")
-            if not player:is_player() then
-                debug(flag20, "    player no longer exists. function skipped.")
-                    debug(flag20, "  core.after() END")
-                return
-            end
+            after_player_check(player)
 
             -- don't player most stat effect sounds while underwater
-            if p_data.underwater then
-                debug(flag20, "    player is underwater")
+            if p_data.water_level >= 90 then
+                debug(flag20, "    player is 90% submerged")
                 if stat == "hunger" then
                     if severity_direction == "up" then
                         debug(flag20, "    player getting hungrier while underwater")
@@ -396,11 +358,25 @@ function ss.play_sound(action, sound_data)
                 if stat == "hunger" then
                     if severity_direction == "up" then
                         debug(flag20, "    player getting hungrier while vocalizing")
+                        -- allow stomach sound to play since it can overlap with vocal sounds
                     else
                         debug(flag20, "    player getting less hugry while vocalizing. do not play relief sound.")
                         debug(flag20, "  core.after() END")
                         return
                     end
+
+                -- sneeze, cough, and vomit sounds will be allowd and override any
+                -- current vocalized sounds
+                elseif stat == "sneeze" then
+                    debug(flag20, "    player sneezing. stopping current sound..")
+                    core.sound_stop(p_data.sound_handle)
+                elseif stat == "cough" then
+                    debug(flag20, "    player coughing. stopping current sound..")
+                    core.sound_stop(p_data.sound_handle)
+                elseif stat == "vomit" then
+                    debug(flag20, "    player vomitting. stopping current sound..")
+                    core.sound_stop(p_data.sound_handle)
+
                 else
                     debug(flag20, "    player activating non-hunger stat effect while vocalizing. do not play sound.")
                     debug(flag20, "  core.after() END")
@@ -408,35 +384,46 @@ function ss.play_sound(action, sound_data)
                 end
             end
 
-            debug(flag20, "    player not already vocalizing a sound.")
+            debug(flag20, "    player not already vocalizing a sound (or is sneezing)")
             p_data.player_vocalizing = true
             local sound_file
+            local sound_duration
+            local pitch = 1
             if severity_direction == "up" then
                 debug(flag20, "    stat severity is up. play stat up sound")
-                sound_file = "ss_stat_effect_" .. stat .. "_up_" .. p_data.body_type
+                if stat == "breath" then
+                    -- can't find good female drown sound, so using male sound with pitched increased
+                    sound_file = "ss_stat_effect_breath_up_1"
+                    pitch = 1.25
+                    sound_duration = SOUND_EFFECT_DURATION["breath_1"]
+                else
+                    sound_file = "ss_stat_effect_" .. stat .. "_up_" .. p_data.body_type
+                    sound_duration = SOUND_EFFECT_DURATION[stat .. "_" .. p_data.body_type]
+                end
 
             elseif severity_direction == "down" then
                 debug(flag20, "    stat severity is down")
                 if stat == "breath" then
                     debug(flag20, "    stat is BREATH. play breath down sound.")
                     sound_file = "ss_stat_effect_breath_down_" .. p_data.body_type
+                    sound_duration = SOUND_EFFECT_DURATION["breath_" .. p_data.body_type]
                 else
                     debug(flag20, "    play stat down sound")
                     sound_file = "ss_stat_effect_down_" .. p_data.body_type
+                    sound_duration = 0.8
                 end
 
             else
                 debug(flag20, "      ERROR - Unexpected 'severity_direction' value: " .. severity_direction)
             end
-            mt_sound_play(sound_file, {object = sound_data.player, max_hear_distance = 10}, true)
+            p_data.sound_handle = mt_sound_play(sound_file,
+                {object = sound_data.player, max_hear_distance = 10, pitch = pitch}
+            )
 
             -- ensure no other 'vocalizing' type sounds are played until the duration
             -- of this sound is done playing, the sounds don't overlap and blend together
-            mt_after(SOUND_EFFECT_DURATION[stat .. "_" .. p_data.body_type], function()
-                if not player:is_player() then
-                    debug(flag20, "  player no longer exists. function skipped.")
-                    return
-                end
+            mt_after(sound_duration, function()
+                after_player_check(player)
                 p_data.player_vocalizing = false
             end)
 
@@ -500,10 +487,7 @@ local flag6 = false
 --- @param notify_box string which of the 3 locations to display the text
 local function clear_notify_box(player, player_name, hud_id, hud_id_bg, notify_box)
     debug(flag6, "clear_notify_box()")
-    if not player:is_player() then
-        debug(flag6, "player no longer exists. function skipped.")
-        return
-    end
+    after_player_check(player)
 
     player:hud_change(hud_id, "text", "")
     player:hud_change(hud_id_bg, "text", "")
@@ -525,16 +509,19 @@ local flag1 = false
 -- Displays a notification 'text' above the player hotbar within the designated
 -- 'notify_box' which there are three. Each target box is slighly higher above
 -- the hotbar than the previous one, with its own type of color and font style.
+-- 'trigger' values: inventory, stat_effect, cooldown, mobs, wield_item, noise,
+-- remaining_uses, hammer, system, error
 --- @param player ObjectRef the player object
+--- @param trigger string the trigger or source of this notification
 --- @param text string the text notification to display on screen
 --- @param duration number how many seconds the notification with show on screen
---- @param delay number how many seconds to wait before activating the sound effect and text
---- @param delay_text number how many seconds between the sound effect and display of the text
+--- @param delay_sound number how many seconds to wait before activating the sound effect and text
+--- @param delay_text number how many seconds after the sound effect to display the text
 --- @param notify_box number '3' is positioned above '2' which is above '1' and all above the hotbar
 --- @param breath_flag? boolean 'true' when this was called due to breath stat effect activation
-function ss.notify(player, text, duration, delay, delay_text, notify_box, breath_flag)
+function ss.notify(player, trigger, text, duration, delay_sound, delay_text, notify_box, breath_flag)
     debug(flag1, "\nss.notify()")
-    debug(flag1, "  duration " .. duration .. " | delay " .. delay
+    debug(flag1, "  duration " .. duration .. " | delay_sound " .. delay_sound
         .. " | delay_text " .. delay_text .. " | notify_box " .. notify_box)
     debug(flag1, "  text: " .. text)
 
@@ -542,19 +529,41 @@ function ss.notify(player, text, duration, delay, delay_text, notify_box, breath
     debug(flag1, "  player_name: " .. player_name)
 
     -- play the notification sound effect
-    mt_after(delay, function()
+    mt_after(delay_sound, function()
         debug(flag1, "\nnotify() >> mt_after() >> play sound")
-        if not player:is_player() then
-            debug(flag1, "  player no longer exists. function skipped.")
-            return
-        end
-
+        after_player_check(player)
 
         if notify_box == 1 then
             debug(flag1, "  notify_box 1: no sound will be played")
 
         elseif notify_box == 2 then
             debug(flag1, "  notify_box 2: playing ding sound")
+
+                -- exit early if this notification trigger is disabled (from Settings tab)
+                local p_data = player_data[player_name]
+                if trigger == "inventory" and p_data.notify_active_inventory == 0 then
+                    debug(flag1, "  inventory notifications disabled")
+                    debug(flag1, "ss.notify() END")
+                    return
+                elseif trigger == "stat_effect" and p_data.notify_active_stat_effects == 0 then
+                    debug(flag1, "  status effect notifications disabled")
+                    debug(flag1, "ss.notify() END")
+                    return
+                elseif trigger == "cooldown" and p_data.notify_active_cooldowns == 0 then
+                    debug(flag1, "  cooldown notifications disabled")
+                    debug(flag1, "ss.notify() END")
+                    return
+                elseif trigger == "mobs" and p_data.notify_active_mobs == 0 then
+                    debug(flag1, "  mobs notifications disabled")
+                    debug(flag1, "ss.notify() END")
+                    return
+                elseif trigger == "error" and p_data.notify_active_errors == 0 then
+                    debug(flag1, "  error notifications disabled")
+                    debug(flag1, "ss.notify() END")
+                    return
+                else
+                    debug(flag1, "  unimplemented 'trigger' type:" .. trigger)
+                end
 
             -- indicates that this call to notify() was from activation of breath
             -- status effect from do_stat_update_action(). since this text displays
@@ -575,6 +584,32 @@ function ss.notify(player, text, duration, delay, delay_text, notify_box, breath
             debug(flag1, "  notify_box 3: playing buzz sound")
             play_sound("notify_warning", {player_name = player_name})
 
+            -- exit early if this notification trigger is disabled (from Settings tab)
+            local p_data = player_data[player_name]
+            if trigger == "inventory" and p_data.notify_active_inventory == 0 then
+                debug(flag1, "  inventory notifications disabled")
+                debug(flag1, "ss.notify() END")
+                return
+            elseif trigger == "stat_effect" and p_data.notify_active_stat_effects == 0 then
+                debug(flag1, "  status effect notifications disabled")
+                debug(flag1, "ss.notify() END")
+                return
+            elseif trigger == "cooldown" and p_data.notify_active_cooldowns == 0 then
+                debug(flag1, "  cooldown notifications disabled")
+                debug(flag1, "ss.notify() END")
+                return
+            elseif trigger == "mobs" and p_data.notify_active_mobs == 0 then
+                debug(flag1, "  mobs notifications disabled")
+                debug(flag1, "ss.notify() END")
+                return
+            elseif trigger == "error" and p_data.notify_active_errors == 0 then
+                debug(flag1, "  error notifications disabled")
+                debug(flag1, "ss.notify() END")
+                return
+            else
+                debug(flag1, "  unimplemented 'trigger' type:" .. trigger)
+            end
+
         else
             debug(flag1, "  ERROR - Unexpected 'notify_box' value: " .. notify_box)
         end
@@ -582,10 +617,7 @@ function ss.notify(player, text, duration, delay, delay_text, notify_box, breath
         -- display the notification text
         mt_after(delay_text, function()
             debug(flag1, "\nnotify() >> mt_after() >> show text")
-            if not player:is_player() then
-                debug(flag1, "  player no longer exists. function skipped.")
-                return
-            end
+            after_player_check(player)
 
             -- ensure any existing notification text is removed before showing this one
             local job_handle = job_handles[player_name]["notify_box_" .. notify_box]
@@ -601,12 +633,12 @@ function ss.notify(player, text, duration, delay, delay_text, notify_box, breath
             -- hidden colorization tags imbedded into the notification text. compensate
             -- for this by excluding the colorization tags from the text length.
             local box_bg_width
-            local colorize_index_1, colorize_index_2 = string.find(text, "@yellow")
+            local colorize_index_1, colorize_index_2 = string_find(text, "@yellow")
             if colorize_index_1 then
                 debug(flag1, "  this text has yellow colorization")
                 colorize_index_1 = colorize_index_1 - 3
                 colorize_index_2 = colorize_index_2 + 1
-                local str = string.sub(text, 1, colorize_index_1 - 1) .. string.sub(text, colorize_index_2 + 1)
+                local str = string_sub(text, 1, colorize_index_1 - 1) .. string_sub(text, colorize_index_2 + 1)
                 debug(flag1, "  text without colorization: " .. str)
                 box_bg_width = (string_len(str) * 8) + 30
             else
@@ -668,14 +700,20 @@ function ss.pickup_item(player, pointed_thing)
             else
                 print("ERROR - attempted to pickup an invalud lua entity object")
                 print("pointed_thing: " .. dump(pointed_thing))
-                notify(player, "ERROR - object invalid cannot pickup", 4, 0, 0.5, 3)
+                notify(player, "inventory", "ERROR - object invalid cannot pickup", 4, 0, 0.5, 3)
             end
         end
     elseif type == "node" then
         local pos = pointed_thing.under
         local node = mt_get_node(pos)
+        local node_name = node.name
+        debug(flag26, "    swung at a node: " .. node_name)
+        if node_name == "ss:stone" then
+            mt_sound_play("ss_break_stone", {object = player, max_hear_distance = 10}, true)
+        elseif node_name == "ss:stick" then
+            mt_sound_play("ss_inv_wood", {object = player, max_hear_distance = 10}, true)
+        end
         mt_punch_node(pos, player)
-        debug(flag26, "    swong at a node: " .. node.name)
     else
         debug(flag26, "    hit NOTHING")
     end
@@ -932,6 +970,49 @@ end
 local get_itemstack_weight = ss.get_itemstack_weight
 
 
+
+local flag18 = false
+--- @param player ObjectRef the player object
+-- Returns the weight of the currently wielded item. If player is not wielding an item
+-- or the item does not have an assigned weight value, it returns 2.5 as default value.
+-- also returns a boolean indicating if player was emppty handed or not
+function ss.get_wield_weight(player, p_data)
+	debug(flag18, "\n  get_wield_weight()")
+    local weight_mod = p_data.weight_mod_forearm_freak
+    local wield_weight
+    local using_fists = true
+	local item = player:get_wielded_item()
+	local item_name = item:get_name()
+	--debug(flag18, "  item_name: " .. item_name)
+	if item_name == "" then
+		--debug(flag18, "    swinging fists")
+        wield_weight = 2.5 * weight_mod
+	else
+		--debug(flag18, "    swinging " .. item_name)
+		local itemstack_weight = get_itemstack_weight(item)
+        --debug(flag18, "    itemstack_weight: " .. itemstack_weight)
+		if itemstack_weight > 0 then
+            using_fists = false
+			if itemstack_weight < 2.5 then
+				-- weight less than 2.5. default to 2.5
+                wield_weight = 2.5 * weight_mod
+			else
+                wield_weight = itemstack_weight * weight_mod
+			end
+		else
+			-- default to 2.5
+            wield_weight = 2.5 * weight_mod
+		end
+	end
+
+    debug(flag18, "    wield_weight: " .. wield_weight)
+    debug(flag18, "    using_fists: " .. dump(using_fists))
+    return wield_weight, using_fists
+
+end
+
+
+
 -- Wheter or not the item when added to the inventory will cause it to exceed the
 -- total inventory weight limit.
 --- @param item ItemStack the itemstack being added to the player inventory
@@ -993,10 +1074,10 @@ function ss.get_fs_player_stats(player_name)
     local p_data = player_data[player_name]
     local fs_output = {table_concat({
         "hypertext[", x_pos, ",", y_pos, ";3,1;player_name;",
-        "<style color=#CCCCCC size=18><b>", player_name, "</b></style>]",
+        "<style color=#AAAAAA size=16><b>", string_upper(player_name), "</b></style>]",
 
-        "hypertext[", x_pos, ",", y_pos + 0.5, ";3,1;player_status;",
-        "<style color=#777777 size=15><b>Status:  <style color=", p_data.ui_green, ">Good</style></b></style>]",
+        --"hypertext[", x_pos, ",", y_pos + 0.5, ";3,1;player_status;",
+        --"<style color=#777777 size=15><b>Status:  <style color=", p_data.ui_green, ">Good</style></b></style>]",
     })}
 
     return fs_output
@@ -1014,9 +1095,9 @@ function ss.get_fs_player_avatar(mesh_file, texture_file)
     debug(flag24, "    texture_file: " .. texture_file)
     return {
         table_concat({
-            "box[1.3,1.3;3.0,6.25;#111111]",
-            "box[1.35,1.35;2.9,6.15;#333333]",
-            "model[1.5,1.7;2.6,5.47;player_avatar;", mesh_file, ";", texture_file,
+            "box[1.3,0.7;3.0,6.25;#111111]",
+            "box[1.35,0.75;2.9,6.15;#333333]",
+            "model[1.5,1.1;2.6,5.47;player_avatar;", mesh_file, ";", texture_file,
             ";{0,200};false;true;2,2;0]"
         })
     }
@@ -1033,30 +1114,23 @@ function ss.get_fs_equip_slots(p_data)
     debug(flag13, "\n  get_fs_equip_slots()")
 
     local data = {
-        clothing_slot_eyes   = { 4.4, 1.30, "ss_ui_slot_clothing_eyes", "Eyewear\n(shades, glasses, goggles, etc)" },
-        clothing_slot_neck   = { 4.4, 2.35, "ss_ui_slot_clothing_neck", "Neck\n(scarf, necklace, etc)" },
-        clothing_slot_chest = { 4.4, 3.40, "ss_ui_slot_clothing_chest", "Top Clothing\n(shirt, sweater, etc)" },
-        clothing_slot_hands  = { 4.4, 4.45, "ss_ui_slot_clothing_hands", "Hand Protection\n(gloves, mittens, etc)" },
-        clothing_slot_legs  = { 4.4, 5.50, "ss_ui_slot_clothing_legs", "Bottom Clothing\n(pants, shorts, etc)" },
-        clothing_slot_feet  = { 4.4, 6.55, "ss_ui_slot_clothing_feet", "Foot Support\n(socks, insoles, etc)" },
-        armor_slot_head   = { 0.2, 1.30, "ss_ui_slot_armor_head", "Headgear\n(hats, helmets, etc)" },
-        armor_slot_face   = { 0.2, 2.35, "ss_ui_slot_armor_face", "Face\n(bandana, mask, etc)" },
-        armor_slot_chest    = { 0.2, 3.40, "ss_ui_slot_armor_chest", "Chest Armor" },
-        armor_slot_arms     = { 0.2, 4.45, "ss_ui_slot_armor_arms", "Arm Guards" },
-        armor_slot_legs     = { 0.2, 5.50, "ss_ui_slot_armor_legs", "Leg Armor" },
-        armor_slot_feet   = { 0.2, 6.55, "ss_ui_slot_armor_feet", "Footwear\n(shoes, boots, etc)" }
+        clothing_slot_eyes   = { 4.4, 0.70, "ss_ui_slot_clothing_eyes", "Eyewear\n(shades, glasses, goggles, etc)" },
+        clothing_slot_neck   = { 4.4, 1.75, "ss_ui_slot_clothing_neck", "Neck\n(scarf, necklace, etc)" },
+        clothing_slot_chest = { 4.4, 2.80, "ss_ui_slot_clothing_chest", "Top Clothing\n(shirt, sweater, etc)" },
+        clothing_slot_hands  = { 4.4, 3.85, "ss_ui_slot_clothing_hands", "Hand Protection\n(gloves, mittens, etc)" },
+        clothing_slot_legs  = { 4.4, 4.90, "ss_ui_slot_clothing_legs", "Bottom Clothing\n(pants, shorts, etc)" },
+        clothing_slot_feet  = { 4.4, 5.95, "ss_ui_slot_clothing_feet", "Foot Support\n(socks, insoles, etc)" },
+        
+        armor_slot_head   = { 0.2, 0.70, "ss_ui_slot_armor_head", "Headgear\n(hats, helmets, etc)" },
+        armor_slot_face   = { 0.2, 1.75, "ss_ui_slot_armor_face", "Face\n(bandana, mask, etc)" },
+        armor_slot_chest    = { 0.2, 2.80, "ss_ui_slot_armor_chest", "Chest Armor" },
+        armor_slot_arms     = { 0.2, 3.85, "ss_ui_slot_armor_arms", "Arm Guards" },
+        armor_slot_legs     = { 0.2, 4.90, "ss_ui_slot_armor_legs", "Leg Armor" },
+        armor_slot_feet   = { 0.2, 5.95, "ss_ui_slot_armor_feet", "Footwear\n(shoes, boots, etc)" }
     }
 
     -- cycle through all p_data for each slot and if empty string, then put slot bg. if not, show green highlight
-    debug(flag13, "    p_data.avatar_clothing_eyes: " .. p_data.avatar_clothing_eyes)
-    debug(flag13, "    p_data.avatar_clothing_neck: " .. p_data.avatar_clothing_neck)
-    debug(flag13, "    p_data.avatar_clothing_chest: " .. p_data.avatar_clothing_chest)
-    debug(flag13, "    p_data.avatar_clothing_hands: " .. p_data.avatar_clothing_hands)
-    debug(flag13, "    p_data.avatar_clothing_legs: " .. p_data.avatar_clothing_legs)
-    debug(flag13, "    p_data.avatar_clothing_feet: " .. p_data.avatar_clothing_feet)
-
     local fs_data = {}
-
     for _,body_part in ipairs({"eyes", "neck", "chest", "hands", "legs", "feet"}) do
         debug(flag13, "    body_part: " .. body_part)
 
@@ -1085,13 +1159,6 @@ function ss.get_fs_equip_slots(p_data)
         }
         table_insert(fs_data, new_data)
     end
-
-    debug(flag13, "    p_data.avatar_armor_head: " .. p_data.avatar_armor_head)
-    debug(flag13, "    p_data.avatar_armor_face: " .. p_data.avatar_armor_face)
-    debug(flag13, "    p_data.avatar_armor_chest: " .. p_data.avatar_armor_chest)
-    debug(flag13, "    p_data.avatar_armor_arms: " .. p_data.avatar_armor_arms)
-    debug(flag13, "    p_data.avatar_armor_legs: " .. p_data.avatar_armor_legs)
-    debug(flag13, "    p_data.avatar_armor_feet: " .. p_data.avatar_armor_feet)
 
     for _,body_part in ipairs({"head", "face", "chest", "arms", "legs", "feet"}) do
         debug(flag13, "    body_part: " .. body_part)
@@ -1147,24 +1214,6 @@ function ss.get_fs_equipment_buffs(player_name)
     local y_pos = 0.0
     local p_data = player_data[player_name]
 
-    debug(flag12, "    p_data.equip_buff_damage_prev: " .. p_data.equip_buff_damage_prev)
-    debug(flag12, "    p_data.equip_buff_cold_prev: " .. p_data.equip_buff_cold_prev)
-    debug(flag12, "    p_data.equip_buff_heat_prev: " .. p_data.equip_buff_heat_prev)
-    debug(flag12, "    p_data.equip_buff_wetness_prev: " .. p_data.equip_buff_wetness_prev)
-    debug(flag12, "    p_data.equip_buff_disease_prev: " .. p_data.equip_buff_disease_prev)
-    debug(flag12, "    p_data.equip_buff_radiation_prev: " .. p_data.equip_buff_radiation_prev)
-    debug(flag12, "    p_data.equip_buff_noise_prev: " .. p_data.equip_buff_noise_prev)
-    debug(flag12, "    p_data.equip_buff_weight_prev: " .. p_data.equip_buff_weight_prev)
-
-    debug(flag12, "    p_data.equip_buff_damage: " .. p_data.equip_buff_damage)
-    debug(flag12, "    p_data.equip_buff_cold: " .. p_data.equip_buff_cold)
-    debug(flag12, "    p_data.equip_buff_heat: " .. p_data.equip_buff_heat)
-    debug(flag12, "    p_data.equip_buff_wetness: " .. p_data.equip_buff_wetness)
-    debug(flag12, "    p_data.equip_buff_disease: " .. p_data.equip_buff_disease)
-    debug(flag12, "    p_data.equip_buff_radiation: " .. p_data.equip_buff_radiation)
-    debug(flag12, "    p_data.equip_buff_noise: " .. p_data.equip_buff_noise)
-    debug(flag12, "    p_data.equip_buff_weight: " .. p_data.equip_buff_weight)
-
     local damage_value = p_data.equip_buff_damage
     local damage_value_color = "#777777"
     if damage_value > p_data.equip_buff_damage_prev then
@@ -1174,20 +1223,42 @@ function ss.get_fs_equipment_buffs(player_name)
     end
 
     local cold_value = p_data.equip_buff_cold
+    local value_sign_cold = ""
     local cold_value_color = "#777777"
     if cold_value > p_data.equip_buff_cold_prev then
         cold_value_color = p_data.ui_green
     elseif cold_value < p_data.equip_buff_cold_prev then
         cold_value_color = p_data.ui_red
     end
+    if cold_value > 0 then value_sign_cold = "+" end
 
     local heat_value = p_data.equip_buff_heat
     local heat_value_color = "#777777"
+    local value_sign_heat = ""
     if heat_value > p_data.equip_buff_heat_prev then
-        heat_value_color = p_data.ui_green
-    elseif heat_value < p_data.equip_buff_heat_prev then
         heat_value_color = p_data.ui_red
+    elseif heat_value < p_data.equip_buff_heat_prev then
+        heat_value_color = p_data.ui_green
     end
+    if heat_value > 0 then value_sign_heat = "+" end
+
+    local sun_value = p_data.equip_buff_sun
+    local sun_value_color = "#777777"
+    if sun_value > p_data.equip_buff_sun_prev then
+        sun_value_color = p_data.ui_green
+    elseif sun_value < p_data.equip_buff_sun_prev then
+        sun_value_color = p_data.ui_red
+    end
+
+    local water_value = p_data.equip_buff_water
+    local water_value_color = "#777777"
+    local value_sign_water = ""
+    if water_value > p_data.equip_buff_water_prev then
+        water_value_color = p_data.ui_green
+    elseif water_value < p_data.equip_buff_water_prev then
+        water_value_color = p_data.ui_red
+    end
+    if water_value > 0 then value_sign_water = "+" end
 
     local wetness_value = p_data.equip_buff_wetness
     local wetness_value_color = "#777777"
@@ -1205,12 +1276,28 @@ function ss.get_fs_equipment_buffs(player_name)
         disease_value_color = p_data.ui_red
     end
 
+    local electrical_value = p_data.equip_buff_electrical
+    local electrical_value_color = "#777777"
+    if electrical_value > p_data.equip_buff_electrical_prev then
+        electrical_value_color = p_data.ui_green
+    elseif electrical_value < p_data.equip_buff_electrical_prev then
+        electrical_value_color = p_data.ui_red
+    end
+
     local radiation_value = p_data.equip_buff_radiation
     local radiation_value_color = "#777777"
     if radiation_value > p_data.equip_buff_radiation_prev then
         radiation_value_color = p_data.ui_green
     elseif radiation_value < p_data.equip_buff_radiation_prev then
         radiation_value_color = p_data.ui_red
+    end
+
+    local gas_value = p_data.equip_buff_gas
+    local gas_value_color = "#777777"
+    if gas_value > p_data.equip_buff_gas_prev then
+        gas_value_color = "#FF8000"
+    elseif gas_value < p_data.equip_buff_gas_prev then
+        gas_value_color = p_data.ui_green
     end
 
     local noise_value = p_data.equip_buff_noise
@@ -1229,65 +1316,94 @@ function ss.get_fs_equipment_buffs(player_name)
         weight_value_color = p_data.ui_green
     end
 
+    local units = "°F"
+    if p_data.thermal_units == 2 then units = "°C" end
     local fs_output = { table_concat({
-        "box[", 0.2, ",", y_pos + 7.8, ";5.2,2.5;#111111]",
+        "box[", 0.2, ",", y_pos + 7.0, ";5.2,3.3;#111111]",
 
-        "style[equipbuff_damage:hovered;fgimg=ss_ui_equip_buffs_damage2.png]",
-        "image_button[", x_pos + 0.45, ",", y_pos + 8.0, ";0.65,0.65;ss_ui_equip_buffs_damage.png;equipbuff_damage;;true;true;]",
-        "tooltip[", x_pos + 0.45, ",", y_pos + 8.0, ";1.2,0.5;damage protection]",
-        "hypertext[", x_pos + 1.20, ",", y_pos + 8.2, ";2,2;damage_protection;",
-        "<style color=", damage_value_color, " size=15><b>", damage_value, "%</b></style>]",
+        "style[equipbuff_damage:hovered;fgimg=ss_ui_equip_buffs_damage.png]",
+        "image_button[", x_pos + 0.45, ",", y_pos + 7.25, ";0.65,0.65;ss_ui_equip_buffs_damage.png^[hsl:0:-100:0;equipbuff_damage;;true;true;]",
+        "tooltip[", x_pos + 0.45, ",", y_pos + 7.25, ";1.2,0.5;damage protection]",
+        "hypertext[", x_pos + 1.1, ",", y_pos + 7.45, ";2,2;damage_protection;",
+        "<style color=", damage_value_color, " size=14>", damage_value, "%</style>]",
 
-        "style[equipbuff_cold:hovered;fgimg=ss_ui_equip_buffs_cold2.png]",
-        "image_button[", x_pos + 2.15, ",", y_pos + 8.0, ";0.65,0.65;ss_ui_equip_buffs_cold.png;equipbuff_cold;;true;true;]",
-        "tooltip[", x_pos + 2.15, ",", y_pos + 8.0, ";1.2,0.5;cold protection]",
-        "hypertext[", x_pos + 2.9, ",", y_pos + 8.2, ";2,2;cold_protection;",
-        "<style color=", cold_value_color, " size=15><b>", cold_value, "%</b></style>]",
+        "style[equipbuff_cold:hovered;fgimg=ss_ui_equip_buffs_cold.png]",
+        "image_button[", x_pos + 2.15, ",", y_pos + 7.25, ";0.65,0.65;ss_ui_equip_buffs_cold.png^[hsl:0:-100:0;equipbuff_cold;;true;true;]",
+        "tooltip[", x_pos + 2.15, ",", y_pos + 7.25, ";1.2,0.5;cold weather factor]",
+        "hypertext[", x_pos + 2.8, ",", y_pos + 7.45, ";2,2;cold_protection;",
+        "<style color=", cold_value_color, " size=14>", value_sign_cold, cold_value, units, "</style>]",
 
-        "style[equipbuff_heat:hovered;fgimg=ss_ui_equip_buffs_heat2.png]",
-        "image_button[", x_pos + 3.85, ",", y_pos + 8.0, ";0.65,0.65;ss_ui_equip_buffs_heat.png;equipbuff_heat;;true;true;]",
-        "tooltip[", x_pos + 3.85, ",", y_pos + 8.0, ";1.2,0.5;heat protection]",
-        "hypertext[", x_pos + 4.6, ",", y_pos + 8.2, ";2,2;heat_protection;",
-        "<style color=", heat_value_color, " size=15><b>", heat_value, "%</b></style>]",
+        "style[equipbuff_heat:hovered;fgimg=ss_ui_equip_buffs_heat.png]",
+        "image_button[", x_pos + 3.85, ",", y_pos + 7.25, ";0.65,0.65;ss_ui_equip_buffs_heat.png^[hsl:0:-100:0;equipbuff_heat;;true;true;]",
+        "tooltip[", x_pos + 3.85, ",", y_pos + 7.25, ";1.2,0.5;hot weather factor]",
+        "hypertext[", x_pos + 4.5, ",", y_pos + 7.45, ";2,2;heat_protection;",
+        "<style color=", heat_value_color, " size=14>", value_sign_heat, heat_value, units, "</style>]",
 
-        "style[equipbuff_wetness:hovered;fgimg=ss_ui_equip_buffs_wetness2.png]",
-        "image_button[", x_pos + 0.45, ",", y_pos + 8.7, ";0.65,0.65;ss_ui_equip_buffs_wetness.png;equipbuff_wetness;;true;true;]",
-        "tooltip[", x_pos + 0.45, ",", y_pos + 8.70, ";1.2,0.5;wetness protection]",
-        "hypertext[", x_pos + 1.2, ",", y_pos + 8.9, ";2,2;wetness_protection;",
-        "<style color=", wetness_value_color, " size=15><b>", wetness_value, "%</b></style>]",
+        "style[equipbuff_wetness:hovered;fgimg=ss_ui_equip_buffs_wetness.png]",
+        "image_button[", x_pos + 0.45, ",", y_pos + 8.0, ";0.65,0.65;ss_ui_equip_buffs_wetness.png^[hsl:0:-100:0;equipbuff_wetness;;true;true;]",
+        "tooltip[", x_pos + 0.45, ",", y_pos + 8.0, ";1.2,0.5;wetness protection]",
+        "hypertext[", x_pos + 1.1, ",", y_pos + 8.2, ";2,2;wetness_protection;",
+        "<style color=", wetness_value_color, " size=14>", wetness_value, "%</style>]",
 
-        "style[equipbuff_disease:hovered;fgimg=ss_ui_equip_buffs_disease2.png]",
-        "image_button[", x_pos + 2.15, ",", y_pos + 8.7, ";0.65,0.65;ss_ui_equip_buffs_disease.png;equipbuff_disease;;true;true;]",
-        "tooltip[", x_pos + 2.15, ",", y_pos + 8.70, ";1.2,0.5;disease protection]",
-        "hypertext[", x_pos + 2.9, ",", y_pos + 8.9, ";2,2;disease_protection;",
-        "<style color=", disease_value_color, " size=15><b>", disease_value, "%</b></style>]",
+        "style[equipbuff_water:hovered;fgimg=ss_ui_equip_buffs_water.png]",
+        "image_button[", x_pos + 2.15, ",", y_pos + 8.0, ";0.65,0.65;ss_ui_equip_buffs_water.png^[hsl:0:-100:0;equipbuff_water;;true;true;]",
+        "tooltip[", x_pos + 2.15, ",", y_pos + 8.0, ";1.2,0.5;water temperature factor]",
+        "hypertext[", x_pos + 2.8, ",", y_pos + 8.2, ";2,2;water_protection;",
+        "<style color=", water_value_color, " size=14>", value_sign_water, water_value, units, "</style>]",
 
-        "style[equipbuff_radiation:hovered;fgimg=ss_ui_equip_buffs_radiation2.png]",
-        "image_button[", x_pos + 3.85, ",", y_pos + 8.7, ";0.65,0.65;ss_ui_equip_buffs_radiation.png;equipbuff_radiation;;true;true;]",
-        "tooltip[", x_pos + 3.85, ",", y_pos + 8.70, ";1.2,0.5;radiation protection]",
-        "hypertext[", x_pos + 4.6, ",", y_pos + 8.9, ";2,2;radiation_protection;",
-        "<style color=", radiation_value_color, " size=15><b>", radiation_value, "%</b></style>]",
+        "style[equipbuff_sun:hovered;fgimg=ss_ui_equip_buffs_sun.png]",
+        "image_button[", x_pos + 3.85, ",", y_pos + 8.0, ";0.65,0.65;ss_ui_equip_buffs_sun.png^[hsl:0:-100:0;equipbuff_sun;;true;true;]",
+        "tooltip[", x_pos + 3.85, ",", y_pos + 8.0, ";1.2,0.5;sun protection]",
+        "hypertext[", x_pos + 4.5, ",", y_pos + 8.2, ";2,2;sun_protection;",
+        "<style color=", sun_value_color, " size=14>", sun_value, "%</style>]",
 
-        "style[equipbuff_noise:hovered;fgimg=ss_ui_equip_buffs_noise2.png]",
-        "image_button[", x_pos + 0.45, ",", y_pos + 9.4, ";0.65,0.65;ss_ui_equip_buffs_noise.png;equipbuff_noise;;true;true;]",
-        "tooltip[", x_pos + 0.45, ",", y_pos + 9.40, ";1.2,0.5;noise level]",
-        "hypertext[", x_pos + 1.2, ",", y_pos + 9.6, ";2,2;noise_level;",
-        "<style color=", noise_value_color, " size=15><b>", noise_value, "dB</b></style>]",
+        "style[equipbuff_disease:hovered;fgimg=ss_ui_equip_buffs_disease.png]",
+        "image_button[", x_pos + 0.45, ",", y_pos + 8.75, ";0.65,0.65;ss_ui_equip_buffs_disease.png^[hsl:0:-100:0;equipbuff_disease;;true;true;]",
+        "tooltip[", x_pos + 0.45, ",", y_pos + 8.75, ";1.2,0.5;disease protection]",
+        "hypertext[", x_pos + 1.1, ",", y_pos + 8.95, ";2,2;disease_protection;",
+        "<style color=", disease_value_color, " size=14>", disease_value, "%</style>]",
 
-        "style[equipbuff_weight:hovered;fgimg=ss_ui_equip_buffs_weight2.png]",
-        "image_button[", x_pos + 2.15, ",", y_pos + 9.4, ";0.65,0.65;ss_ui_equip_buffs_weight.png;equipbuff_weight;;true;true;]",
-        "tooltip[", x_pos + 2.15, ",", y_pos + 9.40, ";1.2,0.5;weight total]",
-        "hypertext[", x_pos + 2.9, ",", y_pos + 9.6, ";2,2;weight_total;",
-        "<style color=", weight_value_color, " size=15><b>", weight_value, "</b></style>]",
+        "style[equipbuff_electrical:hovered;fgimg=ss_ui_equip_buffs_electrical.png]",
+        "image_button[", x_pos + 2.15, ",", y_pos + 8.75, ";0.65,0.65;ss_ui_equip_buffs_electrical.png^[hsl:0:-100:0;equipbuff_electrical;;true;true;]",
+        "tooltip[", x_pos + 2.15, ",", y_pos + 8.75, ";1.2,0.5;electrical protection]",
+        "hypertext[", x_pos + 2.8, ",", y_pos + 8.95, ";2,2;electrical_protection;",
+        "<style color=", electrical_value_color, " size=14>", electrical_value, "%</style>]",
 
+        "style[equipbuff_radiation:hovered;fgimg=ss_ui_equip_buffs_radiation.png]",
+        "image_button[", x_pos + 3.85, ",", y_pos + 8.75, ";0.65,0.65;ss_ui_equip_buffs_radiation.png^[hsl:0:-100:0;equipbuff_radiation;;true;true;]",
+        "tooltip[", x_pos + 3.85, ",", y_pos + 8.75, ";1.2,0.5;radiation protection]",
+        "hypertext[", x_pos + 4.5, ",", y_pos + 8.95, ";2,2;radiation_protection;",
+        "<style color=", radiation_value_color, " size=14>", radiation_value, "%</style>]",
+
+        "style[equipbuff_gas:hovered;fgimg=ss_ui_equip_buffs_gas.png]",
+        "image_button[", x_pos + 0.45, ",", y_pos + 9.5, ";0.65,0.65;ss_ui_equip_buffs_gas.png^[hsl:0:-100:0;equipbuff_gas;;true;true;]",
+        "tooltip[", x_pos + 0.45, ",", y_pos + 9.5, ";1.2,0.5;gas protection]",
+        "hypertext[", x_pos + 1.1, ",", y_pos + 9.7, ";2,2;gas_level;",
+        "<style color=", gas_value_color, " size=14>", gas_value, "%</style>]",
+
+        "style[equipbuff_noise:hovered;fgimg=ss_ui_equip_buffs_noise.png]",
+        "image_button[", x_pos + 2.15, ",", y_pos + 9.5, ";0.65,0.65;ss_ui_equip_buffs_noise.png^[hsl:0:-100:0;equipbuff_noise;;true;true;]",
+        "tooltip[", x_pos + 2.15, ",", y_pos + 9.5, ";1.2,0.5;noise level]",
+        "hypertext[", x_pos + 2.8, ",", y_pos + 9.7, ";2,2;noise_level;",
+        "<style color=", noise_value_color, " size=14>", noise_value, "dB</style>]",
+
+        "style[equipbuff_weight:hovered;fgimg=ss_ui_equip_buffs_weight.png]",
+        "image_button[", x_pos + 3.85, ",", y_pos + 9.5, ";0.65,0.65;ss_ui_equip_buffs_weight.png^[hsl:0:-100:0;equipbuff_weight;;true;true;]",
+        "tooltip[", x_pos + 3.85, ",", y_pos + 9.5, ";1.2,0.5;weight total]",
+        "hypertext[", x_pos + 4.5, ",", y_pos + 9.7, ";2,2;weight_total;",
+        "<style color=", weight_value_color, " size=14>", weight_value, "</style>]",
     })}
 
     p_data.equip_buff_damage_prev = damage_value
     p_data.equip_buff_cold_prev = cold_value
     p_data.equip_buff_heat_prev = heat_value
+    p_data.equip_buff_sun_prev = sun_value
+    p_data.equip_buff_water_prev = water_value
     p_data.equip_buff_wetness_prev = wetness_value
     p_data.equip_buff_disease_prev = disease_value
+    p_data.equip_buff_electrical_prev = electrical_value
     p_data.equip_buff_radiation_prev = radiation_value
+    p_data.equip_buff_gas_prev = gas_value
     p_data.equip_buff_noise_prev = noise_value
     p_data.equip_buff_weight_prev = weight_value
 
@@ -1334,17 +1450,13 @@ local flag16 = false
 --- @param player_meta MetaDataRef used to access the meta data 'inventory_weight'
 function ss.update_fs_weight(player, player_meta)
     debug(flag16, "  update_fs_weight()")
-    if not player:is_player() then
-        debug(flag16, "    player no longer exists. function skipped.")
-        return
-    end
+    after_player_check(player)
     local fs = player_data[player:get_player_name()].fs
     fs.center.weight = get_fs_weight(player)
     player_meta:set_string("fs", mt_serialize(fs))
     player:set_inventory_formspec(build_fs(fs))
     debug(flag16, "  update_fs_weight() end")
 end
-
 
 
 local flag14 = false
@@ -1466,131 +1578,70 @@ function ss.update_player_physics(player, property_names)
 	local p_data = player_data[player_name]
 	local physics = player:get_physics_override()
 
-	for i, property_name in ipairs(property_names) do
+    local curr_state = p_data.current_anim_state
+    --debug(flag7, "    curr_state: " .. curr_state)
 
-		if property_name == "speed" then
-			physics.speed = p_data.speed_walk_current
-				* p_data.speed_buff_weight
-				* p_data.speed_buff_crouch
-				* p_data.speed_buff_run
-				* p_data.speed_buff_exhaustion
+    if property_names.speed then
+        local subskill_mod_walk = 1
+        local subskill_mod_run = 1
+        local subskill_mod_crouch = 1
 
-			debug(flag7, table_concat({
-				"    new_speed(", physics.speed,
-				") = curr_speed(", p_data.speed_walk_current,
-				") * weight(", p_data.speed_buff_weight,
-				") * crouch(", p_data.speed_buff_crouch,
-				") * run(", p_data.speed_buff_run,
-				") * exhaustion(", p_data.speed_buff_exhaustion,")"
-			}))
+        if string_find(curr_state, "crouch_walk") then
+            subskill_mod_crouch = p_data.speed_mod_creeper
+        elseif string_find(curr_state, "crouch_run") then
+            subskill_mod_run = p_data.speed_mod_sprinter
+            subskill_mod_crouch = p_data.speed_mod_creeper
+        elseif string_find(curr_state, "crouch") then
+            subskill_mod_crouch = p_data.speed_mod_creeper
+        elseif string_find(curr_state, "stand") then
+            subskill_mod_walk = p_data.speed_mod_speed_walker
+        elseif string_find(curr_state, "walk") then
+            subskill_mod_walk = p_data.speed_mod_speed_walker
+        elseif string_find(curr_state, "run") then
+            subskill_mod_run = p_data.speed_mod_sprinter
+        else
+            debug(flag7, "    ERROR - Unexpected 'curr_state' value: " .. curr_state)
+        end
 
-		elseif property_name == "jump" then
-			physics.jump = p_data.jump_height_current
-				* p_data.jump_buff_weight
-				* p_data.jump_buff_crouch
-				* p_data.jump_buff_run
-				* p_data.jump_buff_exhaustion
+        local weight_buff_delta = 1 - p_data.speed_buff_weight
+        local new_weight_buff = weight_buff_delta * (2 - p_data.speed_mod_cargo_tank)
+        local speed_buff_weight = 1 - new_weight_buff
 
-			debug(flag7, table_concat({"    new_jump(", physics.jump,
-				")  = curr_jump(", p_data.jump_height_current,
-				") * weight(", p_data.jump_buff_weight,
-				") * crouch(", p_data.jump_buff_crouch,
-				") * run(", p_data.jump_buff_run,
-				") * exhaustion(", p_data.jump_buff_exhaustion,")"
-			}))
+        physics.speed = p_data.speed_walk_current * subskill_mod_walk
+            * speed_buff_weight
+            * p_data.speed_buff_crouch * subskill_mod_crouch
+            * p_data.speed_buff_run * subskill_mod_run
+            * p_data.speed_buff_exhaustion
+            * p_data.speed_buff_illness
+            * p_data.speed_buff_poison
+            * p_data.speed_buff_vomit
+            * p_data.speed_buff_sneeze
+            * p_data.speed_buff_cough
+            * p_data.speed_buff_legs
+    end
 
-		else
-			debug(flag7, "  ERROR - Unknown 'property_name' value: " .. property_name)
-		end
-	end
+    if property_names.jump then
+        local weight_buff_delta = 1 - p_data.jump_buff_weight
+        local new_weight_buff = weight_buff_delta * (2 - p_data.jump_mod_bulk_bouncer)
+        local jump_buff_weight = 1 - new_weight_buff
+
+        physics.jump = p_data.jump_height_current
+            --* p_data.jump_buff_weight
+            * jump_buff_weight
+            * p_data.jump_buff_crouch
+            * p_data.jump_buff_run
+            * p_data.jump_buff_exhaustion
+            * p_data.jump_buff_illness
+            * p_data.jump_buff_poison
+            * p_data.jump_buff_vomit
+            * p_data.jump_buff_sneeze
+            * p_data.jump_buff_cough
+            * p_data.jump_buff_legs
+            * p_data.jump_mod_launchitude
+    end
 
 	player:set_physics_override(physics)
 	debug(flag7, "  ss.update_player_physics() end")
-end
-
-
-local flag22 = false
-local function try_noise(player, player_meta, source)
-    debug(flag22, "start_noise()")
-    if not player:is_player() then
-        debug(flag22, "  player no longer exists. function skipped.")
-        return
-    end
-
-    debug(flag22, "  source: " .. source)
-
-    local player_name = player:get_player_name()
-    local p_data = player_data[player_name]
-
-    if p_data.player_vocalizing then
-        debug(flag22, "  a stat effect sound currently active. skipping try_noise()")
-        debug(flag22, "start_noise() end")
-        return
-    end
-
-    local noise_factor
-    local random_num = math_random(1, 100)
-    --random_num = 1 -- for testing purposes
-
-    debug(flag22, "  random_num: " .. random_num)
-    if source == "ingest" then
-        noise_factor = p_data.noise_chance_choke
-        debug(flag22, "  noise_factor: " .. noise_factor)
-        if random_num <= noise_factor then
-            local filename = "ss_noise_cough_" .. p_data.body_type
-            debug(flag22, "  filename: " .. filename)
-            mt_after(
-                1,
-                play_sound,
-                "body_noise",
-                {sound_file = filename, duration = 2, player = player, p_data = p_data}
-            )
-            mt_after(3, try_noise, player, player_meta, "stress")
-        end
-
-    elseif source == "plants" then
-        noise_factor = p_data.noise_chance_sneeze_plants
-        debug(flag22, "  noise_factor: " .. noise_factor)
-        if random_num <= noise_factor then
-            local filename = "ss_noise_sneeze_" .. p_data.body_type
-            debug(flag22, "  filename: " .. filename)
-            mt_after(
-                1, play_sound,
-                "body_noise",
-                {sound_file = filename, duration = 0.5, player = player, p_data = p_data}
-            )
-            mt_after(3, try_noise, player, player_meta, "stress")
-        end
-
-    elseif source == "dust" then
-        noise_factor = p_data.noise_chance_sneeze_dust
-        debug(flag22, "  noise_factor: " .. noise_factor)
-        if random_num <= noise_factor then
-            local filename = "ss_noise_sneeze_" .. p_data.body_type
-            debug(flag22, "  filename: " .. filename)
-            mt_after(
-                1,
-                play_sound,
-                "body_noise",
-                {sound_file = filename, duration = 0.5, player = player, p_data = p_data}
-            )
-            mt_after(3, try_noise, player, player_meta, "stress")
-        end
-
-    elseif source == "stress" then
-        noise_factor = p_data.noise_chance_hickups
-        debug(flag22, "  noise_factor: " .. noise_factor)
-        if random_num <= noise_factor then
-            notify(player, "* hiccup *", 2, 0, 0, 2)
-        end
-    end
-
-    debug(flag22, "start_noise() end")
-end
-
--- global wrapper to keep try_noise() as a local function for speed
-function ss.start_try_noise(player, player_meta, source)
-    try_noise(player, player_meta, source)
 end
 
 
@@ -1654,7 +1705,6 @@ function ss.get_item_burn_time(item)
     debug(flag5, "    get_item_burn_time() END")
     return item_burn_time, is_reduced
 end
-
 
 
 

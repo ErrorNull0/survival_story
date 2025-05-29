@@ -1,0 +1,80 @@
+
+
+### STATS WITH STAT BARS
+
+health
+color=C00000, start=100, max=100, base=100, rate=0.01
+1="", 2="", 3="dead"
+
+### thirst 'rate' is 50/3600, deplete 50% of total thirst over 3600 seconds (or 1 hour)
+thirst
+color=0080C0, start=100, max=100, base=0, rate=0.013889
+1="", 2="", 3="dehydrated"
+
+### hunger 'rate' is 25/3600, deplete 25% of total hunger over 3600 seconds (or 1 hour)
+hunger
+color=C08000, start=100, max=100, base=0, rate=0.006944
+1="", 2="", 3="starving"
+
+### alertness 'rate' is 100/3600, deplete 100% of total alertness over 3600 seconds (or 1 hour)
+alertness
+color=9F51B6, start=100, max=100, base=0, rate=0.027778
+1="", 2="", 3="sleepy"
+
+### hygiene 'rate' is 25/3600, deplete 25% of total hygiene over 3600 seconds (or 1 hour)
+hygiene
+color=51bfc0, start=100, max=100, base=0, rate=0.006944
+1="", 2="", 3="filthy"
+
+comfort
+color=906f25, start=100, max=100, base=80, rate=0.01
+1="", 2="", 3="uncomfortable"
+
+immunity
+color=CCFFFF, start=100, max=100, base=80, rate=0.01
+1="", 2="", 3="sickly"
+
+sanity
+color=E15079, start=100, max=100, base=80, rate=0.01
+1="", 2="", 3="psychotic"
+
+happiness
+color=d2c023, start=100, max=100, base=80, rate=0.01
+1="", 2="", 3="depressed"
+
+breath
+color=FFFFFF, start=100, max=100, base=-1, rate=-1
+1="", 2="", 3="suffocating"
+
+stamina
+color=00C000, start=100, max=100, base=-1, rate=-1
+1="", 2="", 3="exhuasted"
+
+experience
+color=6551b6, start=0, max=100, base=-1, rate=-1
+1="", 2="", 3=""
+
+### weight max=0 is dummy value, actual value is set during game startup
+weight
+color=C0C000, start=0, max=0, base=-1, rate=-1
+1="", 2="", 3="too heavy"
+
+
+### STATS WITH NO STAT BARS
+### color of '000000' is a dummy value as data is never used
+
+legs
+color=000000, start=100, max=100, base=100, rate=0.01
+1="sore leg", 2="sprained leg", 3="broken leg", 4="splinted sprained leg", 5="splinted broken leg", 6="casted broken leg"
+
+hands
+color=000000, start=100, max=100, base=100, rate=0.01
+1="sore hand", 2="sprained hand", 3="broken hand", 4="splinted sprained hand", 5="splinted broken hand", 6="casted broken hand"
+
+illness
+color=000000, start=0, max=100, base=0, rate=0.01
+1="ill with cold", 2="ill with flu", 3="ill with pneumonia"
+
+poison
+color=000000, start=0, max=100, base=0, rate=0.01
+1="stomach ache", 2="nausea", 3="dysentery"
